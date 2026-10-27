@@ -1,0 +1,17 @@
+# Generated files and third-party sources are outside the shared C/C++ profile.
+build/**
+build-*/**
+out/**
+packages/**
+scratch/**
+third_party/**
+**/generated/**
+**/.vs/**
+**/.idea/**
+**/CMakeFiles/**
+**/out/**
+**/obj/**
+**/debug/**
+**/release/**
+**/x64/**
+**/win32/**

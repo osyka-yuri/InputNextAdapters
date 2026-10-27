@@ -1,0 +1,259 @@
+{
+  "version": 12,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 4,
+    "patch": 4
+  },
+  "configurePresets": [
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "environment": {
+        "VSLANG": "1033"
+      },
+      "warnings": {
+        "author": true
+      },
+      "errors": {
+        "author": true
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64",
+      "displayName": "MSVC x64 Tests",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "64",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64-quality",
+      "displayName": "MSVC x64 Tests with clang-tidy",
+      "inherits": "msvc-x64",
+      "cacheVariables": {
+        "INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86",
+      "displayName": "MSVC x86 Tests",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "32",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x86-release",
+      "displayName": "MSVC x86 Release",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Release",
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "32",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF",
+        "INPUTNEXTADAPTERS_PRODUCTION": "ON"
+      }
+    },
+    {
+      "name": "clang-cl-x64",
+      "displayName": "clang-cl x64 Tests",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "64",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64-release",
+      "displayName": "MSVC x64 Release",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Release",
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "64",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF",
+        "INPUTNEXTADAPTERS_PRODUCTION": "ON"
+      }
+    },
+    {
+      "name": "msvc-x64-asan",
+      "displayName": "MSVC x64 AddressSanitizer Tests",
+      "inherits": "msvc-x64",
+      "cacheVariables": {
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "clang-cl-x64-ubsan",
+      "displayName": "clang-cl x64 UndefinedBehaviorSanitizer Tests",
+      "inherits": "clang-cl-x64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "ON",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64-analysis",
+      "displayName": "MSVC x64 /analyze Tests",
+      "inherits": "msvc-x64",
+      "cacheVariables": {
+        "INPUTNEXTADAPTERS_ENABLE_ASAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_UBSAN": "OFF",
+        "INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-x64",
+      "configurePreset": "msvc-x64"
+    },
+    {
+      "name": "msvc-x64-quality",
+      "configurePreset": "msvc-x64-quality"
+    },
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86"
+    },
+    {
+      "name": "msvc-x86-release",
+      "configurePreset": "msvc-x86-release"
+    },
+    {
+      "name": "clang-cl-x64",
+      "configurePreset": "clang-cl-x64"
+    },
+    {
+      "name": "msvc-x64-release",
+      "configurePreset": "msvc-x64-release"
+    },
+    {
+      "name": "msvc-x64-asan",
+      "configurePreset": "msvc-x64-asan"
+    },
+    {
+      "name": "clang-cl-x64-ubsan",
+      "configurePreset": "clang-cl-x64-ubsan"
+    },
+    {
+      "name": "msvc-x64-analysis",
+      "configurePreset": "msvc-x64-analysis"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "msvc-x64",
+      "configurePreset": "msvc-x64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-quality",
+      "configurePreset": "msvc-x64-quality",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "clang-cl-x64",
+      "configurePreset": "clang-cl-x64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-asan",
+      "configurePreset": "msvc-x64-asan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "clang-cl-x64-ubsan",
+      "configurePreset": "clang-cl-x64-ubsan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-analysis",
+      "configurePreset": "msvc-x64-analysis",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

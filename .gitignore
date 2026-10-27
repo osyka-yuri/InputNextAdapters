@@ -1,0 +1,32 @@
+# Build directories
+/build*/
+/target/
+/out*/
+/cmake-build-*/
+/adapters/*/build*/
+/adapters/*/out*/
+/adapters/*/cmake-build-*/
+*.rs.bk
+
+# Compiler and linker outputs
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+*.exp
+*.lib
+*.dll
+*.exe
+
+# Visual Studio / IDEs
+.vs/
+.vscode/
+.idea/
+CMakeUserPresets.json
+compile_commands.json
+*.user
+*.suo
+*.swp
+*.swo
+*~

@@ -1,0 +1,26 @@
+InputNext Core and Effects SDK headers
+
+The canonical InputNext Core and Effects ABI headers are included under
+third_party/inputnext/include. Their paths and SHA-256 hashes are recorded in
+third_party/inputnext/manifest.json. Source references are informational;
+third_party/inputnext/UPSTREAM.md describes the source and update procedure.
+The applicable MIT license is included at third_party/inputnext/LICENSE.
+
+Optional Skyrim SE/AE native plugin
+
+The independent project adapters/skyrim_se links CommonLibSSE-NG and other
+dependencies. Its exact license texts, source pins and binary distribution
+requirements are in adapters/skyrim_se/THIRD_PARTY_NOTICES.
+The runtime-client library itself has no dependency on CommonLibSSE-NG.
+
+Optional Skyrim Classic/LE native plugin
+
+The independent project adapters/skyrim_le uses selected SKSE 1.7.3 support
+sources. Source terms, preparation, and private patches are described in
+adapters/skyrim_le/THIRD_PARTY_NOTICES and adapters/skyrim_le/cmake/SKSE-PATCHES.md.
+
+Optional Fallout 4 native plugin
+
+The independent project adapters/fallout4 links CommonLibF4, commonlib-shared,
+and spdlog. Source pins, license texts, and distribution requirements are in
+adapters/fallout4/THIRD_PARTY_NOTICES.

@@ -1,0 +1,15 @@
+{
+  "revision": "99838c96c015ad74168cf7998ea9f6006210fd6d",
+  "headers": [
+    {
+      "path": "sdk/input_next_core.h",
+      "vendored_path": "third_party/inputnext/include/input_next_core.h",
+      "sha256": "d561b0304ad6628e627c338db3d0626be3f7c90f8cedbaa5cbb3cede63be57c5"
+    },
+    {
+      "path": "sdk/input_next_effects.h",
+      "vendored_path": "third_party/inputnext/include/input_next_effects.h",
+      "sha256": "3f5b18fd35db13e75288892e6211ad3b59d94ed6276f80a52dbae2132b4e603c"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+set(fixture_targets)
+include("${PROJECT_SOURCE_DIR}/cmake/InputNextCatch2.cmake")
+add_subdirectory(harness)
+add_subdirectory(contract/sdk_layout)
+add_subdirectory(cpp/unit/case_runner)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/RegisterCases.cmake")
