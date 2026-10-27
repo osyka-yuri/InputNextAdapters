@@ -67,3 +67,5 @@ set(_inputnext_runtime_fixture_arguments
 
 add_subdirectory(cpp/unit/runtime_client)
 add_subdirectory(cpp/integration/runtime_client)
+
+add_subdirectory(cpp/unit/effects)

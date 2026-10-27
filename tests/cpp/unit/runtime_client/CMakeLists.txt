@@ -11,6 +11,7 @@ target_include_directories(inputnext_adapters_runtime_client_unit_tests PRIVATE
 target_link_libraries(inputnext_adapters_runtime_client_unit_tests PRIVATE
     Catch2::Catch2WithMain
     InputNextAdapters::runtime_client
+    InputNextAdapters::effects
 )
 inputnext_configure_target(inputnext_adapters_runtime_client_unit_tests)
 

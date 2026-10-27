@@ -55,6 +55,24 @@ set_target_properties(inputnext_adapters_runtime_client PROPERTIES
     COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/symbols/$<CONFIG>"
 )
 
+add_library(inputnext_adapters_effects STATIC
+    src/body_program.cpp
+    src/body_pcm.cpp
+    src/audio_haptic_profile.cpp
+)
+set_target_properties(inputnext_adapters_effects PROPERTIES EXPORT_NAME effects)
+add_library(InputNextAdapters::effects ALIAS inputnext_adapters_effects)
+target_include_directories(inputnext_adapters_effects PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_link_libraries(inputnext_adapters_effects PUBLIC InputNextAdapters::runtime_client)
+inputnext_configure_target(inputnext_adapters_effects PRODUCTION)
+set_target_properties(inputnext_adapters_effects PROPERTIES
+    COMPILE_PDB_NAME "InputNextAdapters-effects"
+    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/symbols/$<CONFIG>"
+)
+
 if(INPUTNEXTADAPTERS_BUILD_TESTS)
     if(NOT CMAKE_C_COMPILER AND "$ENV{CC}" STREQUAL "")
         set(CMAKE_C_COMPILER "${CMAKE_CXX_COMPILER}")
