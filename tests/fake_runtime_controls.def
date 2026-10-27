@@ -1,0 +1,3 @@
+EXPORTS
+    inputnext_test_reset
+    inputnext_test_get_state

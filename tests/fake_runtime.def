@@ -1,0 +1,4 @@
+EXPORTS
+    input_next_runtime_query_effects_api
+    inputnext_test_reset
+    inputnext_test_get_state

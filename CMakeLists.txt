@@ -31,6 +31,30 @@ endif()
 
 inputnext_prepare_production_configuration()
 
+add_library(inputnext_adapters_runtime_client STATIC
+    src/runtime_client/connection.cpp
+    src/runtime_client/effects.cpp
+    src/runtime_client/request.cpp
+)
+set_target_properties(inputnext_adapters_runtime_client PROPERTIES
+    EXPORT_NAME runtime_client
+)
+add_library(InputNextAdapters::runtime_client ALIAS inputnext_adapters_runtime_client)
+
+target_include_directories(inputnext_adapters_runtime_client
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/inputnext/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/inputnext_adapters/sdk>
+)
+
+inputnext_configure_target(inputnext_adapters_runtime_client PRODUCTION)
+set_target_properties(inputnext_adapters_runtime_client PROPERTIES
+    COMPILE_PDB_NAME "InputNextAdapters-runtime-client"
+    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/symbols/$<CONFIG>"
+)
+
 if(INPUTNEXTADAPTERS_BUILD_TESTS)
     if(NOT CMAKE_C_COMPILER AND "$ENV{CC}" STREQUAL "")
         set(CMAKE_C_COMPILER "${CMAKE_CXX_COMPILER}")
