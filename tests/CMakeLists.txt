@@ -69,3 +69,4 @@ add_subdirectory(cpp/unit/runtime_client)
 add_subdirectory(cpp/integration/runtime_client)
 
 add_subdirectory(cpp/unit/effects)
+add_subdirectory(cpp/unit/led_policy)
