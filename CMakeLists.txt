@@ -59,6 +59,7 @@ add_library(inputnext_adapters_effects STATIC
     src/body_program.cpp
     src/body_pcm.cpp
     src/audio_haptic_profile.cpp
+    src/audio_haptics.cpp
 )
 set_target_properties(inputnext_adapters_effects PROPERTIES EXPORT_NAME effects)
 add_library(InputNextAdapters::effects ALIAS inputnext_adapters_effects)

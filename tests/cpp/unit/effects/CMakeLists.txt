@@ -1,8 +1,11 @@
 add_executable(inputnext_adapters_effects_unit_tests
+    audio_haptics_tests.cpp
     body_program_tests.cpp
 )
 
 target_link_libraries(inputnext_adapters_effects_unit_tests PRIVATE Catch2::Catch2WithMain InputNextAdapters::effects)
+target_compile_definitions(inputnext_adapters_effects_unit_tests PRIVATE
+    "INPUTNEXT_AUDIO_HAPTIC_FIXTURE_DIR=\"${PROJECT_SOURCE_DIR}/tests/fixtures/audio-haptics\"")
 inputnext_configure_target(inputnext_adapters_effects_unit_tests)
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/results")
