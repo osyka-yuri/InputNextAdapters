@@ -2,6 +2,13 @@ add_executable(inputnext_adapters_output_session_tests
     triggers_tests.cpp
     body_delivery_tests.cpp
     context_contract_tests.cpp
+    context_cleanup_tests.cpp
+    context_cleanup_scheduling_tests.cpp
+    rebind_tests.cpp
+    session_isolation_tests.cpp
+    recovery_tests.cpp
+    restriction_tests.cpp
+    status_recovery_tests.cpp
 )
 
 target_include_directories(inputnext_adapters_output_session_tests PRIVATE "${PROJECT_SOURCE_DIR}/tests")
