@@ -70,3 +70,5 @@ add_subdirectory(cpp/integration/runtime_client)
 
 add_subdirectory(cpp/unit/effects)
 add_subdirectory(cpp/unit/led_policy)
+add_subdirectory(cpp/component/effects)
+add_subdirectory(cpp/integration/output_session)

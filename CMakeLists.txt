@@ -61,6 +61,13 @@ add_library(inputnext_adapters_effects STATIC
     src/audio_haptic_profile.cpp
     src/audio_haptics.cpp
     src/led_policy.cpp
+    src/runtime_output.cpp
+    src/output_session/binding.cpp
+    src/output_session/body.cpp
+    src/output_session/cleanup.cpp
+    src/output_session/delivery.cpp
+    src/output_session/leds.cpp
+    src/output_session/triggers.cpp
 )
 set_target_properties(inputnext_adapters_effects PROPERTIES EXPORT_NAME effects)
 add_library(InputNextAdapters::effects ALIAS inputnext_adapters_effects)
