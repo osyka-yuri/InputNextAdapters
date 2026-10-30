@@ -91,3 +91,5 @@ if(INPUTNEXTADAPTERS_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+inputnext_install_package(inputnext_adapters_runtime_client inputnext_adapters_effects)

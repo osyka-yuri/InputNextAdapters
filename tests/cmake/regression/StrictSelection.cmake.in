@@ -1,0 +1,5 @@
+include("@TEST_SOURCE_DIRECTORY@/tests/cmake/VerifyConsumerLogic.cmake")
+resolve_strict_consumer_executable(
+    "@TEST_BUILD_DIRECTORY@" "@TEST_EXECUTABLE@" "@TEST_CONFIGURATION@" selected_executable
+)
+file(WRITE "@TEST_RESULT_FILE@" "${selected_executable}")

@@ -1,0 +1,2 @@
+include("@TEST_SOURCE_DIRECTORY@/tests/cmake/VerifyConsumerLogic.cmake")
+@PREFIX_GUARD_CALL@

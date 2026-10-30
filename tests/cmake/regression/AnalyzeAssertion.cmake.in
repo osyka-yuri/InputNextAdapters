@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 4.4.4)
+if(@TEST_HIDE_NINJA@)
+    set(ENV{PATH} "@TEST_NINJA_UNAVAILABLE_PATH@")
+    set(CMAKE_PROGRAM_PATH "@TEST_NINJA_UNAVAILABLE_PATH@")
+    set(CMAKE_FIND_USE_CMAKE_PATH FALSE)
+    set(CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH FALSE)
+    set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH FALSE)
+    set(CMAKE_FIND_USE_CMAKE_SYSTEM_PATH FALSE)
+    set(CMAKE_FIND_USE_PACKAGE_ROOT_PATH FALSE)
+    find_program(test_ninja_probe NAMES ninja ninja-build)
+    if(test_ninja_probe)
+        message(FATAL_ERROR "The deterministic no-Ninja regression unexpectedly found '${test_ninja_probe}'.")
+    endif()
+endif()
+include("@TEST_SOURCE_DIRECTORY@/tests/cmake/VerifyConsumerLogic.cmake")
+assert_analyze_compile_command(
+    "@TEST_BUILD_DIRECTORY@" "@TEST_SOURCE_PATTERN@" "@TEST_TARGET@" "@TEST_CONFIGURATION@"
+)
