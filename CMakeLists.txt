@@ -10,9 +10,11 @@ include(GNUInstallDirs)
 
 include(cmake/CompilerEligibility.cmake)
 include(cmake/VerifySdkHeader.cmake)
+include(cmake/DependencySources.cmake)
 include(cmake/TargetOptions.cmake)
 include(cmake/Packaging.cmake)
 
+_inputnext_reject_release_source_overrides()
 inputnext_check_compiler()
 inputnext_verify_sdk_header()
 
