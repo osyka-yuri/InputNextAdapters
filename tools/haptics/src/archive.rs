@@ -1,3 +1,4 @@
+use crate::glob::{GlobSet, GlobWork};
 use crate::model::Game;
 use crate::{MAX_ARCHIVE_ENTRIES, MAX_RESOURCE_BYTES, MAX_RESOURCE_PATH_BYTES};
 use anyhow::{Context, Result, bail, ensure};
@@ -104,6 +105,29 @@ impl ResourceStore {
 
     pub fn archive_paths(&self) -> impl Iterator<Item = &Path> {
         self.archive_paths.iter().map(PathBuf::as_path)
+    }
+
+    /// Finds audio resources matching bounded game-path globs.
+    ///
+    /// # Errors
+    /// Returns an error for excessive patterns, resource paths, or cumulative matching work.
+    pub(crate) fn matching(
+        &self,
+        patterns: &[String],
+        work: &mut GlobWork,
+    ) -> Result<Vec<ResourceInfo>> {
+        let mut patterns = GlobSet::parse(patterns)?;
+        let mut matched = Vec::new();
+        for record in self.entries.values() {
+            if !is_audio_path(&record.info.path) {
+                continue;
+            }
+            let found = patterns.matches(&record.info.path, work)?;
+            if found {
+                matched.push(record.info.clone());
+            }
+        }
+        Ok(matched)
     }
 
     /// Reads one selected resource without extracting the archive.
