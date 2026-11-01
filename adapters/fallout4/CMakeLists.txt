@@ -36,6 +36,11 @@ endfunction()
 
 add_library(fallout4_policy STATIC
     src/effect_recipes.cpp
+    src/policy.cpp
+    src/body_voice_mixer.cpp
+    src/landing_detector.cpp
+    src/resource_cue_tracker.cpp
+    src/audio_haptics.cpp
 )
 target_include_directories(fallout4_policy PUBLIC include PRIVATE src)
 target_link_libraries(fallout4_policy PUBLIC InputNextAdapters::effects)
@@ -46,5 +51,6 @@ if(INPUTNEXT_FALLOUT4_BUILD_TESTS)
     enable_testing()
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/InputNextCatch2.cmake")
     add_subdirectory(tests/cpp/unit/waveform)
+    add_subdirectory(tests/cpp/component/policy)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../tests/cmake/RegisterCases.cmake")
 endif()

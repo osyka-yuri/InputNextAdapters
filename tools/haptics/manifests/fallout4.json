@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "game": "fallout4",
+  "profiles": [
+    {
+      "section": "Body.PistolShot",
+      "duration_ms": 62,
+      "frequency": 112.0,
+      "second_frequency": 76.0,
+      "mix": 0.23,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/Handmade/PistolRevolverA/WPN_Handmade_RevolverPipeA_Fire_Player_*.wav"
+      ]
+    },
+    {
+      "section": "Body.RifleShot",
+      "duration_ms": 64,
+      "frequency": 86.0,
+      "second_frequency": 132.0,
+      "mix": 0.32,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/Handmade/RiflePipeA/WPN_Handmade_RiflePipeA_Fire_Player_*.wav"
+      ]
+    },
+    {
+      "section": "Body.ShotgunShot",
+      "duration_ms": 74,
+      "frequency": 52.0,
+      "second_frequency": 98.0,
+      "mix": 0.45,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/ShotgunCombat/WPN_ShotgunCombat_Fire_*.wav"
+      ]
+    },
+    {
+      "section": "Body.HeavyShot",
+      "duration_ms": 86,
+      "frequency": 46,
+      "second_frequency": 72,
+      "mix": 0.38,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/RifleHuntingA/WPN_Rifle_HuntingA_Fire_mod50cal_Player_01.wav"
+      ]
+    },
+    {
+      "section": "Body.EnergyShot",
+      "duration_ms": 62,
+      "frequency": 128.0,
+      "second_frequency": 184.0,
+      "mix": 0.34,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/RifleLaser/WPN_Rifle_Laser_Fire_Player_*.wav"
+      ]
+    },
+    {
+      "section": "Body.GenericShot",
+      "duration_ms": 62,
+      "frequency": 94,
+      "second_frequency": 128,
+      "mix": 0.28,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/WPN/Pistol10mm/WPN_Pistol10mm_Fire_2D.wav"
+      ]
+    },
+    {
+      "section": "Body.IncomingHit",
+      "duration_ms": 90,
+      "frequency": 48.0,
+      "second_frequency": 78.0,
+      "mix": 0.4,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/WPN/Impact/WPN_Impact_Generic_LoFi.wav"
+      ]
+    },
+    {
+      "section": "Body.BlockedHit",
+      "duration_ms": 70,
+      "frequency": 142,
+      "second_frequency": 205,
+      "mix": 0.34,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/Block/WPN_Block_Blunt_*.wav"
+      ]
+    },
+    {
+      "section": "Body.ExplosiveHit",
+      "duration_ms": 118,
+      "frequency": 38,
+      "second_frequency": 62,
+      "mix": 0.45,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/FX/Bullet/Impact/FX_Bullet_Explosive_Impact_Flesh_Player_*.xwm",
+        "Sound/FX/FX/Bullet/Impact/FX_Bullet_Explosive_Impact_Flesh_*.xwm"
+      ]
+    },
+    {
+      "section": "Body.OutgoingHit",
+      "duration_ms": 74,
+      "frequency": 104,
+      "second_frequency": 158,
+      "mix": 0.36,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/FX/Bullet/Impact/FX_Bullet_Impact_Flesh_03.xwm"
+      ]
+    },
+    {
+      "section": "Body.CriticalHit",
+      "duration_ms": 68,
+      "frequency": 66,
+      "second_frequency": 188,
+      "mix": 0.48,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/UI/VATS/UI_VATS_CriticalExecuted.xwm"
+      ]
+    },
+    {
+      "section": "Body.PowerAttack",
+      "duration_ms": 72,
+      "frequency": 50,
+      "second_frequency": 92,
+      "mix": 0.4,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/WPN/Impact/BladeMedium/WPN_Impact_Blade_Medium_Flesh_*.wav"
+      ]
+    },
+    {
+      "section": "Body.Bash",
+      "duration_ms": 58,
+      "frequency": 74,
+      "second_frequency": 142,
+      "mix": 0.4,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/WPN/Impact/MeleeGun/WPN_MeleeImpact_GunMedium_Flesh_*.wav"
+      ]
+    },
+    {
+      "section": "Body.PowerArmorStep",
+      "duration_ms": 56,
+      "frequency": 72,
+      "second_frequency": 104,
+      "mix": 0.3,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/FST/ArmorPower/FST_ArmorPower_Dirt_Walk_1st_*.xwm"
+      ]
+    },
+    {
+      "section": "Body.Landing",
+      "duration_ms": 80,
+      "frequency": 54,
+      "second_frequency": 82,
+      "mix": 0.36,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/FST/Dirt/JumpDown/FST_Player_Dirt_JumpDown_*.xwm"
+      ]
+    },
+    {
+      "section": "Body.VatsEnter",
+      "duration_ms": 36,
+      "frequency": 176,
+      "second_frequency": 226,
+      "mix": 0.28,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/UI/VATS/UI_VATS_Enter.xwm"
+      ]
+    },
+    {
+      "section": "Body.VatsExit",
+      "duration_ms": 36,
+      "frequency": 152,
+      "second_frequency": 112,
+      "mix": 0.24,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/UI/VATS/UI_VATS_Exit.xwm"
+      ]
+    },
+    {
+      "section": "Body.HealthWarning",
+      "duration_ms": 60,
+      "frequency": 58,
+      "second_frequency": 92,
+      "mix": 0.42,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/UI/UI_Health_Heartbeat_*_LP.wav"
+      ]
+    },
+    {
+      "section": "Body.ActionPointWarning",
+      "duration_ms": 42,
+      "frequency": 124,
+      "second_frequency": 172,
+      "mix": 0.34,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/UI/VATS/UI_VATS_APLow_On_01.xwm"
+      ]
+    },
+    {
+      "section": "Body.CriticalReady",
+      "duration_ms": 42,
+      "frequency": 160,
+      "second_frequency": 224,
+      "mix": 0.36,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/UI/VATS/UI_VATS_CriticalAvailable.xwm"
+      ]
+    },
+    {
+      "section": "Body.ReloadStart",
+      "duration_ms": 58,
+      "frequency": 102,
+      "second_frequency": 156,
+      "mix": 0.22,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/WPN/Pistol10mm/Reload/WPN_Pistol10mm_Reload_MagOut_*.wav"
+      ]
+    },
+    {
+      "section": "Body.PowerArmorEnter",
+      "duration_ms": 72,
+      "onset_search_ms": 2000,
+      "frequency": 54,
+      "second_frequency": 88,
+      "mix": 0.38,
+      "style": "impact",
+      "sources": [
+        "Sound/FX/NPC/Human/PowerArmor/NPC_Human_PowerArmor_Enter_01.xwm",
+        "Sound/FX/NPC/Human/PowerArmor/NPC_Human_PowerArmor_Enter_Combat_01.xwm"
+      ]
+    },
+    {
+      "section": "Body.PowerArmorExit",
+      "duration_ms": 64,
+      "frequency": 118,
+      "second_frequency": 166,
+      "mix": 0.28,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/NPC/Human/PowerArmor/NPC_Human_PowerArmor_Exit_01.xwm"
+      ]
+    },
+    {
+      "section": "Body.MeleeHit",
+      "duration_ms": 68,
+      "frequency": 72,
+      "second_frequency": 112,
+      "mix": 0.3,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/FX/Melee/PunchMedium/FX_Melee_PunchMedium_*.xwm"
+      ]
+    },
+    {
+      "section": "Body.RotaryShot",
+      "duration_ms": 32,
+      "frequency": 70,
+      "second_frequency": 112,
+      "mix": 0.22,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/WPN/Minigun/WPN_Minigun_Fire_LPM.wav"
+      ]
+    },
+    {
+      "section": "Body.FlameShot",
+      "duration_ms": 40,
+      "frequency": 42,
+      "second_frequency": 76,
+      "mix": 0.24,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/WPN/Flamer/WPN_Flamer_Fire_2D_LPM.wav"
+      ]
+    },
+    {
+      "section": "Body.CryoShot",
+      "duration_ms": 36,
+      "frequency": 150,
+      "second_frequency": 210,
+      "mix": 0.24,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/WPN/Cryolator/WPN_Cryolator_Fire_2D_LPM.wav"
+      ]
+    },
+    {
+      "section": "Body.LauncherShot",
+      "duration_ms": 140,
+      "frequency": 44.0,
+      "second_frequency": 72.0,
+      "mix": 0.3,
+      "style": "recoil",
+      "sources": [
+        "Sound/FX/WPN/LauncherMissile/WPN_LauncherMissile_Fire_2D.wav",
+        "Sound/FX/WPN/FatMan/WPN_FatMan_Fire_2D.wav",
+        "Sound/FX/WPN/Broadsider/WPN_Broadsider_Fire_2D_*.wav"
+      ]
+    },
+    {
+      "section": "Body.OrdinaryStep",
+      "duration_ms": 64,
+      "frequency": 92,
+      "second_frequency": 128,
+      "mix": 0.22,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/FST/Player/Dirt/Walk/**/*.xwm"
+      ]
+    },
+    {
+      "section": "Body.SprintStep",
+      "duration_ms": 56,
+      "frequency": 80,
+      "second_frequency": 120,
+      "mix": 0.24,
+      "style": "resonant",
+      "sources": [
+        "Sound/FX/FST/Player/Dirt/Sprint/*.xwm"
+      ]
+    }
+  ]
+}

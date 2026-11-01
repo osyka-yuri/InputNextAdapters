@@ -57,7 +57,24 @@ set_target_properties(inputnext_adapters_runtime_client PROPERTIES
     COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/symbols/$<CONFIG>"
 )
 
+set(_audio_haptic_builtin_header
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/inputnext_adapters/audio_haptic_builtins.hpp")
+add_custom_command(
+    OUTPUT "${_audio_haptic_builtin_header}"
+    COMMAND "${CMAKE_COMMAND}"
+        "-DINPUT_FALLOUT4=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/fallout4.audiohaptics"
+        "-DOUTPUT_FILE=${_audio_haptic_builtin_header}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAudioHapticBuiltins.cmake"
+    DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/fallout4.audiohaptics"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAudioHapticBuiltins.cmake"
+    VERBATIM
+    COMMENT "Generating built-in audio haptic banks"
+)
+
 add_library(inputnext_adapters_effects STATIC
+    src/audio_haptic_builtins.cpp
+    "${_audio_haptic_builtin_header}"
     src/body_program.cpp
     src/body_pcm.cpp
     src/audio_haptic_profile.cpp
@@ -96,3 +113,5 @@ endif()
 
 inputnext_install_package(inputnext_adapters_runtime_client inputnext_adapters_effects)
 include(cmake/CodeQuality.cmake)
+
+target_include_directories(inputnext_adapters_effects PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")

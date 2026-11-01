@@ -30,6 +30,7 @@ struct AudioHapticBankResult {
     AudioHapticBank bank;
 };
 
+[[nodiscard]] AudioHapticBankResult builtin_audio_haptic_bank(AudioHapticGame game);
 [[nodiscard]] AudioHapticBankResult parse_audio_haptic_bank(std::span<const std::byte> bytes);
 [[nodiscard]] AudioHapticBankResult load_audio_haptic_bank(
     const std::filesystem::path& path) noexcept;
