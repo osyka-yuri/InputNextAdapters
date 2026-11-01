@@ -1,0 +1,39 @@
+add_executable(fallout4_config_file_integration_tests
+    config_file_tests.cpp
+)
+
+target_include_directories(fallout4_config_file_integration_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${InputNextFallout4_SOURCE_DIR}/include"
+    "${InputNextFallout4_SOURCE_DIR}/src"
+)
+
+target_link_libraries(fallout4_config_file_integration_tests PRIVATE
+    Catch2::Catch2WithMain
+    fallout4_config
+)
+
+fallout4_enable_checks(fallout4_config_file_integration_tests)
+
+set(_fallout4_config_fixture_dir "${CMAKE_CURRENT_BINARY_DIR}/config-fixtures")
+file(MAKE_DIRECTORY "${_fallout4_config_fixture_dir}")
+configure_file(
+    "${InputNextFallout4_SOURCE_DIR}/InputNextFallout4.ini"
+    "${_fallout4_config_fixture_dir}/InputNextFallout4.ini"
+    COPYONLY
+)
+configure_file(
+    "${InputNextFallout4_SOURCE_DIR}/InputNextFallout4.reference.ini"
+    "${_fallout4_config_fixture_dir}/InputNextFallout4.reference.ini"
+    COPYONLY
+)
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/results")
+catch_discover_tests(fallout4_config_file_integration_tests
+    ADD_TAGS_AS_LABELS
+    PROPERTIES
+        TIMEOUT 10
+        WORKING_DIRECTORY "${_fallout4_config_fixture_dir}"
+    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/results"
+    OUTPUT_SUFFIX .txt
+)
