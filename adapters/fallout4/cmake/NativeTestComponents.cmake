@@ -4,3 +4,4 @@ endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/Dependencies.cmake")
 add_subdirectory(tests/cpp/component/native_ui_capture)
+add_subdirectory(tests/cpp/component/native_dispatch)
