@@ -46,6 +46,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/regression/VendorOptionsTests.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/regression/ClangTidyConfigTests.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/regression/InputNextPinTests.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/regression/PackageProbeTests.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/regression/CommonLibF4PatchGuardTests.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/regression/SourceBundleTests.cmake")
 
 _regression_reset_sandbox("${sandbox}" "${INPUTNEXTADAPTERS_BINARY_DIR}" FALSE)

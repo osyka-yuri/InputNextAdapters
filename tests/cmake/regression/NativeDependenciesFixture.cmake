@@ -115,4 +115,20 @@ foreach(_product_index RANGE 0 ${_product_count})
     endif()
 endforeach()
 
+inputnext_native_dependency_patch_ids(fallout4 commonlibf4 _patch_ids)
+list(LENGTH _patch_ids _patch_count)
+if(NOT _patch_count EQUAL 1)
+    message(FATAL_ERROR "CommonLibF4 must have exactly one amendment.")
+endif()
+list(GET _patch_ids 0 _patch_id)
+inputnext_native_dependency_patch_metadata(fallout4 commonlibf4 "${_patch_id}" _patch)
+include("${HELPER_SOURCE_DIR}/adapters/fallout4/cmake/CommonLibF4Patches.cmake")
+if(NOT INPUTNEXT_FALLOUT4_COMMONLIBF4_PATCH_ID STREQUAL _patch_ID OR
+   NOT INPUTNEXT_FALLOUT4_COMMONLIBF4_PATCH_PATH STREQUAL _patch_PATH OR
+   NOT INPUTNEXT_FALLOUT4_COMMONLIBF4_PATCH_INPUT_LF STREQUAL _patch_INPUT_lf OR
+   NOT INPUTNEXT_FALLOUT4_COMMONLIBF4_PATCH_INPUT_CRLF STREQUAL _patch_INPUT_crlf OR
+   NOT INPUTNEXT_FALLOUT4_COMMONLIBF4_PATCH_OUTPUT_LF STREQUAL _patch_OUTPUT_lf OR
+   NOT INPUTNEXT_FALLOUT4_COMMONLIBF4_PATCH_OUTPUT_CRLF STREQUAL _patch_OUTPUT_crlf)
+    message(FATAL_ERROR "CommonLibF4 patching does not use the declarative catalog values.")
+endif()
 message(STATUS "Native dependency catalog positive checks passed.")

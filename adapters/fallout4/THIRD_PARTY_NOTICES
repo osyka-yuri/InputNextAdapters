@@ -1,0 +1,28 @@
+CommonLibF4
+  Source: https://github.com/libxse/commonlibf4/tree/7c8c6f8a349ac85abf6fc8a7e5a71732d9339954
+  Revision: 7c8c6f8a349ac85abf6fc8a7e5a71732d9339954
+  License: GPL-3.0-or-later with the Modding Exception and GPL-3.0 Linking Exception
+  License texts: licenses/CommonLibF4-GPL-3.0.txt, licenses/CommonLibF4-EXCEPTIONS.txt
+  The pinned CommonLibF4 revision contains commonlib-shared at the revision below.
+  Local amendment: cmake/CommonLibF4Patches.cmake verifies and adds the existing
+  virtual BSAnimationGraphManager destructor declaration to its SDK header.
+  This avoids synthesizing member destruction from incomplete engine types.
+  No destructor implementation or dependency revision change is included.
+
+commonlib-shared
+  Source: https://github.com/libxse/commonlib-shared/tree/29fbdb0e2dc548c9ab22f6964981d75090dc9094
+  Revision: 29fbdb0e2dc548c9ab22f6964981d75090dc9094
+  License: GPL-3.0-or-later with the Modding Exception and GPL-3.0 Linking Exception
+  License texts: licenses/CommonLibShared-GPL-3.0.txt, licenses/CommonLibShared-EXCEPTIONS.txt
+  Dependency: spdlog v1.17.0, configured for std::format and wide-character support.
+
+spdlog
+  Source: https://github.com/gabime/spdlog/tree/79524ddd08a4ec981b7fea76afd08ee05f83755d
+  Revision: 79524ddd08a4ec981b7fea76afd08ee05f83755d (v1.17.0)
+  License: MIT
+  License text: licenses/spdlog-MIT.txt
+
+CommonLibF4 and commonlib-shared are distributed under GPL-3.0-or-later with
+the exceptions stated above. Their license terms require corresponding source
+for distributed binaries that include these libraries. See the included license
+and exception texts for the full terms and scope.

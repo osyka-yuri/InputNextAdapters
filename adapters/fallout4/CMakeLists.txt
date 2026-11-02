@@ -8,6 +8,7 @@ option(INPUTNEXT_FALLOUT4_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for ow
 option(INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze for owned targets" OFF)
 option(INPUTNEXT_FALLOUT4_ENABLE_CLANG_TIDY "Run clang-tidy for owned targets" OFF)
 
+option(INPUTNEXT_FALLOUT4_BUILD_NATIVE_COMPONENT_TESTS "Build Fallout 4 native component tests without the plugin DLL" OFF)
 
 set(INPUTNEXTADAPTERS_ENABLE_ASAN "${INPUTNEXT_FALLOUT4_ENABLE_ASAN}")
 set(INPUTNEXTADAPTERS_ENABLE_UBSAN "${INPUTNEXT_FALLOUT4_ENABLE_UBSAN}")
@@ -66,5 +67,8 @@ if(INPUTNEXT_FALLOUT4_BUILD_TESTS)
     add_subdirectory(tests/cpp/integration/config_file)
     add_subdirectory(tests/cpp/component/session)
     add_subdirectory(tests/cpp/integration/runtime_package)
+    if(INPUTNEXT_FALLOUT4_BUILD_NATIVE_COMPONENT_TESTS)
+        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/NativeTestComponents.cmake")
+    endif()
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../tests/cmake/RegisterCases.cmake")
 endif()
