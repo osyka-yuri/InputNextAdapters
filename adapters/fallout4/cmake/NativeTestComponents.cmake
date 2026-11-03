@@ -20,3 +20,6 @@ target_link_libraries(fallout4_native_observation PRIVATE
 )
 fallout4_enable_checks(fallout4_native_observation PRODUCTION)
 target_precompile_headers(fallout4_native_observation PRIVATE <F4SE/Impl/PCH.h>)
+add_subdirectory(tests/cpp/component/native_owner)
+add_subdirectory(tests/cpp/unit/native_hit)
+add_subdirectory(tests/cpp/unit/native_led)
