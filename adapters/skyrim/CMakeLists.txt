@@ -21,6 +21,8 @@ if(NOT COMMAND skyrim_enable_checks)
 endif()
 add_library(skyrim_policy STATIC
         src/effect_tuning.cpp
+        src/effect_recipes.cpp
+        src/body_waveform.cpp
 )
 target_include_directories(skyrim_policy PUBLIC include)
 target_link_libraries(skyrim_policy PUBLIC InputNextAdapters::effects)
@@ -30,4 +32,6 @@ if(INPUTNEXT_SKYRIM_BUILD_TESTS)
  enable_testing()
  include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/InputNextCatch2.cmake")
  add_subdirectory(tests/cpp/component/effect_settings)
+ add_subdirectory(tests/cpp/unit/body_waveform)
+ add_subdirectory(tests/cpp/component/body_waveform_equivalence)
 endif()
