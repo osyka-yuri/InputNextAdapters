@@ -1,0 +1,230 @@
+{
+  "version": 12,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 4,
+    "patch": 4
+  },
+  "configurePresets": [
+    {
+      "name": "windows-x64-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../../build/fallout4-${presetName}",
+      "environment": {
+        "VSLANG": "1033"
+      },
+      "warnings": {
+        "author": true
+      },
+      "errors": {
+        "author": true
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "64",
+        "INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_CLANG_TIDY": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64",
+      "displayName": "Fallout 4 MSVC x64 Tests",
+      "inherits": "windows-x64-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "INPUTNEXT_FALLOUT4_BUILD_TESTS": "ON",
+        "INPUTNEXT_FALLOUT4_BUILD_PLUGIN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_ASAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_UBSAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64-native",
+      "displayName": "Fallout 4 MSVC x64 Release Plugin",
+      "inherits": "windows-x64-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Release",
+        "INPUTNEXT_FALLOUT4_BUILD_TESTS": "OFF",
+        "INPUTNEXT_FALLOUT4_BUILD_PLUGIN": "ON",
+        "INPUTNEXT_FALLOUT4_ENABLE_ASAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_UBSAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64-native-quality",
+      "displayName": "Fallout 4 MSVC x64 Release Plugin with clang-tidy",
+      "inherits": "msvc-x64-native",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT4_BUILD_TESTS": "ON",
+        "INPUTNEXT_FALLOUT4_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "msvc-x64-asan",
+      "displayName": "Fallout 4 MSVC x64 AddressSanitizer Tests",
+      "inherits": "msvc-x64",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT4_ENABLE_ASAN": "ON",
+        "INPUTNEXT_FALLOUT4_ENABLE_UBSAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "clang-cl-x64-ubsan",
+      "displayName": "Fallout 4 clang-cl x64 UndefinedBehaviorSanitizer Tests",
+      "inherits": "msvc-x64",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded",
+        "INPUTNEXT_FALLOUT4_ENABLE_ASAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_UBSAN": "ON",
+        "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x64-analysis",
+      "displayName": "Fallout 4 MSVC x64 /analyze Tests",
+      "inherits": "msvc-x64",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT4_ENABLE_ASAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_UBSAN": "OFF",
+        "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "ON"
+      }
+    },
+    {
+      "name": "msvc-x64-native-tests",
+      "inherits": "msvc-x64-native",
+      "displayName": "Fallout 4 MSVC x64 native tests",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT4_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "msvc-x64-native-analysis",
+      "inherits": "msvc-x64-native-tests",
+      "displayName": "Fallout 4 MSVC x64 native /analyze",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-x64",
+      "configurePreset": "msvc-x64"
+    },
+    {
+      "name": "msvc-x64-native",
+      "configurePreset": "msvc-x64-native"
+    },
+    {
+      "name": "msvc-x64-native-quality",
+      "configurePreset": "msvc-x64-native-quality"
+    },
+    {
+      "name": "msvc-x64-asan",
+      "configurePreset": "msvc-x64-asan"
+    },
+    {
+      "name": "clang-cl-x64-ubsan",
+      "configurePreset": "clang-cl-x64-ubsan"
+    },
+    {
+      "name": "msvc-x64-analysis",
+      "configurePreset": "msvc-x64-analysis"
+    },
+    {
+      "name": "msvc-x64-native-tests",
+      "configurePreset": "msvc-x64-native-tests"
+    },
+    {
+      "name": "msvc-x64-native-analysis",
+      "configurePreset": "msvc-x64-native-analysis"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "msvc-x64",
+      "configurePreset": "msvc-x64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-asan",
+      "configurePreset": "msvc-x64-asan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "clang-cl-x64-ubsan",
+      "configurePreset": "clang-cl-x64-ubsan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-analysis",
+      "configurePreset": "msvc-x64-analysis",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-native-tests",
+      "configurePreset": "msvc-x64-native-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-native-analysis",
+      "configurePreset": "msvc-x64-native-analysis",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-native-quality",
+      "configurePreset": "msvc-x64-native-quality",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

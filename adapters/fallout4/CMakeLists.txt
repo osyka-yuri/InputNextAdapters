@@ -2,20 +2,33 @@ cmake_minimum_required(VERSION 4.4.4)
 project(InputNextFallout4 VERSION 0.1.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
+
+option(INPUTNEXT_FALLOUT4_BUILD_PLUGIN "Build the native F4SE plugin" OFF)
 option(INPUTNEXT_FALLOUT4_BUILD_TESTS "Build isolated Fallout 4 policy tests" "${PROJECT_IS_TOP_LEVEL}")
 option(INPUTNEXT_FALLOUT4_ENABLE_ASAN "Enable AddressSanitizer for owned targets" OFF)
 option(INPUTNEXT_FALLOUT4_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for owned targets" OFF)
 option(INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze for owned targets" OFF)
 option(INPUTNEXT_FALLOUT4_ENABLE_CLANG_TIDY "Run clang-tidy for owned targets" OFF)
 
-option(INPUTNEXT_FALLOUT4_BUILD_NATIVE_COMPONENT_TESTS "Build Fallout 4 native component tests without the plugin DLL" OFF)
-
 set(INPUTNEXTADAPTERS_ENABLE_ASAN "${INPUTNEXT_FALLOUT4_ENABLE_ASAN}")
 set(INPUTNEXTADAPTERS_ENABLE_UBSAN "${INPUTNEXT_FALLOUT4_ENABLE_UBSAN}")
 set(INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE "${INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE}")
 set(INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY "${INPUTNEXT_FALLOUT4_ENABLE_CLANG_TIDY}")
+
+if(INPUTNEXT_FALLOUT4_BUILD_PLUGIN AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
+        AND NOT INPUTNEXT_FALLOUT4_ENABLE_ASAN
+        AND NOT INPUTNEXT_FALLOUT4_ENABLE_UBSAN
+        AND NOT INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE
+        AND NOT DEFINED CACHE{INPUTNEXTADAPTERS_PRODUCTION})
+    set(INPUTNEXTADAPTERS_PRODUCTION ON CACHE BOOL
+        "Use the optimized Release policy for owned product targets")
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/ProductionOptions.cmake")
 inputnext_prepare_production_configuration()
+
+if(INPUTNEXT_FALLOUT4_ENABLE_UBSAN AND INPUTNEXT_FALLOUT4_BUILD_PLUGIN)
+    message(FATAL_ERROR "UndefinedBehaviorSanitizer is supported for isolated Fallout 4 adapter tests only.")
+endif()
 
 if(NOT TARGET InputNextAdapters::effects)
     add_subdirectory(../.. inputnext_adapters EXCLUDE_FROM_ALL)
@@ -36,14 +49,14 @@ function(fallout4_enable_checks target)
 endfunction()
 
 add_library(fallout4_policy STATIC
-    src/effect_recipes.cpp
     src/policy.cpp
     src/body_voice_mixer.cpp
     src/landing_detector.cpp
     src/resource_cue_tracker.cpp
     src/audio_haptics.cpp
+    src/effect_recipes.cpp
 )
-target_include_directories(fallout4_policy PUBLIC include PRIVATE src)
+target_include_directories(fallout4_policy PUBLIC include)
 target_link_libraries(fallout4_policy PUBLIC InputNextAdapters::effects)
 fallout4_enable_checks(fallout4_policy PRODUCTION)
 
@@ -61,16 +74,17 @@ if(INPUTNEXT_FALLOUT4_BUILD_TESTS)
     set(CMAKE_TEST_BUILD_DEPENDS ON)
     enable_testing()
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/InputNextCatch2.cmake")
-    add_subdirectory(tests/cpp/unit/waveform)
     add_subdirectory(tests/cpp/component/policy)
+    add_subdirectory(tests/cpp/component/session)
+    add_subdirectory(tests/cpp/unit/waveform)
     add_subdirectory(tests/cpp/unit/config)
     add_subdirectory(tests/cpp/integration/config_file)
-    add_subdirectory(tests/cpp/component/session)
     add_subdirectory(tests/cpp/integration/runtime_package)
     add_subdirectory(tests/cpp/component/native_observation)
     add_subdirectory(tests/cpp/unit/native_animation)
-    if(INPUTNEXT_FALLOUT4_BUILD_NATIVE_COMPONENT_TESTS)
-        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/NativeTestComponents.cmake")
-    endif()
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../tests/cmake/RegisterCases.cmake")
+endif()
+
+if(INPUTNEXT_FALLOUT4_BUILD_PLUGIN)
+    include(cmake/NativePlugin.cmake)
 endif()
