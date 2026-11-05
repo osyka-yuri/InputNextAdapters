@@ -25,6 +25,11 @@ add_library(skyrim_policy STATIC
         src/body_waveform.cpp
         src/world_effects.cpp
         src/content_effects.cpp
+        src/policy.cpp
+        src/audio_haptics.cpp
+        src/body_cue_history.cpp
+        src/critical_health.cpp
+        src/effect_mixer.cpp
 )
 target_include_directories(skyrim_policy PUBLIC include)
 target_link_libraries(skyrim_policy PUBLIC InputNextAdapters::effects)
@@ -38,4 +43,5 @@ if(INPUTNEXT_SKYRIM_BUILD_TESTS)
  add_subdirectory(tests/cpp/component/body_waveform_equivalence)
  add_subdirectory(tests/cpp/unit/content_effects)
  add_subdirectory(tests/cpp/component/world_effects)
+ add_subdirectory(tests/cpp/component/policy)
 endif()

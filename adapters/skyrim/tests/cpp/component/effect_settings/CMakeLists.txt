@@ -2,6 +2,9 @@ add_executable(skyrim_effect_settings_component_tests
     support.cpp
     catalogue_tests.cpp
     calibration_tests.cpp
+    audio_haptics_tests.cpp
+    policy_tuning_tests.cpp
+    waveform_and_validation_tests.cpp
 )
 target_include_directories(skyrim_effect_settings_component_tests PRIVATE
     "${InputNextSkyrimCore_SOURCE_DIR}/tests"

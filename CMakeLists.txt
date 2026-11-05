@@ -62,10 +62,14 @@ set(_audio_haptic_builtin_header
 add_custom_command(
     OUTPUT "${_audio_haptic_builtin_header}"
     COMMAND "${CMAKE_COMMAND}"
+        "-DINPUT_SKYRIM_SE=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-se.audiohaptics"
+        "-DINPUT_SKYRIM_LE=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-le.audiohaptics"
         "-DINPUT_FALLOUT4=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/fallout4.audiohaptics"
         "-DOUTPUT_FILE=${_audio_haptic_builtin_header}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAudioHapticBuiltins.cmake"
     DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-se.audiohaptics"
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-le.audiohaptics"
         "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/fallout4.audiohaptics"
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAudioHapticBuiltins.cmake"
     VERBATIM
@@ -73,28 +77,35 @@ add_custom_command(
 )
 
 add_library(inputnext_adapters_effects STATIC
+    src/audio_haptics.cpp
+    src/audio_haptic_profile.cpp
     src/audio_haptic_builtins.cpp
     "${_audio_haptic_builtin_header}"
     src/body_program.cpp
     src/body_pcm.cpp
-    src/audio_haptic_profile.cpp
-    src/audio_haptics.cpp
     src/led_policy.cpp
     src/runtime_output.cpp
-    src/output_session/binding.cpp
-    src/output_session/body.cpp
-    src/output_session/cleanup.cpp
     src/output_session/delivery.cpp
-    src/output_session/leds.cpp
+    src/output_session/binding.cpp
+    src/output_session/cleanup.cpp
     src/output_session/triggers.cpp
+    src/output_session/leds.cpp
+    src/output_session/body.cpp
 )
-set_target_properties(inputnext_adapters_effects PROPERTIES EXPORT_NAME effects)
+set_target_properties(inputnext_adapters_effects PROPERTIES
+    EXPORT_NAME effects
+)
 add_library(InputNextAdapters::effects ALIAS inputnext_adapters_effects)
-target_include_directories(inputnext_adapters_effects PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+
+target_include_directories(inputnext_adapters_effects
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE
+        "${CMAKE_CURRENT_BINARY_DIR}/generated"
 )
 target_link_libraries(inputnext_adapters_effects PUBLIC InputNextAdapters::runtime_client)
+
 inputnext_configure_target(inputnext_adapters_effects PRODUCTION)
 set_target_properties(inputnext_adapters_effects PROPERTIES
     COMPILE_PDB_NAME "InputNextAdapters-effects"
@@ -112,6 +123,5 @@ if(INPUTNEXTADAPTERS_BUILD_TESTS)
 endif()
 
 inputnext_install_package(inputnext_adapters_runtime_client inputnext_adapters_effects)
-include(cmake/CodeQuality.cmake)
 
-target_include_directories(inputnext_adapters_effects PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+include(cmake/CodeQuality.cmake)
