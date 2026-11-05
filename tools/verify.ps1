@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $Preset,
 
-    [ValidateSet('foundation', 'fallout4')]
+    [ValidateSet('foundation', 'skyrim-se', 'fallout4')]
     [string] $Project = 'foundation',
 
     [ValidateRange(1, 256)]
@@ -51,6 +51,7 @@ function Invoke-LoggedStep {
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $projectRoot = switch ($Project) {
     'foundation' { $repositoryRoot }
+    'skyrim-se' { Join-Path $repositoryRoot 'adapters/skyrim_se' }
     'fallout4' { Join-Path $repositoryRoot 'adapters/fallout4' }
 }
 $presetFile = Join-Path $projectRoot 'CMakePresets.json'
