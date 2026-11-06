@@ -1,0 +1,11 @@
+Skyrim Script Extender (SKSE) source terms and provenance
+
+Project: Skyrim Script Extender v1.7.3
+Authors: Ian Patterson and Stephen Abel (ianpatt and behippo)
+Official project and download page: https://skse.silverlock.org/
+Source archive: https://skse.silverlock.org/beta/skse_1_07_03.7z
+SHA-256: 1825024212A20A6A197BBCD308073B497E516139AD48D60685D5B18AB4BBE76D
+
+The archive's skse_readme.txt says that modifying and releasing a version of SKSE based on the included source is not permitted, and that SKSE files may not be included in a mod pack or otherwise rehosted. It recommends linking users to the official SKSE site. The archive contains no separate source license file. The build downloads or verifies the archive at configure time and does not copy the archive or upstream source into the install package.
+
+The archive disclaims all express and implied warranties, including merchantability, fitness for a particular purpose, and noninfringement. It also excludes author and copyright-holder liability for claims or damages connected with the software or its use.

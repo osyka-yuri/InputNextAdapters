@@ -1,0 +1,50 @@
+include("@SDK_ROLLBACK_SOURCE_DIR@/adapters/skyrim_le/cmake/SkseSdkState.cmake")
+
+function(_skyrim_le_inspect_sdk_tree_real dir expected_fingerprint out_state)
+    set(${out_state} "CORRUPTED" PARENT_SCOPE)
+    if(NOT IS_DIRECTORY "${dir}")
+        return()
+    endif()
+    set(_state_file "${dir}/.prepared_state")
+    if(NOT EXISTS "${_state_file}")
+        return()
+    endif()
+    file(STRINGS "${_state_file}" _state_lines)
+    list(LENGTH _state_lines _lines_len)
+    if(_lines_len LESS 2)
+        return()
+    endif()
+    list(GET _state_lines 0 _recorded_fp)
+    list(GET _state_lines 1 _recorded_digest)
+    if(_recorded_digest STREQUAL "")
+        return()
+    endif()
+    _skyrim_le_compute_manifest_digest("${dir}" _actual_digest)
+    if(NOT _actual_digest STREQUAL _recorded_digest OR _actual_digest STREQUAL "")
+        return()
+    endif()
+    if(_recorded_fp STREQUAL expected_fingerprint)
+        set(${out_state} "CURRENT_VALID" PARENT_SCOPE)
+    else()
+        set(${out_state} "OUTDATED_VALID" PARENT_SCOPE)
+    endif()
+endfunction()
+
+set(_fault_injected FALSE)
+function(_skyrim_le_inspect_sdk_tree dir fp out_state)
+    if(NOT _fault_injected
+       AND NOT EXISTS "@SDK_ROLLBACK_STAGING_DIR@"
+       AND EXISTS "@SDK_ROLLBACK_BACKUP_DIR@")
+        set(_fault_injected TRUE PARENT_SCOPE)
+        set(${out_state} "CORRUPTED" PARENT_SCOPE)
+    else()
+        _skyrim_le_inspect_sdk_tree_real("${dir}" "${fp}" _res)
+        set(${out_state} "${_res}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+_skyrim_le_activate_staging(
+    "@SDK_ROLLBACK_STAGING_DIR@"
+    "@SDK_ROLLBACK_ACTIVE_DIR@"
+    "@SDK_ROLLBACK_BACKUP_DIR@"
+    "@SDK_ROLLBACK_NEW_FINGERPRINT@")
