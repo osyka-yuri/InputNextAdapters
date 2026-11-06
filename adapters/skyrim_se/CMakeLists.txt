@@ -1,38 +1,60 @@
 cmake_minimum_required(VERSION 4.4.4)
 project(InputNextSkyrim VERSION 0.1.0 LANGUAGES CXX)
+
 include(GNUInstallDirs)
-option(INPUTNEXT_SKYRIM_BUILD_TESTS "Build isolated adapter tests" "${PROJECT_IS_TOP_LEVEL}")
-option(INPUTNEXT_SKYRIM_BUILD_NATIVE_TESTS "Build static native observation tests" OFF)
-option(INPUTNEXT_SKYRIM_ENABLE_ASAN "Enable AddressSanitizer" OFF)
-option(INPUTNEXT_SKYRIM_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
-option(INPUTNEXT_SKYRIM_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze" OFF)
-option(INPUTNEXT_SKYRIM_ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
+
+if(DEFINED INPUTNEXT_SKYRIM_SE_BUILD_PLUGIN AND NOT DEFINED INPUTNEXT_SKYRIM_BUILD_PLUGIN)
+    set(INPUTNEXT_SKYRIM_BUILD_PLUGIN "${INPUTNEXT_SKYRIM_SE_BUILD_PLUGIN}")
+endif()
+if(DEFINED INPUTNEXT_SKYRIM_SE_BUILD_TESTS AND NOT DEFINED INPUTNEXT_SKYRIM_BUILD_TESTS)
+    set(INPUTNEXT_SKYRIM_BUILD_TESTS "${INPUTNEXT_SKYRIM_SE_BUILD_TESTS}")
+endif()
+
+option(INPUTNEXT_SKYRIM_BUILD_TESTS "Build isolated policy and session tests" "${PROJECT_IS_TOP_LEVEL}")
+option(INPUTNEXT_SKYRIM_BUILD_PLUGIN "Build the native SKSE plugin (requires CommonLibSSE-NG)" OFF)
+option(INPUTNEXT_SKYRIM_ENABLE_ASAN "Enable AddressSanitizer for owned targets" OFF)
+option(INPUTNEXT_SKYRIM_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for owned targets" OFF)
+option(INPUTNEXT_SKYRIM_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze for owned targets" OFF)
+option(INPUTNEXT_SKYRIM_ENABLE_CLANG_TIDY "Run clang-tidy for owned targets" OFF)
+
 set(INPUTNEXTADAPTERS_ENABLE_ASAN "${INPUTNEXT_SKYRIM_ENABLE_ASAN}")
 set(INPUTNEXTADAPTERS_ENABLE_UBSAN "${INPUTNEXT_SKYRIM_ENABLE_UBSAN}")
 set(INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE "${INPUTNEXT_SKYRIM_ENABLE_MSVC_ANALYZE}")
 set(INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY "${INPUTNEXT_SKYRIM_ENABLE_CLANG_TIDY}")
+if(INPUTNEXT_SKYRIM_BUILD_PLUGIN AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
+        AND NOT INPUTNEXT_SKYRIM_ENABLE_ASAN
+        AND NOT INPUTNEXT_SKYRIM_ENABLE_UBSAN
+        AND NOT INPUTNEXT_SKYRIM_ENABLE_MSVC_ANALYZE
+        AND NOT DEFINED CACHE{INPUTNEXTADAPTERS_PRODUCTION})
+    set(INPUTNEXTADAPTERS_PRODUCTION ON CACHE BOOL
+        "Use the optimized Release policy for owned product targets")
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/ProductionOptions.cmake")
 inputnext_prepare_production_configuration()
 if(NOT TARGET InputNextAdapters::effects)
- add_subdirectory(../.. inputnext_adapters EXCLUDE_FROM_ALL)
+    add_subdirectory(../.. inputnext_adapters EXCLUDE_FROM_ALL)
 endif()
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
- message(FATAL_ERROR "The Skyrim SE/AE adapter requires an x64 toolchain.")
+    message(FATAL_ERROR "The Skyrim SE/AE adapter requires an x64 toolchain.")
 endif()
-if(INPUTNEXT_SKYRIM_BUILD_PLUGIN)
- message(FATAL_ERROR "The native Skyrim SE plugin is added in the final adapter phase.")
-endif()
+
 if(INPUTNEXT_SKYRIM_BUILD_TESTS)
- set(CMAKE_TEST_BUILD_DEPENDS ON)
- enable_testing()
+    set(CMAKE_TEST_BUILD_DEPENDS ON)
+    enable_testing()
 endif()
 add_subdirectory(../skyrim skyrim_shared)
+
 if(INPUTNEXT_SKYRIM_BUILD_TESTS)
- inputnext_register_case_tests(TARGET skyrim_native_config_file_tests PREFIX skyrim_config_files
-  MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../skyrim/tests/config_file/config_file_cases.def"
-  ARGS "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrim.ini" "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrim.reference.ini"
-  LABELS integration skyrim_se config)
+    inputnext_register_case_tests(
+        TARGET skyrim_native_config_file_tests
+        PREFIX skyrim_config_files
+        MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../skyrim/tests/config_file/config_file_cases.def"
+        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrim.ini"
+             "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrim.reference.ini"
+        LABELS integration skyrim_se config
+    )
 endif()
-if(INPUTNEXT_SKYRIM_BUILD_NATIVE_TESTS)
- include(cmake/NativePlugin.cmake)
+
+if(INPUTNEXT_SKYRIM_BUILD_PLUGIN)
+    include(cmake/NativePlugin.cmake)
 endif()
