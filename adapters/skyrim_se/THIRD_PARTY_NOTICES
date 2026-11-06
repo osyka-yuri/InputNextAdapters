@@ -1,0 +1,46 @@
+InputNextSkyrim
+
+Authored adapter and InputNextAdapters runtime-client source: MIT.
+The applicable text is licenses/InputNext-MIT.txt and the repository LICENSE.
+InputNext effects SDK: MIT; upstream provenance is recorded in
+../../third_party/inputnext/manifest.json.
+
+The linked native plugin uses the following upstream components. Exact license
+texts are included beside these notices. Source pinning is in cmake/Dependencies.cmake.
+
+CommonLibSSE-NG v15.7.0
+https://github.com/alandtse/CommonLibSSE-NG
+Commit: cd21580f7e7cab47df0a7e0fa5e26525527b36bf
+GPL-3.0-or-later, with upstream Modding and Linking exceptions.
+licenses/CommonLibSSE-COPYING.txt
+licenses/CommonLibSSE-EXCEPTIONS.md
+Retained MIT attribution: licenses/CommonLibSSE-MIT.txt
+
+fmt 12.2.0
+https://github.com/fmtlib/fmt
+Commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
+MIT: licenses/fmt-LICENSE
+
+spdlog 1.17.0
+https://github.com/gabime/spdlog
+Commit: 79524ddd08a4ec981b7fea76afd08ee05f83755d
+MIT and bundled third-party notices: licenses/spdlog-LICENSE
+
+rapidcsv 9.07
+https://github.com/d99kris/rapidcsv
+Commit: cbd8a0a937b249cc07e2db3bfa9cd2cc1689708f
+BSD-3-Clause: licenses/rapidcsv-LICENSE
+
+DirectX Tool Kit, May 2026
+https://github.com/microsoft/DirectXTK
+Commit: 5a8f5d01cc1328e6451b588617c9985fa5a2a8ab
+MIT: licenses/DirectXTK-LICENSE
+
+The authored source remains MIT. A binary combination linked with CommonLibSSE-NG
+carries its GPL terms and exceptions. When distributing that binary, provide the
+matching corresponding source for the adapter, client, CommonLib and linked
+libraries, including build scripts, applicable license texts and modifications.
+A notice or link to a moving upstream branch does not substitute for the matching
+source. Keep the binary and matching source archive together as described in
+docs/validation.md. The proprietary game is covered by the upstream Modding
+exception; this notice does not relicense the game or InputNext itself.

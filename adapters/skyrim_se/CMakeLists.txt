@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 4.4.4)
 project(InputNextSkyrim VERSION 0.1.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 option(INPUTNEXT_SKYRIM_BUILD_TESTS "Build isolated adapter tests" "${PROJECT_IS_TOP_LEVEL}")
-
+option(INPUTNEXT_SKYRIM_BUILD_NATIVE_TESTS "Build static native observation tests" OFF)
 option(INPUTNEXT_SKYRIM_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(INPUTNEXT_SKYRIM_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(INPUTNEXT_SKYRIM_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze" OFF)
@@ -32,4 +32,7 @@ if(INPUTNEXT_SKYRIM_BUILD_TESTS)
   MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../skyrim/tests/config_file/config_file_cases.def"
   ARGS "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrim.ini" "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrim.reference.ini"
   LABELS integration skyrim_se config)
+endif()
+if(INPUTNEXT_SKYRIM_BUILD_NATIVE_TESTS)
+ include(cmake/NativePlugin.cmake)
 endif()

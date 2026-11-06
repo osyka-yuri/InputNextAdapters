@@ -1,0 +1,29 @@
+#pragma once
+
+namespace skyrim_adapter::native_observation_tests {
+
+void gamepad_vibration_preference_requires_a_typed_boolean();
+void shout_capture_requires_a_matching_player_voice_event_and_exact_variation();
+void bow_phases_use_native_states();
+void movement_gait_requires_direction_and_uses_native_precedence();
+void survival_stage_observation_uses_bounded_native_values();
+void official_survival_global_bindings_match_installed_metadata();
+void caster_modes_and_phases_are_exact();
+void weapon_types_are_typed_without_guesses();
+void spell_classification_requires_matching_evidence();
+void spell_keyword_scan_matches_reference_lookup();
+void menu_gate_ignores_always_open_hud_and_suppresses_interactions();
+void caster_metadata_must_match_equipped_source();
+void dual_cast_concentration_requires_flag_and_matching_spells();
+void dual_cast_fire_and_forget_release_requires_active_hands();
+void knock_state_only_identifies_verified_down_phases();
+void staff_actions_use_only_the_exact_source_enchantment();
+void resolved_incoming_action_preserves_event_envelope();
+void footsteps_on_foot_player_attribution();
+void footsteps_mount_attribution_and_identity_barrier();
+void footsteps_freshness_and_validity_guards();
+void source_less_swing_requires_an_exact_fresh_empty_hand();
+void led_sources_preserve_unknown_health_and_optional_detection();
+void optional_detection_relocations_are_tested_without_loading_address_library();
+
+} // namespace skyrim_adapter::native_observation_tests

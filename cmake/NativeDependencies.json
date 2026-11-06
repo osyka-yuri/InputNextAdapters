@@ -5,6 +5,22 @@
       "name": "skyrim-se",
       "dependencies": [
         {
+          "name": "commonlibsse",
+          "repository": "https://github.com/alandtse/CommonLibSSE-NG.git",
+          "revision": "cd21580f7e7cab47df0a7e0fa5e26525527b36bf",
+          "path": "dependencies/skyrim-se/commonlibsse",
+          "fetchContent": "CommonLibSSE",
+          "patches": [],
+          "submodules": [
+            {
+              "name": "openvr",
+              "path": "extern/openvr",
+              "repository": "https://github.com/ValveSoftware/openvr.git",
+              "revision": "60eb187801956ad277f1cae6680e3a410ee0873b"
+            }
+          ]
+        },
+        {
           "name": "directxtk",
           "repository": "https://github.com/microsoft/DirectXTK.git",
           "revision": "5a8f5d01cc1328e6451b588617c9985fa5a2a8ab",
