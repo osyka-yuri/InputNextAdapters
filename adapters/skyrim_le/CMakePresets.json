@@ -1,0 +1,36 @@
+{
+  "version": 12,
+  "cmakeMinimumRequired": { "major": 4, "minor": 4, "patch": 4 },
+  "configurePresets": [
+    {
+      "name": "windows-x86",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "environment": { "VSLANG": "1033" },
+      "warnings": { "author": true },
+      "errors": { "author": true }
+    },
+    {
+      "name": "msvc-x86",
+      "inherits": "windows-x86",
+      "displayName": "Skyrim LE — MSVC x86 observation tests",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "INPUTNEXTADAPTERS_BUILD_TESTS": "OFF",
+        "INPUTNEXT_SKYRIM_LE_BUILD_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [ { "name": "msvc-x86", "configurePreset": "msvc-x86" } ],
+  "testPresets": [
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86",
+      "output": { "outputOnFailure": true },
+      "execution": { "timeout": 180, "noTestsAction": "error" }
+    }
+  ]
+}
