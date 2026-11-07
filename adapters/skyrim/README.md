@@ -30,4 +30,4 @@ The targets are `skyrim_policy`, `skyrim_session`, and `skyrim_config`. Native f
 
 Each delivery uses one frozen observation and bounded action batch. Callbacks arriving during output remain queued for the next tick; hard lifecycle changes and overflow prevent further stale submissions.
 
-Game signals and plugin installation are documented by the [SE/AE adapter](../skyrim_se/README.md) and Classic/LE adapter.
+Game signals and plugin installation are documented by the [SE/AE adapter](../skyrim_se/README.md) and [Classic/LE adapter](../skyrim_le/README.md).

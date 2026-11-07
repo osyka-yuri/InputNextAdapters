@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 4.4.4)
 project(InputNextSkyrimLE VERSION 0.1.0 LANGUAGES CXX)
 
+include(GNUInstallDirs)
+
 option(INPUTNEXT_SKYRIM_LE_BUILD_TESTS "Build isolated Skyrim LE adapter tests" "${PROJECT_IS_TOP_LEVEL}")
 option(INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN "Build the native Skyrim LE SKSE plugin" OFF)
 option(INPUTNEXT_SKYRIM_LE_ENABLE_ASAN "Enable AddressSanitizer for owned targets" OFF)
@@ -14,7 +16,6 @@ set(INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY "${INPUTNEXT_SKYRIM_LE_ENABLE_CLANG_TIDY
 set(INPUTNEXT_SKYRIM_ENABLE_ASAN "${INPUTNEXT_SKYRIM_LE_ENABLE_ASAN}")
 set(INPUTNEXT_SKYRIM_ENABLE_MSVC_ANALYZE "${INPUTNEXT_SKYRIM_LE_ENABLE_MSVC_ANALYZE}")
 set(INPUTNEXT_SKYRIM_BUILD_TESTS "${INPUTNEXT_SKYRIM_LE_BUILD_TESTS}")
-
 if(INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
         AND NOT INPUTNEXT_SKYRIM_LE_ENABLE_ASAN
         AND NOT INPUTNEXT_SKYRIM_LE_ENABLE_MSVC_ANALYZE
@@ -27,9 +28,7 @@ inputnext_prepare_production_configuration()
 if(INPUTNEXT_SKYRIM_LE_BUILD_TESTS)
     set(CMAKE_TEST_BUILD_DEPENDS ON)
 endif()
-
 if(NOT TARGET InputNextAdapters::effects)
-    set(INPUTNEXTADAPTERS_BUILD_TESTS OFF CACHE BOOL "Disable unrelated foundation tests in the LE adapter build" FORCE)
     add_subdirectory(../.. inputnext_adapters EXCLUDE_FROM_ALL)
 endif()
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -47,24 +46,16 @@ target_compile_definitions(skyrim_config PRIVATE INPUTNEXT_SKYRIM_LE_CONFIG=1)
 
 if(INPUTNEXT_SKYRIM_LE_BUILD_TESTS)
     target_compile_definitions(skyrim_config_unit_tests PRIVATE INPUTNEXT_SKYRIM_LE_CONFIG=1)
+    add_subdirectory(tests/cpp/unit/diagnostics)
+    inputnext_register_case_tests(
+        TARGET skyrim_native_config_file_tests
+        PREFIX skyrim_config_files
+        MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../skyrim/tests/config_file/config_file_cases.def"
+        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrimLE.ini"
+             "${CMAKE_CURRENT_SOURCE_DIR}/InputNextSkyrimLE.reference.ini"
+        LABELS integration skyrim_le config
+    )
     target_compile_definitions(skyrim_native_config_file_tests PRIVATE INPUTNEXT_SKYRIM_LE_CONFIG=1)
-endif()
-
-include("${CMAKE_CURRENT_LIST_DIR}/cmake/Dependencies.cmake")
-
-add_library(skyrim_le_actor_values STATIC src/native/actor_values.cpp)
-target_include_directories(skyrim_le_actor_values PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(skyrim_le_actor_values PUBLIC skyrim_le_sdk)
-skyrim_enable_checks(skyrim_le_actor_values PRODUCTION)
-
-add_library(skyrim_le_observation STATIC src/native/observation.cpp)
-target_include_directories(skyrim_le_observation PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(skyrim_le_observation PUBLIC
-    skyrim_session skyrim_policy skyrim_le_sdk skyrim_le_actor_values)
-skyrim_enable_checks(skyrim_le_observation PRODUCTION)
-
-if(INPUTNEXT_SKYRIM_LE_BUILD_TESTS)
-    add_subdirectory(tests/cpp/component/binding)
 endif()
 
 if(INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN)

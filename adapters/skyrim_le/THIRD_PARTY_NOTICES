@@ -1,0 +1,6 @@
+Skyrim Script Extender (SKSE) 1.7.3
+Copyright (c) Ian Patterson and Stephen Abel.
+
+The LE SDK target uses selected official SKSE 1.7.3 headers and support sources. At configure time it fetches the official archive from https://skse.silverlock.org/beta/skse_1_07_03.7z and verifies SHA-256 1825024212A20A6A197BBCD308073B497E516139AD48D60685D5B18AB4BBE76D. No SKSE archive or source tree is included in the install package. The source terms recorded in licenses/SKSE-source-terms.txt prohibit rehosting SKSE files; direct users to https://skse.silverlock.org/ for SKSE itself.
+
+See licenses/SKSE-source-terms.txt and cmake/SKSE-PATCHES.md for source terms, provenance, the selected source subset, and private build-only compatibility patches.

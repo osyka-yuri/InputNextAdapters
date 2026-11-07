@@ -1,0 +1,3 @@
+InheritParentConfig: true
+# SKSE resolves engine singletons through fixed executable addresses.
+Checks: '-clang-analyzer-optin.core.FixedAddressDereference'
