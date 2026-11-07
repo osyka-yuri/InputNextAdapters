@@ -1,0 +1,15 @@
+file(READ "${image}" dos_magic LIMIT 2 HEX)
+file(READ "${image}" pe_offset_bytes OFFSET 60 LIMIT 4 HEX)
+if(NOT dos_magic STREQUAL "4d5a" OR NOT pe_offset_bytes MATCHES "^(..)(..)(..)(..)$")
+    message(FATAL_ERROR "Missing DOS header in '${image}'.")
+endif()
+math(EXPR pe_offset "0x${CMAKE_MATCH_4}${CMAKE_MATCH_3}${CMAKE_MATCH_2}${CMAKE_MATCH_1}")
+if(pe_offset LESS 64)
+    message(FATAL_ERROR "Invalid PE header offset in '${image}'.")
+endif()
+
+# PE signature followed by IMAGE_FILE_MACHINE_I386 (0x014c, little-endian).
+file(READ "${image}" pe_header OFFSET ${pe_offset} LIMIT 6 HEX)
+if(NOT pe_header STREQUAL "504500004c01")
+    message(FATAL_ERROR "Expected an x86 PE image at '${image}', found header '${pe_header}'.")
+endif()

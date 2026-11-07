@@ -1,36 +1,200 @@
 {
   "version": 12,
-  "cmakeMinimumRequired": { "major": 4, "minor": 4, "patch": 4 },
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 4,
+    "patch": 4
+  },
   "configurePresets": [
     {
       "name": "windows-x86",
       "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "environment": { "VSLANG": "1033" },
-      "warnings": { "author": true },
-      "errors": { "author": true }
+      "binaryDir": "${sourceDir}/../../build/skyrim-le-${presetName}",
+      "environment": {
+        "VSLANG": "1033"
+      },
+      "warnings": {
+        "author": true
+      },
+      "errors": {
+        "author": true
+      },
+      "cacheVariables": {
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "32",
+        "INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY": "OFF",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_CLANG_TIDY": "OFF",
+        "INPUTNEXT_SKYRIM_LE_BUILD_TESTS": "ON",
+        "INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN": "OFF",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_ASAN": "OFF",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x86-native",
+      "inherits": "msvc-x86",
+      "displayName": "Skyrim LE — MSVC x86 native plugin",
+      "cacheVariables": {
+        "INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN": "ON",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_MSVC_ANALYZE": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "INPUTNEXT_SKYRIM_LE_BUILD_TESTS": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "displayName": "Skyrim LE — MSVC x86 native plugin with clang-tidy",
+      "inherits": "msvc-x86-native",
+      "cacheVariables": {
+        "INPUTNEXT_SKYRIM_LE_BUILD_TESTS": "ON",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_CLANG_TIDY": "ON"
+      }
     },
     {
       "name": "msvc-x86",
       "inherits": "windows-x86",
-      "displayName": "Skyrim LE — MSVC x86 observation tests",
+      "displayName": "Skyrim LE — MSVC x86",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "msvc-x86-analysis",
+      "inherits": "msvc-x86",
+      "displayName": "Skyrim LE — MSVC x86 /analyze tests",
+      "cacheVariables": {
+        "INPUTNEXT_SKYRIM_LE_ENABLE_ASAN": "OFF",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_MSVC_ANALYZE": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "clang-cl-x86",
+      "inherits": "windows-x86",
+      "displayName": "Skyrim LE — clang-cl x86",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER_TARGET": "i686-pc-windows-msvc",
+        "CMAKE_C_COMPILER_TARGET": "i686-pc-windows-msvc",
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "INPUTNEXTADAPTERS_BUILD_TESTS": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native-analysis",
+      "inherits": "msvc-x86-native",
+      "displayName": "Skyrim LE — MSVC x86 native /analyze",
+      "cacheVariables": {
+        "INPUTNEXT_SKYRIM_LE_BUILD_TESTS": "ON",
+        "INPUTNEXT_SKYRIM_LE_ENABLE_MSVC_ANALYZE": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "inherits": "msvc-x86-native",
+      "displayName": "Skyrim LE — MSVC x86 native tests",
+      "cacheVariables": {
         "INPUTNEXT_SKYRIM_LE_BUILD_TESTS": "ON"
       }
     }
   ],
-  "buildPresets": [ { "name": "msvc-x86", "configurePreset": "msvc-x86" } ],
+  "buildPresets": [
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86"
+    },
+    {
+      "name": "msvc-x86-analysis",
+      "configurePreset": "msvc-x86-analysis"
+    },
+    {
+      "name": "msvc-x86-native",
+      "configurePreset": "msvc-x86-native"
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "configurePreset": "msvc-x86-native-quality"
+    },
+    {
+      "name": "clang-cl-x86",
+      "configurePreset": "clang-cl-x86"
+    },
+    {
+      "name": "msvc-x86-native-analysis",
+      "configurePreset": "msvc-x86-native-analysis"
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-tests"
+    }
+  ],
   "testPresets": [
     {
       "name": "msvc-x86",
       "configurePreset": "msvc-x86",
-      "output": { "outputOnFailure": true },
-      "execution": { "timeout": 180, "noTestsAction": "error" }
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86-analysis",
+      "configurePreset": "msvc-x86-analysis",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "clang-cl-x86",
+      "configurePreset": "clang-cl-x86",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86-native-analysis",
+      "configurePreset": "msvc-x86-native-analysis",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "configurePreset": "msvc-x86-native-quality",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
     }
   ]
 }

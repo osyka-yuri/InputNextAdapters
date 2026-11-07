@@ -1,0 +1,4 @@
+LIBRARY InputNextSkyrimLE
+EXPORTS
+    SKSEPlugin_Query
+    SKSEPlugin_Load
