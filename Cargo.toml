@@ -1,5 +1,5 @@
 [workspace]
-members = ["tools/haptics"]
+members = ["tools/ci", "tools/haptics"]
 resolver = "3"
 
 [workspace.package]
