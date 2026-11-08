@@ -24,6 +24,7 @@ use tempfile::TempDir;
 use crate::process::Runner;
 
 pub(crate) use self::archive::ArchiveFormat;
+pub(crate) use self::download::verified_archive as download_verified_archive;
 pub(crate) use self::download::{hash_file, validate_sha256};
 pub(crate) use self::environment::command_environment;
 use self::lock::{ToolAsset, ToolchainLock};

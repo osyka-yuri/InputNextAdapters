@@ -7,5 +7,6 @@ pub mod native;
 pub mod package;
 pub mod plan;
 pub mod process;
+pub mod qualification;
 pub mod source;
 pub mod tooling;
