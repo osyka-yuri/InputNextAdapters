@@ -4,6 +4,7 @@ mod curl;
 pub(crate) mod json;
 pub mod model;
 pub mod native;
+pub mod package;
 pub mod plan;
 pub mod process;
 pub mod source;

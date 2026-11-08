@@ -31,6 +31,20 @@ pub(crate) use self::report::write_json_report;
 use self::report::{ToolEntry, ToolKind, ToolchainReport};
 pub use self::report::{Toolset, load_toolset};
 
+/// Inspects an archive completely before any extraction or payload execution.
+pub(crate) fn inspect_archive(path: &Path, format: ArchiveFormat) -> Result<()> {
+    archive::inspect(path, format)
+}
+
+/// Extracts an audited archive into a fresh, absolute destination.
+pub(crate) fn extract_archive(
+    path: &Path,
+    format: ArchiveFormat,
+    destination: &Path,
+) -> Result<()> {
+    archive::extract(path, format, destination)
+}
+
 #[derive(Debug, Subcommand)]
 pub enum ToolchainCommand {
     Install(InstallArgs),

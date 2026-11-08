@@ -308,6 +308,7 @@ dependencies = [
  "sha2",
  "tar",
  "tempfile",
+ "walkdir",
  "zip",
 ]
 

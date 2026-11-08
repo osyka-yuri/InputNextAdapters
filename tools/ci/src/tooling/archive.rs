@@ -120,6 +120,11 @@ impl Audit {
     }
 }
 
+pub(crate) fn inspect(path: &Path, format: ArchiveFormat) -> Result<()> {
+    let mut audit = Audit::default();
+    walk_archive(path, format, None, &mut audit)
+}
+
 pub(crate) fn extract(path: &Path, format: ArchiveFormat, destination: &Path) -> Result<()> {
     ensure!(
         destination.is_absolute(),
@@ -425,7 +430,7 @@ mod tests {
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
 
-    use super::{ArchiveFormat, Audit, MemberKind, extract};
+    use super::{ArchiveFormat, Audit, MemberKind, extract, inspect};
 
     #[test]
     fn member_audit_rejects_traversal_collisions_and_duplicates() {
@@ -460,6 +465,25 @@ mod tests {
             fs::read(destination.join("bin/tool.exe"))?,
             b"pinned executable"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn zip_inspection_rejects_unsafe_paths_and_case_collisions() -> Result<()> {
+        for (file_name, members) in [
+            ("traversal.zip", vec!["../escape.txt"]),
+            ("collision.zip", vec!["Bin/tool.exe", "bin/other.exe"]),
+        ] {
+            let directory = tempdir()?;
+            let archive_path = directory.path().join(file_name);
+            let mut writer = ZipWriter::new(fs::File::create(&archive_path)?);
+            for name in members {
+                writer.start_file(name, SimpleFileOptions::default())?;
+                writer.write_all(b"data")?;
+            }
+            writer.finish()?;
+            assert!(inspect(&archive_path, ArchiveFormat::Zip).is_err());
+        }
         Ok(())
     }
 
