@@ -6,6 +6,7 @@ mod tests;
 mod archive;
 pub mod compiler;
 mod download;
+pub(crate) mod environment;
 mod lock;
 mod probe;
 mod report;
@@ -24,6 +25,7 @@ use crate::process::Runner;
 
 pub(crate) use self::archive::ArchiveFormat;
 pub(crate) use self::download::{hash_file, validate_sha256};
+pub(crate) use self::environment::command_environment;
 use self::lock::{ToolAsset, ToolchainLock};
 pub(crate) use self::report::write_json_report;
 use self::report::{ToolEntry, ToolKind, ToolchainReport};

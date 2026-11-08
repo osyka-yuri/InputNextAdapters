@@ -1,10 +1,13 @@
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use inputnext_adapters_ci::{plan, process, tooling};
+use inputnext_adapters_ci::{native, plan, process, tooling};
 
 #[derive(Debug, Parser)]
-#[command(version, about = "InputNextAdapters build planning and host toolchain")]
+#[command(
+    version,
+    about = "InputNextAdapters build orchestration and host toolchain"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -16,6 +19,7 @@ enum Command {
     Toolchain(tooling::ToolchainCommand),
     Plan(plan::PlanArgs),
     Matrix(plan::MatrixArgs),
+    Native(native::NativeArgs),
 }
 
 fn main() -> ExitCode {
@@ -25,6 +29,7 @@ fn main() -> ExitCode {
         Command::Toolchain(command) => command.run(&mut runner),
         Command::Plan(command) => command.run(),
         Command::Matrix(command) => command.run(),
+        Command::Native(command) => command.run(&mut runner),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,

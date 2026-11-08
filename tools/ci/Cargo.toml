@@ -14,6 +14,7 @@ dunce = "1.0.5"
 flate2 = "1.1.11"
 lzma-rust2 = "0.25.0"
 process-wrap = { version = "10.0.1", default-features = false, features = ["std", "job-object", "process-group"] }
+quick-xml = "0.42.0"
 regex = "1.13.1"
 semver = "1.0.28"
 serde = { version = "1.0.229", features = ["derive"] }
