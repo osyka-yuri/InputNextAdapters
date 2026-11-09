@@ -23,6 +23,7 @@ const ACTIONS: &[&str] = &[
     "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
     "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+    "actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6",
 ];
 // The pinned actionlint schema predates defining-workflow identity fields.
 const CONTEXT_IGNORE: &str = r#"^property "(workflow_sha|workflow_repository|workflow_ref|workflow_file_path)" is not defined in object type \{check_run_id:"#;
@@ -131,58 +132,89 @@ fn check_workflow(name: &str, document: &Value) -> Result<()> {
         .context("workflow requires jobs")?;
     for (key, job) in jobs {
         let job_name = key.as_str().context("job name must be text")?;
-        let privileged = name == "release.yml" && job_name == "draft";
-        check_job_permissions(name, job_name, job, privileged)?;
-        if let Some(reusable) = job["uses"].as_str() {
-            ensure!(
-                matches!(name, "ci.yml" | "release.yml")
-                    && reusable == "./.github/workflows/quality.yml",
-                "unexpected reusable workflow"
-            );
-            if name == "release.yml" {
-                ensure!(
-                    job["with"]["source_ref"].as_str()
-                        == Some("${{ needs.qualify.outputs.source_commit }}"),
-                    "release checks must use the qualified tag source"
-                );
-            }
-            continue;
-        }
-        let steps = job["steps"].as_sequence().context("job requires steps")?;
-        for step in steps {
-            check_step(step)?;
-        }
-        if name == "release.yml" && matches!(job_name, "qualify" | "draft") {
-            ensure!(
-                job["if"].as_str() == Some(MANUAL_MAIN),
-                "authority job must be restricted to manual main"
-            );
-            check_authority_steps(steps, privileged)?;
-        }
-        if privileged {
-            ensure!(
-                job["permissions"]["contents"].as_str() == Some("write"),
-                "draft job needs explicit write authority"
-            );
-            let needs = job["needs"]
-                .as_sequence()
-                .context("draft must require completed qualification and checks")?;
-            for required in ["qualify", "quality", "packages"] {
-                ensure!(
-                    needs.contains(&Value::from(required)),
-                    "draft is missing required predecessor {required}"
-                );
-            }
-            ensure!(
-                job["concurrency"]["cancel-in-progress"].as_bool() == Some(false),
-                "draft retries must not cancel another draft upload"
-            );
-        }
+        check_workflow_job(name, job_name, job)?;
     }
     Ok(())
 }
 
-fn check_job_permissions(name: &str, job_name: &str, job: &Value, privileged: bool) -> Result<()> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum JobRole {
+    Ordinary,
+    Signing,
+    Publishing,
+}
+
+fn check_workflow_job(name: &str, job_name: &str, job: &Value) -> Result<()> {
+    let role = match (name, job_name) {
+        ("release.yml", "attest") => JobRole::Signing,
+        ("release.yml", "draft") => JobRole::Publishing,
+        _ => JobRole::Ordinary,
+    };
+    check_job_permissions(name, job_name, job, role)?;
+    if let Some(reusable) = job["uses"].as_str() {
+        ensure!(
+            matches!(name, "ci.yml" | "release.yml")
+                && reusable == "./.github/workflows/quality.yml",
+            "unexpected reusable workflow"
+        );
+        if name == "release.yml" {
+            ensure!(
+                job["with"]["source_ref"].as_str()
+                    == Some("${{ needs.qualify.outputs.source_commit }}"),
+                "release checks must use the qualified tag source"
+            );
+        }
+        return Ok(());
+    }
+    let steps = job["steps"].as_sequence().context("job requires steps")?;
+    for step in steps {
+        check_step(step)?;
+    }
+    if name == "release.yml" && matches!(job_name, "qualify" | "attest" | "draft") {
+        ensure!(
+            job["if"].as_str() == Some(MANUAL_MAIN),
+            "authority job must be restricted to manual main"
+        );
+        check_authority_steps(steps, job_name)?;
+    }
+    if role == JobRole::Signing {
+        let needs = job["needs"]
+            .as_sequence()
+            .context("attest must require completed qualification and packages")?;
+        for required in ["qualify", "quality", "packages"] {
+            ensure!(
+                needs.contains(&Value::from(required)),
+                "attest is missing required predecessor {required}"
+            );
+        }
+        ensure!(
+            job["concurrency"]["cancel-in-progress"].as_bool() == Some(false),
+            "attest retries must not cancel another run"
+        );
+    }
+    if role == JobRole::Publishing {
+        ensure!(
+            job["permissions"]["contents"].as_str() == Some("write"),
+            "draft job needs explicit write authority"
+        );
+        let needs = job["needs"]
+            .as_sequence()
+            .context("draft must require completed qualification and checks")?;
+        for required in ["qualify", "quality", "packages", "attest"] {
+            ensure!(
+                needs.contains(&Value::from(required)),
+                "draft is missing required predecessor {required}"
+            );
+        }
+        ensure!(
+            job["concurrency"]["cancel-in-progress"].as_bool() == Some(false),
+            "draft retries must not cancel another draft upload"
+        );
+    }
+    Ok(())
+}
+
+fn check_job_permissions(name: &str, job_name: &str, job: &Value, role: JobRole) -> Result<()> {
     if let Some(grants) = job["permissions"].as_mapping() {
         for (permission, level) in grants {
             let permission = permission
@@ -193,10 +225,43 @@ fn check_job_permissions(name: &str, job_name: &str, job: &Value, privileged: bo
                 .context("permission level must be explicit")?;
             ensure!(
                 matches!((permission, level), ("contents" | "actions", "read"))
-                    || (privileged && permission == "contents" && level == "write"),
+                    || (role == JobRole::Publishing
+                        && permission == "contents"
+                        && level == "write")
+                    || (role == JobRole::Signing
+                        && matches!(
+                            (permission, level),
+                            ("contents" | "actions", "read")
+                                | ("id-token" | "attestations", "write")
+                        )),
                 "{name}/{job_name}: unexpected permission {permission}:{level}"
             );
         }
+    }
+    if role == JobRole::Signing {
+        let permissions = job["permissions"]
+            .as_mapping()
+            .context("attest job requires explicit permissions")?;
+        ensure!(
+            permissions
+                .get(Value::from("contents"))
+                .and_then(Value::as_str)
+                == Some("read")
+                && permissions
+                    .get(Value::from("actions"))
+                    .and_then(Value::as_str)
+                    == Some("read")
+                && permissions
+                    .get(Value::from("id-token"))
+                    .and_then(Value::as_str)
+                    == Some("write")
+                && permissions
+                    .get(Value::from("attestations"))
+                    .and_then(Value::as_str)
+                    == Some("write")
+                && permissions.len() == 4,
+            "attest job permissions must be exactly contents:read, actions:read, id-token:write, attestations:write"
+        );
     }
     ensure!(
         job["secrets"].is_null(),
@@ -233,7 +298,7 @@ fn check_step(step: &Value) -> Result<()> {
     Ok(())
 }
 
-fn check_authority_steps(steps: &[Value], privileged: bool) -> Result<()> {
+fn check_authority_steps(steps: &[Value], job_name: &str) -> Result<()> {
     let mut qualified = false;
     let mut bootstrapped = false;
     for step in steps {
@@ -264,11 +329,17 @@ fn check_authority_steps(steps: &[Value], privileged: bool) -> Result<()> {
             );
             if action.starts_with("actions/download-artifact@") {
                 ensure!(
-                    privileged
+                    matches!(job_name, "attest" | "draft")
                         && step["with"]["artifact-ids"].as_str()
                             == Some("${{ steps.artifacts.outputs.artifact_ids }}")
                         && step["with"]["digest-mismatch"].as_str() == Some("error"),
                     "release artifacts must use independently selected IDs and strict digests"
+                );
+            }
+            if action.starts_with("actions/attest@") {
+                ensure!(
+                    job_name == "attest",
+                    "signing action is forbidden outside the attest job"
                 );
             }
         }
@@ -277,7 +348,7 @@ fn check_authority_steps(steps: &[Value], privileged: bool) -> Result<()> {
                 qualified && bootstrapped,
                 "release helpers require qualified bootstrap"
             );
-            if privileged {
+            if job_name == "draft" {
                 let step_id = step["id"]
                     .as_str()
                     .context("draft run steps require fixed reviewed IDs")?;
@@ -293,6 +364,24 @@ fn check_authority_steps(steps: &[Value], privileged: bool) -> Result<()> {
                 ensure!(
                     script.contains(command),
                     "unexpected draft authority command"
+                );
+            } else if job_name == "attest" {
+                let step_id = step["id"]
+                    .as_str()
+                    .context("attest run steps require fixed reviewed IDs")?;
+                ensure!(
+                    matches!(step_id, "artifacts" | "prepare" | "stage"),
+                    "unreviewed executable step in attest job"
+                );
+                let command = match step_id {
+                    "artifacts" => "release artifacts",
+                    "prepare" => "release attest-prepare",
+                    "stage" => "provenance.sigstore.json",
+                    _ => unreachable!(),
+                };
+                ensure!(
+                    script.contains(command),
+                    "unexpected attest authority command"
                 );
             }
         }

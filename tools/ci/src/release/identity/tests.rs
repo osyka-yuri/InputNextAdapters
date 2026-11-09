@@ -168,6 +168,57 @@ fn rejects_tag_commit_outside_trusted_main_ancestry() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn rejects_tag_when_cmake_version_differs() -> anyhow::Result<()> {
+    let root = tempfile::tempdir()?;
+    let git = git_executable()?;
+    initialize_git_repository(&git, root.path())?;
+    let cmake_original = "project(InputNextAdapters VERSION 1.2.3 LANGUAGES CXX)\n";
+    let cmake_mutated = cmake_original.replacen("VERSION 1.2.3", "VERSION 1.2.4", 1);
+    assert_ne!(
+        cmake_mutated, cmake_original,
+        "version mutation was not applied"
+    );
+    std::fs::write(root.path().join("CMakeLists.txt"), cmake_mutated)?;
+    std::fs::write(
+        root.path().join("CHANGELOG.md"),
+        "# Changelog\n\n## [1.2.3]\n\n- Release notes.\n",
+    )?;
+    git_setup(
+        &git,
+        root.path(),
+        &["add", "CMakeLists.txt", "CHANGELOG.md"],
+    )?;
+    git_setup(
+        &git,
+        root.path(),
+        &["commit", "-m", "release source with mismatched version"],
+    )?;
+    git_setup(&git, root.path(), &["tag", "foundation/v1.2.3"])?;
+    let commit = git_setup(&git, root.path(), &["rev-parse", "HEAD"])?;
+    git_setup(
+        &git,
+        root.path(),
+        &["update-ref", "refs/remotes/origin/main", &commit],
+    )?;
+
+    let mut context = context();
+    context.source_commit = commit.clone();
+    context.workflow_commit = commit;
+    let mut runner = SystemRunner;
+    let Err(err) = qualify(
+        &context,
+        root.path(),
+        &git,
+        "foundation/v1.2.3",
+        &mut runner,
+    ) else {
+        anyhow::bail!("qualify should have rejected mismatched CMake version");
+    };
+    assert!(format!("{err:#}").contains("differs from the product CMake version"));
+    Ok(())
+}
+
 fn git_executable() -> anyhow::Result<PathBuf> {
     let names = if cfg!(windows) {
         ["git.exe", "git"]

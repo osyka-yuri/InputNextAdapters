@@ -18,9 +18,11 @@ use crate::qualification::{
     QualificationMode, QualificationReport, RuntimePairOrigin, VerifiedRuntimePair,
 };
 
-use super::VerifiedAsset;
 use super::handoff::{MAX_REPORT_BYTES, read_bounded_regular_file};
-use crate::release::identity::ReleaseIdentity;
+use super::{AdmittedAsset, VerifiedAsset};
+use crate::release::identity::{
+    ReleaseIdentity, package_filename, parse_architecture, parse_product,
+};
 
 pub(super) fn expected_handoff_files(
     product: Product,
@@ -466,7 +468,7 @@ pub(super) fn validate_packages(
 }
 
 pub(super) fn add_verified_package(
-    assets: &mut BTreeMap<String, (VerifiedAsset, PathBuf, String)>,
+    assets: &mut BTreeMap<String, AdmittedAsset>,
     package: VerifiedPackage,
     artifact_id: u64,
 ) -> Result<()> {
@@ -484,55 +486,24 @@ pub(super) fn add_verified_package(
         size_bytes,
         artifact_id,
     };
-    if let Some((previous, _, manifest_sha256)) = assets.get(&name) {
+    if let Some(previous) = assets.get(&name) {
         ensure!(
-            previous.sha256 == asset.sha256
-                && previous.size_bytes == asset.size_bytes
-                && *manifest_sha256 == package.manifest_sha256,
+            previous.asset.sha256 == asset.sha256
+                && previous.asset.size_bytes == asset.size_bytes
+                && previous.manifest_sha256 == package.manifest_sha256,
             "duplicate package asset name has different content"
         );
         return Ok(());
     }
-    assets.insert(name, (asset, package.archive_path, package.manifest_sha256));
+    assets.insert(
+        name,
+        AdmittedAsset {
+            asset,
+            path: package.archive_path,
+            manifest_sha256: package.manifest_sha256,
+        },
+    );
     Ok(())
-}
-
-fn package_filename(
-    product: Product,
-    architecture: Option<Architecture>,
-    version: &str,
-    kind: PackageKind,
-) -> String {
-    let prefix = format!("InputNextAdapters-{}-{version}", product.as_str());
-    match kind {
-        PackageKind::Binary => format!(
-            "{prefix}-windows-{}.zip",
-            architecture.map_or("", Architecture::as_str)
-        ),
-        PackageKind::Symbols => format!(
-            "{prefix}-windows-{}-symbols.zip",
-            architecture.map_or("", Architecture::as_str)
-        ),
-        PackageKind::Source => format!("{prefix}-source.zip"),
-    }
-}
-
-pub(super) fn parse_product(value: &str) -> Result<Product> {
-    match value {
-        "foundation" => Ok(Product::Foundation),
-        "skyrim-se" => Ok(Product::SkyrimSe),
-        "skyrim-le" => Ok(Product::SkyrimLe),
-        "fallout4" => Ok(Product::Fallout4),
-        _ => anyhow::bail!("unknown product artifact row '{value}'"),
-    }
-}
-
-pub(super) fn parse_architecture(value: &str) -> Result<Architecture> {
-    match value {
-        "x64" => Ok(Architecture::X64),
-        "x86" => Ok(Architecture::X86),
-        _ => anyhow::bail!("unknown architecture artifact row '{value}'"),
-    }
 }
 
 pub(super) fn parse_artifact_row(

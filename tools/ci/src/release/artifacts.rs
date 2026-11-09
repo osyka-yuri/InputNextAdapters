@@ -12,16 +12,35 @@ use serde_json::Value;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
-use crate::model::Check;
+use crate::model::{Check, Product};
 use crate::process::{CommandSpec, Runner, run_checked};
 use crate::tooling::{Toolset, write_json_report};
 
 use self::pagination::fetch_all_pages;
-use super::identity::{ReleaseIdentity, WorkflowContext, required_rows};
+use super::identity::{ReleaseIdentity, WorkflowContext, package_rows, required_rows};
 
 mod pagination;
 
 const GH_OUTPUT_LIMIT: usize = 16 * 1024 * 1024;
+
+/// The selection scope for current-run workflow artifacts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ArtifactScope {
+    PackagesOnly,
+    CompleteRelease,
+}
+
+#[must_use]
+pub(super) fn attestation_artifact_name(
+    product: Product,
+    run_id: &str,
+    run_attempt: &str,
+) -> String {
+    format!(
+        "release-attestation-{}-{run_id}-{run_attempt}",
+        product.as_str()
+    )
+}
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -52,6 +71,7 @@ pub(super) fn select_current_run(
     context: &WorkflowContext,
     identity: &ReleaseIdentity,
     toolset: &Toolset,
+    scope: ArtifactScope,
     runner: &mut dyn Runner,
 ) -> Result<ArtifactReceipt> {
     context.validate()?;
@@ -87,7 +107,7 @@ pub(super) fn select_current_run(
         },
     )?;
     let run_started_at = required_string(&run, "run_started_at")?.to_owned();
-    validate_jobs(&jobs, identity.product)?;
+    validate_jobs(&jobs, identity.product, scope)?;
 
     let artifacts = fetch_all_pages(
         &format!(
@@ -106,7 +126,8 @@ pub(super) fn select_current_run(
             )
         },
     )?;
-    let selected = select_expected_artifacts(&artifacts, context, identity, &run_started_at)?;
+    let selected =
+        select_expected_artifacts(&artifacts, context, identity, &run_started_at, scope)?;
 
     Ok(ArtifactReceipt {
         schema_version: 1,
@@ -165,7 +186,13 @@ pub(super) fn verify_receipt(
         "artifact receipt source commit differs from the qualified tag"
     );
 
-    let current = select_current_run(context, identity, toolset, runner)?;
+    let current = select_current_run(
+        context,
+        identity,
+        toolset,
+        ArtifactScope::CompleteRelease,
+        runner,
+    )?;
     ensure!(
         receipt.run_started_at == current.run_started_at,
         "artifact receipt belongs to a different run attempt"
@@ -228,7 +255,7 @@ pub(super) fn append_artifact_ids(path: &Path, receipt: &ArtifactReceipt) -> Res
     append_output(path, "artifact_ids", &ids)
 }
 
-fn append_output(path: &Path, name: &str, value: &str) -> Result<()> {
+pub(super) fn append_output(path: &Path, name: &str, value: &str) -> Result<()> {
     ensure!(path.is_absolute(), "GitHub output path must be absolute");
     ensure!(
         name.bytes()
@@ -351,7 +378,7 @@ fn validate_run(run: &Value, context: &WorkflowContext) -> Result<()> {
     Ok(())
 }
 
-fn validate_jobs(jobs: &Value, product: crate::model::Product) -> Result<()> {
+fn validate_jobs(jobs: &Value, product: Product, scope: ArtifactScope) -> Result<()> {
     let entries = jobs
         .get("jobs")
         .and_then(Value::as_array)
@@ -360,10 +387,13 @@ fn validate_jobs(jobs: &Value, product: crate::model::Product) -> Result<()> {
         required_u64(jobs, "total_count")? == u64::try_from(entries.len())?,
         "GitHub job response is incomplete or paginated"
     );
-    let expected = required_rows(product)
+    let mut expected = required_rows(product)
         .into_iter()
         .map(|(product, architecture)| format!("Package and qualify ({product}, {architecture})"))
         .collect::<Vec<_>>();
+    if scope == ArtifactScope::CompleteRelease {
+        expected.push("Attest release packages".to_owned());
+    }
     for name in expected {
         let matches = entries
             .iter()
@@ -391,6 +421,7 @@ fn select_expected_artifacts(
     context: &WorkflowContext,
     identity: &ReleaseIdentity,
     run_started_at: &str,
+    scope: ArtifactScope,
 ) -> Result<Vec<ArtifactRecord>> {
     let entries = response
         .get("artifacts")
@@ -408,7 +439,7 @@ fn select_expected_artifacts(
     let started = parse_timestamp(run_started_at, "workflow run start time")?;
     let mut selected = Vec::new();
     let mut ids = BTreeSet::new();
-    let expected_names = required_rows(identity.product)
+    let mut expected_names = required_rows(identity.product)
         .into_iter()
         .map(|(product, architecture)| {
             format!(
@@ -417,6 +448,11 @@ fn select_expected_artifacts(
             )
         })
         .collect::<BTreeSet<_>>();
+    let attestation_name =
+        attestation_artifact_name(identity.product, &context.run_id, &context.run_attempt);
+    if scope == ArtifactScope::CompleteRelease {
+        expected_names.insert(attestation_name.clone());
+    }
     let diagnostic_names = required_rows(identity.product)
         .into_iter()
         .map(|(product, architecture)| {
@@ -430,31 +466,23 @@ fn select_expected_artifacts(
         .into_iter()
         .map(|(product, architecture)| format!("{product}-{architecture}"))
         .collect::<BTreeSet<_>>();
-    for entry in entries {
-        let name = required_string(entry, "name")?;
-        if expected_names.contains(name) {
-            continue;
-        }
-        if is_prior_attempt_artifact(name, &context.run_id, &context.run_attempt, &row_names)? {
-            continue;
-        }
-        if let Some(attempt) =
-            quality_diagnostic_attempt(name, &context.run_id, &context.run_attempt)?
-        {
-            if attempt == parse_positive_u64(&context.run_attempt, "run attempt")? {
-                validate_diagnostic_artifact(entry, name, context, &started, &mut ids)?;
-            } else {
-                validate_artifact_run(entry, name, context, "quality diagnostic artifact")?;
-            }
-            continue;
-        }
-        ensure!(
-            diagnostic_names.contains(name),
-            "GitHub current run contains an unexpected artifact '{name}'"
-        );
-        validate_diagnostic_artifact(entry, name, context, &started, &mut ids)?;
-    }
-    for (product, architecture) in required_rows(identity.product) {
+    validate_inventory_entries(
+        entries,
+        &InventoryValidation {
+            expected_names: &expected_names,
+            diagnostic_names: &diagnostic_names,
+            row_names: &row_names,
+            context,
+            product: identity.product,
+            started: &started,
+        },
+        &mut ids,
+    )?;
+    let target_rows = match scope {
+        ArtifactScope::PackagesOnly => package_rows(identity.product),
+        ArtifactScope::CompleteRelease => required_rows(identity.product),
+    };
+    for (product, architecture) in target_rows {
         let name = format!(
             "release-{product}-{architecture}-{}-{}",
             context.run_id, context.run_attempt
@@ -471,7 +499,84 @@ fn select_expected_artifacts(
             matches[0], &name, context, &started, &mut ids,
         )?);
     }
+    if scope == ArtifactScope::CompleteRelease {
+        let matches = entries
+            .iter()
+            .filter(|entry| entry.get("name").and_then(Value::as_str) == Some(&attestation_name))
+            .collect::<Vec<_>>();
+        ensure!(
+            matches.len() == 1,
+            "expected exactly one current artifact named '{attestation_name}'"
+        );
+        selected.push(validate_current_artifact(
+            matches[0],
+            &attestation_name,
+            context,
+            &started,
+            &mut ids,
+        )?);
+    }
     Ok(selected)
+}
+
+struct InventoryValidation<'a> {
+    expected_names: &'a BTreeSet<String>,
+    diagnostic_names: &'a BTreeSet<String>,
+    row_names: &'a BTreeSet<String>,
+    context: &'a WorkflowContext,
+    product: Product,
+    started: &'a OffsetDateTime,
+}
+
+fn validate_inventory_entries(
+    entries: &[Value],
+    validation: &InventoryValidation<'_>,
+    ids: &mut BTreeSet<u64>,
+) -> Result<()> {
+    for entry in entries {
+        let name = required_string(entry, "name")?;
+        if validation.expected_names.contains(name) {
+            continue;
+        }
+        if is_prior_attempt_artifact(
+            name,
+            &validation.context.run_id,
+            &validation.context.run_attempt,
+            validation.product,
+            validation.row_names,
+        )? {
+            continue;
+        }
+        if let Some(attempt) = quality_diagnostic_attempt(
+            name,
+            &validation.context.run_id,
+            &validation.context.run_attempt,
+        )? {
+            if attempt == parse_positive_u64(&validation.context.run_attempt, "run attempt")? {
+                validate_diagnostic_artifact(
+                    entry,
+                    name,
+                    validation.context,
+                    validation.started,
+                    ids,
+                )?;
+            } else {
+                validate_artifact_run(
+                    entry,
+                    name,
+                    validation.context,
+                    "quality diagnostic artifact",
+                )?;
+            }
+            continue;
+        }
+        ensure!(
+            validation.diagnostic_names.contains(name),
+            "GitHub current run contains an unexpected artifact '{name}'"
+        );
+        validate_diagnostic_artifact(entry, name, validation.context, validation.started, ids)?;
+    }
+    Ok(())
 }
 
 fn quality_diagnostic_attempt(
@@ -633,6 +738,7 @@ fn is_prior_attempt_artifact(
     name: &str,
     run_id: &str,
     current_attempt: &str,
+    product: Product,
     rows: &BTreeSet<String>,
 ) -> Result<bool> {
     let current_attempt = parse_positive_u64(current_attempt, "run attempt")?;
@@ -645,6 +751,11 @@ fn is_prior_attempt_artifact(
             let parsed = parse_positive_u64(attempt, "artifact run attempt")?;
             return Ok(parsed < current_attempt);
         }
+    }
+    let attestation_marker = format!("release-attestation-{}-{run_id}-", product.as_str());
+    if let Some(attempt) = name.strip_prefix(&attestation_marker) {
+        let parsed = parse_positive_u64(attempt, "attestation artifact run attempt")?;
+        return Ok(parsed < current_attempt);
     }
     Ok(false)
 }

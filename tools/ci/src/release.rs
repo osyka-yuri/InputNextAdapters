@@ -1,8 +1,10 @@
 //! Release identity, artifact qualification, and draft authority.
 
 mod artifacts;
+pub(crate) mod attest;
 mod draft;
 mod identity;
+mod signing;
 mod verify;
 
 use std::path::{Path, PathBuf};
@@ -18,6 +20,7 @@ use crate::tooling::load_toolset;
 pub enum ReleaseCommand {
     Qualify(QualifyArgs),
     Artifacts(ArtifactsArgs),
+    AttestPrepare(AttestPrepareArgs),
     Verify(VerifyArgs),
     Draft(DraftArgs),
 }
@@ -32,6 +35,7 @@ impl ReleaseCommand {
         match self {
             Self::Qualify(args) => args.run(runner),
             Self::Artifacts(args) => args.run(runner),
+            Self::AttestPrepare(args) => args.run(runner),
             Self::Verify(args) => verify::run(&args, runner),
             Self::Draft(args) => draft::run(&args, runner),
         }
@@ -116,6 +120,8 @@ pub struct ArtifactsArgs {
     out_receipt: PathBuf,
     #[arg(long)]
     github_output: Option<PathBuf>,
+    #[arg(long)]
+    packages_only: bool,
 }
 
 impl ArtifactsArgs {
@@ -132,7 +138,12 @@ impl ArtifactsArgs {
             );
         }
         let toolset = load_toolset(&self.toolset)?;
-        let receipt = artifacts::select_current_run(&context, &release, &toolset, runner)?;
+        let scope = if self.packages_only {
+            artifacts::ArtifactScope::PackagesOnly
+        } else {
+            artifacts::ArtifactScope::CompleteRelease
+        };
+        let receipt = artifacts::select_current_run(&context, &release, &toolset, scope, runner)?;
         artifacts::write_receipt(&self.out_receipt, &receipt)?;
         if let Some(path) = &self.github_output {
             artifacts::append_artifact_ids(path, &receipt)?;
@@ -140,6 +151,43 @@ impl ArtifactsArgs {
         println!(
             "qualified {} current-run artifacts for {} {}",
             receipt.artifacts.len(),
+            release.product.as_str(),
+            release.version
+        );
+        Ok(())
+    }
+}
+
+#[derive(Debug, Args)]
+pub struct AttestPrepareArgs {
+    #[arg(long)]
+    root: PathBuf,
+    #[arg(long)]
+    git: PathBuf,
+    #[arg(long)]
+    tag: String,
+    #[arg(long)]
+    handoff: PathBuf,
+    #[arg(long)]
+    out_dir: PathBuf,
+    #[arg(long)]
+    github_output: Option<PathBuf>,
+}
+
+impl AttestPrepareArgs {
+    fn run(self, runner: &mut dyn Runner) -> Result<()> {
+        let context = identity::WorkflowContext::from_environment()?;
+        let release = identity::qualify(&context, &self.root, &self.git, &self.tag, runner)?;
+        validate_output_path(&self.root, &self.out_dir)?;
+        let count = signing::prepare_signing_packages(&release, &self.handoff, &self.out_dir)?;
+        if let Some(path) = &self.github_output {
+            validate_output_path(&self.root, path)?;
+            artifacts::append_output(path, "product", release.product.as_str())?;
+            artifacts::append_output(path, "version", &release.version)?;
+            artifacts::append_output(path, "subject_count", &count.to_string())?;
+        }
+        println!(
+            "prepared {count} package archives for signing for {} {}",
             release.product.as_str(),
             release.version
         );

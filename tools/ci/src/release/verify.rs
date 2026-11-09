@@ -1,7 +1,7 @@
 //! Static final-job release evidence orchestration.
 
-mod evidence;
-mod handoff;
+pub(super) mod evidence;
+pub(super) mod handoff;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroUsize;
@@ -22,9 +22,9 @@ use crate::source::project_version;
 use crate::tooling::{load_toolset, write_json_report};
 
 use self::evidence::{
-    add_verified_package, expected_handoff_files, parse_architecture, parse_artifact_row,
-    parse_native_report, parse_product, validate_native_report, validate_package_report,
-    validate_packages, validate_qualification_report,
+    add_verified_package, expected_handoff_files, parse_artifact_row, parse_native_report,
+    validate_native_report, validate_package_report, validate_packages,
+    validate_qualification_report,
 };
 use self::handoff::{
     MAX_REPORT_BYTES, MAX_RUNTIME_MANIFEST_BYTES, TagSourceTree, inspect_handoff_row,
@@ -33,6 +33,7 @@ use self::handoff::{
 };
 use super::DraftArgs;
 use super::VerifyArgs;
+use super::identity::{parse_architecture, parse_product};
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct ReleasePaths<'a> {
@@ -88,6 +89,13 @@ pub(super) struct VerifiedAsset {
     pub sha256: String,
     pub size_bytes: u64,
     pub artifact_id: u64,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct AdmittedAsset {
+    pub asset: VerifiedAsset,
+    pub path: PathBuf,
+    pub manifest_sha256: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -258,6 +266,7 @@ pub(super) fn prepare_release(
 
     let expected_assets = verify_matrix_handoffs(
         MatrixAdmission {
+            workflow_root,
             handoff: &handoff,
             receipt: &receipt,
             identity: &identity,
@@ -272,11 +281,11 @@ pub(super) fn prepare_release(
 
     let assets = expected_assets
         .values()
-        .map(|(asset, _, _)| asset.clone())
+        .map(|admitted| admitted.asset.clone())
         .collect::<Vec<_>>();
     let asset_paths = expected_assets
         .values()
-        .map(|(_, path, _)| path.clone())
+        .map(|admitted| admitted.path.clone())
         .collect::<Vec<_>>();
     ensure!(
         !assets.is_empty(),
@@ -294,6 +303,7 @@ pub(super) fn prepare_release(
 
 #[derive(Clone, Copy, Debug)]
 struct MatrixAdmission<'a> {
+    workflow_root: &'a Path,
     handoff: &'a Path,
     receipt: &'a super::artifacts::ArtifactReceipt,
     identity: &'a super::identity::ReleaseIdentity,
@@ -307,8 +317,9 @@ struct MatrixAdmission<'a> {
 fn verify_matrix_handoffs(
     admission: MatrixAdmission<'_>,
     runner: &mut dyn Runner,
-) -> Result<BTreeMap<String, (VerifiedAsset, PathBuf, String)>> {
+) -> Result<BTreeMap<String, AdmittedAsset>> {
     let MatrixAdmission {
+        workflow_root: _,
         handoff,
         receipt,
         identity,
@@ -320,7 +331,15 @@ fn verify_matrix_handoffs(
     } = admission;
     let mut expected_assets = BTreeMap::new();
     let mut artifact_by_row = BTreeMap::new();
+    let attestation_artifact_name = super::artifacts::attestation_artifact_name(
+        identity.product,
+        &identity.run_id,
+        &identity.run_attempt,
+    );
     for artifact in &receipt.artifacts {
+        if artifact.name == attestation_artifact_name {
+            continue;
+        }
         let row = parse_artifact_row(&artifact.name, identity)?;
         ensure!(
             artifact_by_row.insert(row, artifact).is_none(),
@@ -380,7 +399,88 @@ fn verify_matrix_handoffs(
             }
         }
     }
+
+    verify_attestation_artifact(
+        admission,
+        &attestation_artifact_name,
+        &mut expected_assets,
+        runner,
+    )?;
+
     Ok(expected_assets)
+}
+
+fn verify_attestation_artifact(
+    admission: MatrixAdmission<'_>,
+    attestation_artifact_name: &str,
+    expected_assets: &mut BTreeMap<String, AdmittedAsset>,
+    runner: &mut dyn Runner,
+) -> Result<()> {
+    let MatrixAdmission {
+        workflow_root,
+        handoff,
+        receipt,
+        identity,
+        context,
+        tag_source,
+        ..
+    } = admission;
+    let attestation_artifact = receipt
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.name == attestation_artifact_name)
+        .with_context(|| format!("artifact receipt lacks {attestation_artifact_name}"))?;
+    let bundle_name =
+        super::attest::provenance_bundle_filename(identity.product, &identity.version);
+    let expected_bundle_files = BTreeSet::from([bundle_name.clone()]);
+    let bundle_files =
+        inspect_handoff_row(handoff, attestation_artifact_name, &expected_bundle_files)?;
+    let bundle_path = &bundle_files[&bundle_name];
+    let trust = super::attest::ReleaseTrust::load(workflow_root, identity)?;
+    let expected_subjects = expected_assets
+        .iter()
+        .map(|(name, admitted)| (name.clone(), admitted.asset.sha256.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let (_primary_name, primary_admitted) = expected_assets
+        .iter()
+        .next()
+        .context("no release packages were provided for provenance verification")?;
+    let primary_subject_path = &primary_admitted.path;
+    let gh = context.toolset.executable("gh")?;
+    super::attest::verify_provenance(
+        runner,
+        &super::attest::ProvenanceVerification {
+            gh,
+            cwd: tag_source,
+            primary_subject_path,
+            bundle_path,
+            expected_subjects: &expected_subjects,
+            identity,
+            trust: &trust,
+        },
+    )?;
+
+    let bundle_bytes = read_bounded_regular_file(
+        bundle_path,
+        super::attest::MAX_GH_OUTPUT_BYTES as u64,
+        "attestation bundle",
+    )?;
+    let bundle_sha256 = crate::tooling::hash_file(bundle_path)?;
+    let bundle_asset = VerifiedAsset {
+        name: bundle_name.clone(),
+        sha256: bundle_sha256,
+        size_bytes: u64::try_from(bundle_bytes.len())?,
+        artifact_id: attestation_artifact.id,
+    };
+    expected_assets.insert(
+        bundle_name,
+        AdmittedAsset {
+            asset: bundle_asset,
+            path: bundle_path.clone(),
+            manifest_sha256: String::new(),
+        },
+    );
+    Ok(())
 }
 
 fn validate_row_qualification(
@@ -441,6 +541,7 @@ fn validate_final_job_authority() -> Result<()> {
         "ADAPTERS_QUALIFY_RESULT",
         "ADAPTERS_QUALITY_RESULT",
         "ADAPTERS_PACKAGE_RESULT",
+        "ADAPTERS_ATTEST_RESULT",
     ] {
         let value = std::env::var(name)
             .with_context(|| format!("trusted workflow dependency result {name} is missing"))?;

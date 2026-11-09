@@ -234,13 +234,14 @@ fn upload_asset(
         .context("verified release asset has no filename")?
         .to_str()
         .context("verified release asset filename is not valid UTF-8")?;
+    let is_zip = Path::new(file_name)
+        .extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("zip"));
+    let is_sigstore = file_name.ends_with(".sigstore.json");
     ensure!(
-        file_name.starts_with("InputNextAdapters-")
-            && Path::new(file_name)
-                .extension()
-                .and_then(std::ffi::OsStr::to_str)
-                .is_some_and(|extension| extension.eq_ignore_ascii_case("zip")),
-        "verified release asset filename is not an expected package ZIP"
+        file_name.starts_with("InputNextAdapters-") && (is_zip || is_sigstore),
+        "verified release asset filename is not an expected package ZIP or provenance attestation bundle"
     );
     run_checked(
         runner,
@@ -261,7 +262,7 @@ fn upload_asset(
             output_limit: GH_OUTPUT_LIMIT,
         },
     )
-    .with_context(|| format!("could not upload verified package asset '{file_name}'"))?;
+    .with_context(|| format!("could not upload verified release asset '{file_name}'"))?;
     Ok(())
 }
 

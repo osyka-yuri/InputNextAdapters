@@ -151,3 +151,22 @@ fn authority_jobs_reject_extra_execution_and_the_quality_gate_uses_tag_source() 
     assert!(check_workflow("release.yml", &changed).is_err());
     Ok(())
 }
+
+#[test]
+fn attest_job_requires_exact_least_privilege_permissions() -> Result<()> {
+    let valid = release()?;
+    check_workflow("release.yml", &valid)?;
+
+    let mut changed = valid.clone();
+    changed["jobs"]["attest"]["permissions"]["artifact-metadata"] = Value::from("write");
+    assert!(check_workflow("release.yml", &changed).is_err());
+
+    let mut changed = valid.clone();
+    changed["jobs"]["attest"]["permissions"]["contents"] = Value::from("write");
+    assert!(check_workflow("release.yml", &changed).is_err());
+
+    let mut changed = valid;
+    changed["jobs"]["attest"]["permissions"]["id-token"] = Value::Null;
+    assert!(check_workflow("release.yml", &changed).is_err());
+    Ok(())
+}

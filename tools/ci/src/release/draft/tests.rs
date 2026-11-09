@@ -212,6 +212,135 @@ fn partial_upload_is_reported_without_clobber_or_retry() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn upload_verified_assets_admits_package_zip_and_sigstore_provenance_bundle() -> Result<()> {
+    let root = tempfile::tempdir()?;
+    let zip_path = root
+        .path()
+        .join("InputNextAdapters-skyrim-se-1.2.3-windows-x64.zip");
+    let sigstore_path = root
+        .path()
+        .join("InputNextAdapters-skyrim-se-1.2.3-provenance.sigstore.json");
+    std::fs::write(&zip_path, b"verified package")?;
+    std::fs::write(&sigstore_path, b"verified provenance bundle")?;
+    let assets = vec![
+        VerifiedAsset {
+            name: zip_path
+                .file_name()
+                .context("fixture asset has no filename")?
+                .to_string_lossy()
+                .into_owned(),
+            sha256: "a".repeat(64),
+            size_bytes: 16,
+            artifact_id: 7,
+        },
+        VerifiedAsset {
+            name: sigstore_path
+                .file_name()
+                .context("fixture asset has no filename")?
+                .to_string_lossy()
+                .into_owned(),
+            sha256: "b".repeat(64),
+            size_bytes: 26,
+            artifact_id: 8,
+        },
+    ];
+    let draft = DraftIdentity {
+        id: 42,
+        html_url: None,
+    };
+    let mut report = report();
+    report.draft_id = Some(draft.id);
+    let mut runner = FakeRunner {
+        outputs: VecDeque::from([
+            CommandOutput {
+                code: Some(0),
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            },
+            CommandOutput {
+                code: Some(0),
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            },
+        ]),
+        ..FakeRunner::default()
+    };
+    let asset_paths = [zip_path, sigstore_path];
+    upload_verified_assets(
+        &mut runner,
+        Path::new("gh"),
+        &BTreeMap::new(),
+        root.path(),
+        &identity(),
+        &draft,
+        &asset_paths,
+        &assets,
+        &mut report,
+        None,
+    )?;
+    assert_eq!(runner.calls.len(), 2);
+    for (call, path) in runner.calls.iter().zip(&asset_paths) {
+        assert_eq!(call[0], "release");
+        assert_eq!(call[1], "upload");
+        assert_eq!(call[2], identity().tag);
+        assert_eq!(call[3], path.to_string_lossy());
+        assert_eq!(call[4], "--repo");
+        assert_eq!(call[5], identity().repository);
+        assert_eq!(call.len(), 6);
+    }
+    assert_eq!(
+        report.uploaded_assets,
+        vec![assets[0].name.clone(), assets[1].name.clone()]
+    );
+    Ok(())
+}
+
+#[test]
+fn upload_verified_assets_rejects_unrecognized_asset_extension() -> Result<()> {
+    let root = tempfile::tempdir()?;
+    for name in [
+        "InputNextAdapters-skyrim-se-1.2.3-metadata.json",
+        "InputNextAdapters-skyrim-se-1.2.3-provenance.sigstore.json.bak",
+    ] {
+        let bad_path = root.path().join(name);
+        std::fs::write(&bad_path, b"unexpected payload")?;
+        let assets = vec![VerifiedAsset {
+            name: name.to_owned(),
+            sha256: "c".repeat(64),
+            size_bytes: 18,
+            artifact_id: 9,
+        }];
+        let draft = DraftIdentity {
+            id: 42,
+            html_url: None,
+        };
+        let mut report = report();
+        report.draft_id = Some(draft.id);
+        let mut runner = FakeRunner::default();
+        let result = upload_verified_assets(
+            &mut runner,
+            Path::new("gh"),
+            &BTreeMap::new(),
+            root.path(),
+            &identity(),
+            &draft,
+            &[bad_path],
+            &assets,
+            &mut report,
+            None,
+        );
+        assert!(result.is_err(), "asset '{name}' must be rejected");
+        let error = result.err().context("unexpected error absence")?;
+        assert!(
+            format!("{error:#}")
+                .contains("not an expected package ZIP or provenance attestation bundle")
+        );
+        assert_eq!(runner.calls.len(), 0);
+    }
+    Ok(())
+}
+
 fn identity() -> ReleaseIdentity {
     ReleaseIdentity {
         schema_version: 1,

@@ -8,7 +8,8 @@ use std::time::Duration;
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 
-use crate::model::Product;
+use crate::model::{Architecture, Product};
+use crate::package::PackageKind;
 use crate::process::{CommandSpec, Runner, run_checked};
 use crate::source::parse_project_version;
 use crate::tooling::write_json_report;
@@ -348,6 +349,53 @@ pub(super) fn required_rows(product: Product) -> Vec<(&'static str, &'static str
         Product::Fallout4 => rows.push(("fallout4", "x64")),
     }
     rows
+}
+
+pub(super) fn package_rows(product: Product) -> Vec<(&'static str, &'static str)> {
+    match product {
+        Product::Foundation => vec![("foundation", "x64"), ("foundation", "x86")],
+        Product::SkyrimSe => vec![("skyrim-se", "x64")],
+        Product::SkyrimLe => vec![("skyrim-le", "x86")],
+        Product::Fallout4 => vec![("fallout4", "x64")],
+    }
+}
+
+pub(super) fn package_filename(
+    product: Product,
+    architecture: Option<Architecture>,
+    version: &str,
+    kind: PackageKind,
+) -> String {
+    let prefix = format!("InputNextAdapters-{}-{version}", product.as_str());
+    match kind {
+        PackageKind::Binary => format!(
+            "{prefix}-windows-{}.zip",
+            architecture.map_or("", Architecture::as_str)
+        ),
+        PackageKind::Symbols => format!(
+            "{prefix}-windows-{}-symbols.zip",
+            architecture.map_or("", Architecture::as_str)
+        ),
+        PackageKind::Source => format!("{prefix}-source.zip"),
+    }
+}
+
+pub(super) fn parse_product(value: &str) -> Result<Product> {
+    match value {
+        "foundation" => Ok(Product::Foundation),
+        "skyrim-se" => Ok(Product::SkyrimSe),
+        "skyrim-le" => Ok(Product::SkyrimLe),
+        "fallout4" => Ok(Product::Fallout4),
+        _ => anyhow::bail!("unknown product artifact row '{value}'"),
+    }
+}
+
+pub(super) fn parse_architecture(value: &str) -> Result<Architecture> {
+    match value {
+        "x64" => Ok(Architecture::X64),
+        "x86" => Ok(Architecture::X86),
+        _ => anyhow::bail!("unknown architecture artifact row '{value}'"),
+    }
 }
 
 pub(super) fn required_matrix(product: Product) -> serde_json::Value {

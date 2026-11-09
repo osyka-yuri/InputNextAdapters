@@ -43,3 +43,26 @@ Only the final draft job receives release write permission. It independently che
 The draft job does not execute downloaded producer tools, DLLs or source scripts. An existing release fails qualification; assets are never overwritten or published automatically. If an upload fails after draft creation, the reported partial draft requires explicit recovery.
 
 Plugin packages contain their own DLL, settings and notices. Install InputNext and game dependencies separately. Binary, symbol and corresponding-source archives have independent manifests and outer SHA-256 hashes. See [product packages](packaging.md) for their contents.
+
+## Release provenance and attestation trust boundaries
+
+Release archives carry cryptographically signed Sigstore provenance bundles generated via GitHub Artifact Attestations (`actions/attest`) and verified with GitHub CLI before drafting.
+
+The signing pipeline enforces least privilege by separating compilation from attestation:
+
+1. **`packages` (Windows matrix):** Compiles native binaries, packages ZIP archives, runs tests and probes, and emits `package-report.json`. This job executes C++ toolchains and native code, so it strictly lacks GitHub OIDC signing permissions (`id-token` is not granted).
+2. **`attest` (Ubuntu runner):** Downloads the package artifacts emitted by the Windows matrix, canonicalizes paths, verifies that each package report matches the qualified release tag and source commit in release mode, ensures clean output directory staging, and requests an OIDC token to sign the exact ZIP archives with `actions/attest`.
+3. **`draft` (Ubuntu runner):** Downloads the attestation bundle, independently runs `gh attestation verify`, cryptographically validates the OIDC certificate identities (`repository`, `repository_id`, `repository_owner_id`, `workflow_commit`, `workflow_path`, `runnerEnvironment == github-hosted`), ensures the predicate matches SLSA Provenance v1 with exact subject digest sets, and creates the release draft without OIDC credentials.
+
+### Trust boundary and guarantees
+
+The Sigstore bundle cryptographically binds the exact release archive digests to a provenance statement signed by the trusted repository workflow on a GitHub-hosted runner. The release qualification process independently verifies that the tagged source commit belongs to the trusted ancestry of `origin/main` before compilation or attestation begins.
+
+Because native compilation happens in the preceding Windows matrix jobs rather than inside the attestation job itself, the automatically generated SLSA provenance directly covers the attesting workflow context and package handoff. It does not provide an end-to-end cryptographic trace of every intermediate compiler step on Windows.
+
+The handoff from native compilation to attestation is controlled by deterministic admission policies that validate build receipts, artifact identities, and content hashes:
+- Strict verification of `source_commit`, `mode == PackageMode::Release`, and clean uncommitted status in `package-report.json`.
+- Exact match of archive names against expected canonical naming schemas and validation of archive sizes (`entry.size_bytes`) and SHA-256 hashes.
+- Comprehensive inventory verification across all workflow run jobs and artifacts, preventing pagination bypasses, duplicate IDs, or unexpected artifacts.
+
+These checks strengthen release integrity but do not establish end-to-end cryptographic build provenance or a claim of SLSA Build Level 3 compliance.

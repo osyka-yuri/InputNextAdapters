@@ -183,9 +183,102 @@ jobs:
             ${{ runner.temp }}/runtime-qualification/builds/**/Testing/Temporary/*.log
           if-no-files-found: ignore
           retention-days: 14
-  draft:
+  attest:
+    name: Attest release packages
     if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
     needs: [qualify, quality, packages]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    concurrency:
+      group: attest-${{ github.repository }}-${{ inputs.tag }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          fetch-depth: 0
+          path: trusted
+          persist-credentials: false
+      - uses: ./trusted/.github/actions/source
+      - uses: ./trusted/.github/actions/bootstrap
+        id: setup
+        with:
+          source: trusted
+          profile: release
+          cache: 'false'
+      - name: Independently select package artifacts to attest
+        id: artifacts
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          ADAPTERS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          ADAPTERS_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          ADAPTERS_WORKFLOW_REF: ${{ job.workflow_ref }}
+          ADAPTERS_WORKFLOW_PATH: ${{ job.workflow_file_path }}
+        run: |
+          set -euo pipefail
+          "$CI_CLI" release artifacts --packages-only --root "$PWD" --git "$(command -v git)" --tag "$RELEASE_TAG" --toolset "$TOOLSET" \
+            --out-receipt "$RUNNER_TEMP/package-receipt.json" --github-output "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.artifacts.outputs.artifact_ids }}
+          path: ${{ runner.temp }}/package-handoff
+          digest-mismatch: error
+      - name: Inspect and prepare package archives for signing
+        id: prepare
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          PACKAGE_HANDOFF: ${{ runner.temp }}/package-handoff
+          ADAPTERS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          ADAPTERS_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          ADAPTERS_WORKFLOW_REF: ${{ job.workflow_ref }}
+          ADAPTERS_WORKFLOW_PATH: ${{ job.workflow_file_path }}
+        run: |
+          set -euo pipefail
+          "$CI_CLI" release attest-prepare --root "$PWD" --git "$(command -v git)" --tag "$RELEASE_TAG" \
+            --handoff "$PACKAGE_HANDOFF" --out-dir "$RUNNER_TEMP/signing-packages" --github-output "$GITHUB_OUTPUT"
+      - name: Attest package provenance
+        id: provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/signing-packages/*.zip
+          show-summary: false
+      - name: Stage attestation bundle
+        id: stage
+        shell: bash
+        env:
+          BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
+          BUNDLE_OUT: ${{ runner.temp }}/release-attestation
+          PRODUCT: ${{ steps.prepare.outputs.product }}
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$BUNDLE_OUT"
+          bundle_name="InputNextAdapters-${PRODUCT}-${VERSION}-provenance.sigstore.json"
+          cp "$BUNDLE_PATH" "$BUNDLE_OUT/$bundle_name"
+      - name: Save attestation artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-attestation-${{ needs.qualify.outputs.product }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-attestation/
+          if-no-files-found: error
+          retention-days: 14
+  draft:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    needs: [qualify, quality, packages, attest]
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
@@ -244,6 +337,7 @@ jobs:
           ADAPTERS_QUALIFY_RESULT: ${{ needs.qualify.result }}
           ADAPTERS_QUALITY_RESULT: ${{ needs.quality.result }}
           ADAPTERS_PACKAGE_RESULT: ${{ needs.packages.result }}
+          ADAPTERS_ATTEST_RESULT: ${{ needs.attest.result }}
           ADAPTERS_WORKFLOW_SHA: ${{ job.workflow_sha }}
           ADAPTERS_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           ADAPTERS_WORKFLOW_REF: ${{ job.workflow_ref }}

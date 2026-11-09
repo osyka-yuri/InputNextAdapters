@@ -12,7 +12,7 @@ use crate::process::{CommandSpec, Runner, run_checked};
 use crate::tooling::{ArchiveFormat, extract_archive, inspect_archive};
 
 pub(super) const MAX_TAG_ARCHIVE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
-pub(super) const MAX_REPORT_BYTES: u64 = 16 * 1024 * 1024;
+pub(in crate::release) const MAX_REPORT_BYTES: u64 = 16 * 1024 * 1024;
 pub(super) const MAX_RUNTIME_MANIFEST_BYTES: u64 = 1024 * 1024;
 
 /// A safely extracted, data-only Git tree for a previously qualified tag.
@@ -270,7 +270,11 @@ pub(super) fn inspect_handoff_row(
     Ok(files)
 }
 
-pub(super) fn read_bounded_regular_file(path: &Path, maximum: u64, label: &str) -> Result<Vec<u8>> {
+pub(in crate::release) fn read_bounded_regular_file(
+    path: &Path,
+    maximum: u64,
+    label: &str,
+) -> Result<Vec<u8>> {
     let metadata = std::fs::symlink_metadata(path)
         .with_context(|| format!("could not inspect {label} {}", path.display()))?;
     ensure!(

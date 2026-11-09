@@ -1,5 +1,6 @@
 use super::{
-    encode_path_segment, is_prior_attempt_artifact, select_current_run, validate_jobs, validate_run,
+    ArtifactScope, encode_path_segment, is_prior_attempt_artifact, select_current_run,
+    validate_jobs, validate_run,
 };
 use crate::model::Product;
 use crate::process::{CommandOutput, CommandSpec, Runner};
@@ -119,22 +120,39 @@ fn api_responses(product: Product) -> Result<BTreeMap<String, Vec<u8>>> {
             "conclusion": "success"
         }));
     }
+    jobs.push(json!({
+        "id": 799_u64,
+        "name": "Attest release packages",
+        "status": "completed",
+        "conclusion": "success"
+    }));
     let mut artifacts = Vec::new();
     for (index, (row_product, architecture)) in required_rows(product).into_iter().enumerate() {
         let artifact_id = 500_u64
             .checked_add(u64::try_from(index)?)
             .context("fixture artifact ID overflow")?;
         artifacts.push(json!({
-                "id": artifact_id,
-                "name": format!("release-{row_product}-{architecture}-{}-{}", ctx.run_id, ctx.run_attempt),
-                "digest": format!("sha256:{}", "c".repeat(64)),
-                "size_in_bytes": 1024,
-                "created_at": "2026-11-02T18:32:00Z",
-                "expired": false,
-                "workflow_run": { "id": run_id, "head_sha": ctx.workflow_commit.clone(), "head_branch": "main" },
-                "release_tag": id.tag.clone()
-            }));
+            "id": artifact_id,
+            "name": format!("release-{row_product}-{architecture}-{}-{}", ctx.run_id, ctx.run_attempt),
+            "digest": format!("sha256:{}", "c".repeat(64)),
+            "size_in_bytes": 1024,
+            "created_at": "2026-11-02T18:32:00Z",
+            "expired": false,
+            "workflow_run": { "id": run_id, "head_sha": ctx.workflow_commit.clone(), "head_branch": "main" },
+            "release_tag": id.tag.clone()
+        }));
     }
+    let attestation_name = format!("release-attestation-{}-123-2", product.as_str());
+    artifacts.push(json!({
+        "id": 599_u64,
+        "name": attestation_name,
+        "digest": format!("sha256:{}", "c".repeat(64)),
+        "size_in_bytes": 1024,
+        "created_at": "2026-11-02T18:32:00Z",
+        "expired": false,
+        "workflow_run": { "id": run_id, "head_sha": ctx.workflow_commit, "head_branch": "main" },
+        "release_tag": id.tag
+    }));
     Ok(BTreeMap::from([
         (
             format!(
@@ -322,6 +340,7 @@ fn run_current_selection_fails(
         &context(),
         &identity(Product::Fallout4),
         &toolset,
+        ArtifactScope::CompleteRelease,
         &mut runner,
     )
     .is_err())
@@ -336,11 +355,16 @@ fn selects_exact_current_attempt_artifact_ids_and_digests() -> Result<()> {
         &context(),
         &identity(Product::Fallout4),
         &toolset,
+        ArtifactScope::CompleteRelease,
         &mut runner,
     )?;
-    assert_eq!(receipt.artifacts.len(), 3);
+    assert_eq!(receipt.artifacts.len(), 4);
     assert_eq!(receipt.artifacts[0].name, "release-foundation-x64-123-2");
     assert_eq!(receipt.artifacts[2].name, "release-fallout4-x64-123-2");
+    assert_eq!(
+        receipt.artifacts[3].name,
+        "release-attestation-fallout4-123-2"
+    );
     assert_eq!(runner.calls.len(), 3);
     assert!(runner.calls.iter().all(|args| args[0] == "api"));
     assert!(
@@ -349,6 +373,31 @@ fn selects_exact_current_attempt_artifact_ids_and_digests() -> Result<()> {
             .iter()
             .all(|args| !args.iter().any(|arg| arg.contains("token")))
     );
+
+    let mut pkg_responses = api_responses(Product::Fallout4)?;
+    let endpoint = artifacts_endpoint();
+    let mut artifacts: Value = crate::json::parse_slice(&pkg_responses[&endpoint])?;
+    let list = artifacts["artifacts"]
+        .as_array_mut()
+        .context("artifacts list is missing")?;
+    list.retain(|a| {
+        !a["name"]
+            .as_str()
+            .is_some_and(|name| name.starts_with("release-attestation-"))
+    });
+    artifacts["total_count"] = json!(list.len());
+    pkg_responses.insert(endpoint, serde_json::to_vec(&artifacts)?);
+    let mut pkg_runner = ApiRunner::new(pkg_responses);
+
+    let pkg_receipt = select_current_run(
+        &context(),
+        &identity(Product::Fallout4),
+        &toolset,
+        ArtifactScope::PackagesOnly,
+        &mut pkg_runner,
+    )?;
+    assert_eq!(pkg_receipt.artifacts.len(), 1);
+    assert_eq!(pkg_receipt.artifacts[0].name, "release-fallout4-x64-123-2");
     Ok(())
 }
 
@@ -364,10 +413,11 @@ fn paginates_prior_attempt_artifacts_before_selecting_later_current_artifacts() 
         &context(),
         &identity(Product::Fallout4),
         &toolset,
+        ArtifactScope::CompleteRelease,
         &mut runner,
     )?;
 
-    assert_eq!(receipt.artifacts.len(), 3);
+    assert_eq!(receipt.artifacts.len(), 4);
     assert!(receipt.artifacts.iter().all(|artifact| artifact.id >= 500));
     assert!(runner.calls.iter().any(|args| {
         args.get(1)
@@ -407,10 +457,11 @@ fn paginates_current_attempt_jobs_before_validating_required_matrix_rows() -> Re
         &context(),
         &identity(Product::Fallout4),
         &toolset,
+        ArtifactScope::CompleteRelease,
         &mut runner,
     )?;
 
-    assert_eq!(receipt.artifacts.len(), 3);
+    assert_eq!(receipt.artifacts.len(), 4);
     assert!(runner.calls.iter().any(|args| {
         args.get(1)
             .is_some_and(|endpoint| endpoint.ends_with("/jobs?per_page=100&page=2"))
@@ -433,7 +484,7 @@ fn rejects_inconsistent_or_incomplete_paginated_artifact_inventories() -> Result
 
     let mut changing_total = baseline.clone();
     let mut second_page: Value = crate::json::parse_slice(&changing_total[&continuation])?;
-    second_page["total_count"] = json!(104);
+    second_page["total_count"] = json!(105);
     store_json_response(&mut changing_total, &continuation, &second_page)?;
     assert!(run_current_selection_fails(changing_total, None)?);
 
@@ -525,6 +576,15 @@ fn ignores_recognized_previous_attempt_artifacts_only() -> Result<()> {
         .and_then(Value::as_array_mut)
         .context("artifact fixture has no list")?;
     entries.push(json!({
+        "id": 498,
+        "name": "release-attestation-fallout4-123-1",
+        "digest": format!("sha256:{}", "d".repeat(64)),
+        "size_in_bytes": 1024,
+        "created_at": "2026-11-02T18:20:00Z",
+        "expired": false,
+        "workflow_run": { "id": 123, "head_sha": "a".repeat(40), "head_branch": "main" }
+    }));
+    entries.push(json!({
         "id": 499,
         "name": "release-foundation-x64-123-1",
         "digest": format!("sha256:{}", "d".repeat(64)),
@@ -544,26 +604,51 @@ fn ignores_recognized_previous_attempt_artifacts_only() -> Result<()> {
         &context(),
         &identity(Product::Fallout4),
         &toolset,
+        ArtifactScope::CompleteRelease,
         &mut runner,
     )?;
-    assert_eq!(receipt.artifacts.len(), 3);
+    assert_eq!(receipt.artifacts.len(), 4);
     let rows = BTreeSet::from(["foundation-x64".to_owned()]);
     assert!(is_prior_attempt_artifact(
         "release-foundation-x64-123-1",
         "123",
         "2",
+        Product::Fallout4,
         &rows,
     )?);
     assert!(!is_prior_attempt_artifact(
         "release-foundation-x64-123-3",
         "123",
         "2",
+        Product::Fallout4,
         &rows,
     )?);
     assert!(!is_prior_attempt_artifact(
         "release-skyrim-se-x64-123-1",
         "123",
         "2",
+        Product::Fallout4,
+        &rows,
+    )?);
+    assert!(is_prior_attempt_artifact(
+        "release-attestation-fallout4-123-1",
+        "123",
+        "2",
+        Product::Fallout4,
+        &rows,
+    )?);
+    assert!(!is_prior_attempt_artifact(
+        "release-attestation-fallout4-123-3",
+        "123",
+        "2",
+        Product::Fallout4,
+        &rows,
+    )?);
+    assert!(!is_prior_attempt_artifact(
+        "release-attestation-skyrim-se-123-1",
+        "123",
+        "2",
+        Product::Fallout4,
         &rows,
     )?);
     Ok(())
@@ -596,9 +681,10 @@ fn ignores_supported_quality_diagnostics_from_current_and_prior_attempts() -> Re
         &context(),
         &identity(Product::Fallout4),
         &toolset,
+        ArtifactScope::CompleteRelease,
         &mut runner,
     )?;
-    assert_eq!(receipt.artifacts.len(), 3);
+    assert_eq!(receipt.artifacts.len(), 4);
     assert!(
         receipt
             .artifacts
@@ -632,6 +718,7 @@ fn rejects_future_wrong_run_and_unknown_quality_diagnostic_names() -> Result<()>
                 &context(),
                 &identity(Product::Fallout4),
                 &toolset,
+                ArtifactScope::CompleteRelease,
                 &mut runner,
             )
             .is_err(),
@@ -662,19 +749,19 @@ fn rejects_failed_missing_or_duplicate_required_jobs() -> Result<()> {
     let good = api_responses(Product::SkyrimSe)?;
     let job_path = "repos/example/adapters/actions/runs/123/attempts/2/jobs?per_page=100";
     let jobs: Value = serde_json::from_slice(&good[job_path])?;
-    validate_jobs(&jobs, Product::SkyrimSe)?;
+    validate_jobs(&jobs, Product::SkyrimSe, ArtifactScope::CompleteRelease)?;
 
     let mut failed = jobs.clone();
     failed["jobs"][0]["conclusion"] = Value::String("failure".into());
-    assert!(validate_jobs(&failed, Product::SkyrimSe).is_err());
+    assert!(validate_jobs(&failed, Product::SkyrimSe, ArtifactScope::CompleteRelease).is_err());
 
     let mut missing = jobs.clone();
     missing["jobs"]
         .as_array_mut()
         .context("jobs fixture is an array")?
         .pop();
-    missing["total_count"] = json!(2);
-    assert!(validate_jobs(&missing, Product::SkyrimSe).is_err());
+    missing["total_count"] = json!(3);
+    assert!(validate_jobs(&missing, Product::SkyrimSe, ArtifactScope::CompleteRelease).is_err());
 
     let mut duplicate = jobs;
     let first = duplicate["jobs"][0].clone();
@@ -682,8 +769,15 @@ fn rejects_failed_missing_or_duplicate_required_jobs() -> Result<()> {
         .as_array_mut()
         .context("jobs fixture is an array")?
         .push(first);
-    duplicate["total_count"] = json!(4);
-    assert!(validate_jobs(&duplicate, Product::SkyrimSe).is_err());
+    duplicate["total_count"] = json!(5);
+    assert!(
+        validate_jobs(
+            &duplicate,
+            Product::SkyrimSe,
+            ArtifactScope::CompleteRelease
+        )
+        .is_err()
+    );
     Ok(())
 }
 
