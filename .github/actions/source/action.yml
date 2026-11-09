@@ -1,0 +1,21 @@
+name: Qualify release workflow source
+description: Validate the trusted main checkout before executing release helpers.
+inputs:
+  source:
+    description: Checkout root of the defining workflow.
+    default: trusted
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.source }}
+      env:
+        SOURCE_SHA: ${{ github.sha }}
+        SOURCE_REF: ${{ github.ref }}
+        SOURCE_REPOSITORY: ${{ github.repository }}
+        WORKFLOW_SHA: ${{ job.workflow_sha }}
+        WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+        WORKFLOW_REF: ${{ job.workflow_ref }}
+        WORKFLOW_PATH: ${{ job.workflow_file_path }}
+        EVENT: ${{ github.event_name }}
+      run: bash "$GITHUB_ACTION_PATH/qualify.sh"

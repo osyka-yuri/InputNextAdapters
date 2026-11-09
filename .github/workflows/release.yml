@@ -1,0 +1,256 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing product/vX.Y.Z tag to qualify and prepare as a draft.
+        type: string
+        required: true
+      runtime_manifest:
+        description: Published InputNext runtime pair JSON; blank uses the reviewed repository catalog.
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.repository }}-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  qualify:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    outputs:
+      product: ${{ steps.source.outputs.product }}
+      version: ${{ steps.source.outputs.version }}
+      source_commit: ${{ steps.source.outputs.source_commit }}
+      matrix: ${{ steps.source.outputs.matrix }}
+      quality_matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          fetch-depth: 0
+          path: trusted
+          persist-credentials: false
+      - uses: ./trusted/.github/actions/source
+      - uses: ./trusted/.github/actions/bootstrap
+        id: setup
+        with:
+          source: trusted
+          profile: release
+          cache: 'false'
+      - name: Qualify the product tag and materialize source data
+        id: source
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          ADAPTERS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          ADAPTERS_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          ADAPTERS_WORKFLOW_REF: ${{ job.workflow_ref }}
+          ADAPTERS_WORKFLOW_PATH: ${{ job.workflow_file_path }}
+        run: |
+          set -euo pipefail
+          "$CI_CLI" release qualify --root "$PWD" --git "$(command -v git)" --tag "$RELEASE_TAG" \
+            --out-identity "$RUNNER_TEMP/release-identity.json" --out-source-data "$RUNNER_TEMP/tag-data" --github-output "$GITHUB_OUTPUT"
+      - name: Validate the published runtime input
+        id: runtime
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          RUNTIME_MANIFEST: ${{ inputs.runtime_manifest }}
+          PRODUCT: ${{ steps.source.outputs.product }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/runtime-manifest.json"
+          if [[ -n "$RUNTIME_MANIFEST" ]]; then printf '%s' "$RUNTIME_MANIFEST" > "$manifest"; else cp .github/ci/runtime-pair.json "$manifest"; fi
+          arch=x64
+          if [[ "$PRODUCT" == skyrim-le ]]; then arch=x86; fi
+          "$CI_CLI" qualify --validate-input --mode release --root "$RUNNER_TEMP/tag-data" --toolset "$TOOLSET" \
+            --product "$PRODUCT" --architecture "$arch" --manifest "$manifest" --output "$RUNNER_TEMP/runtime-input" --report "$RUNNER_TEMP/runtime-input/qualification-report.json"
+      - name: Select the required product checks
+        id: plan
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          PRODUCT: ${{ steps.source.outputs.product }}
+        run: |
+          set -euo pipefail
+          "$CI_CLI" matrix --root "$PWD" --product "$PRODUCT" --deep --github-output "$GITHUB_OUTPUT"
+  quality:
+    needs: qualify
+    uses: ./.github/workflows/quality.yml
+    with:
+      source_ref: ${{ needs.qualify.outputs.source_commit }}
+      native_matrix: ${{ needs.qualify.outputs.quality_matrix }}
+      has_native: true
+    permissions:
+      contents: read
+  packages:
+    needs: qualify
+    name: Package and qualify (${{ matrix.product }}, ${{ matrix.architecture }})
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.qualify.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: ./trusted/.github/actions/bootstrap
+        id: setup
+        with:
+          source: trusted
+          profile: release
+          compiler: production
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.qualify.outputs.source_commit }}
+          path: source
+          persist-credentials: false
+      - name: Build, package and qualify the exact release source
+        shell: pwsh
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          COMPILER: ${{ steps.setup.outputs.compiler }}
+          PRODUCT: ${{ matrix.product }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+          RELEASE_PRODUCT: ${{ needs.qualify.outputs.product }}
+          RUNTIME_MANIFEST: ${{ inputs.runtime_manifest }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $tools = Get-Content -LiteralPath $env:TOOLSET -Raw | ConvertFrom-Json
+          $source = "$env:GITHUB_WORKSPACE/source"
+          $output = "$env:RUNNER_TEMP/release-native"
+          $handoff = "$env:RUNNER_TEMP/release-handoff"
+          $null = New-Item -ItemType Directory -Path $handoff
+          $manifest = Join-Path $handoff 'runtime-manifest.json'
+          if ($env:RUNTIME_MANIFEST) {
+              [IO.File]::WriteAllText($manifest, $env:RUNTIME_MANIFEST, [Text.UTF8Encoding]::new($false))
+          } else {
+              Copy-Item -LiteralPath "$env:GITHUB_WORKSPACE/trusted/.github/ci/runtime-pair.json" -Destination $manifest
+          }
+          $bridge = '& ./trusted/tools/ci/Invoke-CI.ps1 -Cli $env:CI_CLI -Toolset $env:TOOLSET -Compiler $env:COMPILER -Architecture $env:ARCHITECTURE -Arguments $args; exit $LASTEXITCODE'
+          if ($env:PRODUCT -eq $env:RELEASE_PRODUCT) {
+              $arguments = @('native', '--root', $source, '--toolset', $env:TOOLSET, '--compiler-report', $env:COMPILER, '--output', $output, '--product', $env:PRODUCT, '--architecture', $env:ARCHITECTURE, '--check', 'package', '--release-build')
+              & $tools.tools.powershell.path -NoProfile -CommandWithArgs $bridge @arguments
+              Copy-Item -LiteralPath "$output/reports/$env:PRODUCT-$env:ARCHITECTURE-package.json" -Destination "$handoff/native-report.json"
+              $packages = "$env:RUNNER_TEMP/release-packages"
+              $arguments = @('package', '--root', $source, '--toolset', $env:TOOLSET, '--product', $env:PRODUCT, '--architecture', $env:ARCHITECTURE, '--build-directory', "$output/builds/$env:PRODUCT-$env:ARCHITECTURE-package", '--output', $packages, '--report', "$packages/package-report.json", '--mode', 'release')
+              & $tools.tools.powershell.path -NoProfile -CommandWithArgs $bridge @arguments
+              Get-ChildItem -LiteralPath $packages -File | Copy-Item -Destination $handoff
+          }
+          $qualification = "$env:RUNNER_TEMP/runtime-qualification"
+          $arguments = @('qualify', '--root', $source, '--toolset', $env:TOOLSET, '--product', $env:PRODUCT, '--architecture', $env:ARCHITECTURE, '--manifest', $manifest, '--output', $qualification, '--report', "$qualification/qualification-report.json", '--mode', 'release')
+          & $tools.tools.powershell.path -NoProfile -CommandWithArgs $bridge @arguments
+          Copy-Item -LiteralPath "$qualification/qualification-report.json" -Destination $handoff
+      - name: Save qualified release data
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ matrix.product }}-${{ matrix.architecture }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-handoff/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-diagnostics-${{ matrix.product }}-${{ matrix.architecture }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-native/logs/
+            ${{ runner.temp }}/release-native/reports/
+            ${{ runner.temp }}/release-native/junit/
+            ${{ runner.temp }}/release-native/builds/**/results/*.txt
+            ${{ runner.temp }}/release-native/builds/**/Testing/Temporary/*.log
+            ${{ runner.temp }}/runtime-qualification/logs/
+            ${{ runner.temp }}/runtime-qualification/reports/
+            ${{ runner.temp }}/runtime-qualification/junit/
+            ${{ runner.temp }}/runtime-qualification/builds/**/results/*.txt
+            ${{ runner.temp }}/runtime-qualification/builds/**/Testing/Temporary/*.log
+          if-no-files-found: ignore
+          retention-days: 14
+  draft:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    needs: [qualify, quality, packages]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: draft-${{ github.repository }}-${{ inputs.tag }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          fetch-depth: 0
+          path: trusted
+          persist-credentials: false
+      - uses: ./trusted/.github/actions/source
+      - uses: ./trusted/.github/actions/bootstrap
+        id: setup
+        with:
+          source: trusted
+          profile: release
+          cache: 'false'
+      - name: Independently select current-run artifacts
+        id: artifacts
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          ADAPTERS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          ADAPTERS_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          ADAPTERS_WORKFLOW_REF: ${{ job.workflow_ref }}
+          ADAPTERS_WORKFLOW_PATH: ${{ job.workflow_file_path }}
+        run: |
+          set -euo pipefail
+          "$CI_CLI" release artifacts --root "$PWD" --git "$(command -v git)" --tag "$RELEASE_TAG" --toolset "$TOOLSET" \
+            --out-receipt "$RUNNER_TEMP/artifact-receipt.json" --github-output "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.artifacts.outputs.artifact_ids }}
+          path: ${{ runner.temp }}/release-data
+          digest-mismatch: error
+      - name: Revalidate and create a reviewable draft
+        id: publish
+        shell: bash
+        working-directory: trusted
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RUNTIME_MANIFEST: ${{ inputs.runtime_manifest }}
+          GH_TOKEN: ${{ github.token }}
+          ADAPTERS_QUALIFY_RESULT: ${{ needs.qualify.result }}
+          ADAPTERS_QUALITY_RESULT: ${{ needs.quality.result }}
+          ADAPTERS_PACKAGE_RESULT: ${{ needs.packages.result }}
+          ADAPTERS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          ADAPTERS_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          ADAPTERS_WORKFLOW_REF: ${{ job.workflow_ref }}
+          ADAPTERS_WORKFLOW_PATH: ${{ job.workflow_file_path }}
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/runtime-manifest.json"
+          if [[ -n "$RUNTIME_MANIFEST" ]]; then printf '%s' "$RUNTIME_MANIFEST" > "$manifest"; else cp .github/ci/runtime-pair.json "$manifest"; fi
+          "$CI_CLI" release draft --root "$PWD" --git "$(command -v git)" --tag "$RELEASE_TAG" --toolset "$TOOLSET" \
+            --receipt "$RUNNER_TEMP/artifact-receipt.json" --handoff "$RUNNER_TEMP/release-data" --runtime-manifest "$manifest" --report "$RUNNER_TEMP/release-report.json"

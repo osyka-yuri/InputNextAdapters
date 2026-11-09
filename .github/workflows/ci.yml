@@ -1,0 +1,55 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '30 1 * * 0'
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+jobs:
+  select:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_native: ${{ steps.plan.outputs.has_native }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/bootstrap
+        id: setup
+        with:
+          profile: lint
+      - name: Select affected product checks
+        id: plan
+        shell: bash
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          args=(matrix --root "$GITHUB_WORKSPACE" --github-output "$GITHUB_OUTPUT")
+          if [[ "$EVENT" != pull_request ]]; then args+=(--deep); fi
+          if [[ "$EVENT" == pull_request && "$BASE_SHA" =~ ^[0-9a-f]{40}$ && "$BASE_SHA" != 0000000000000000000000000000000000000000 ]] && git cat-file -e "$BASE_SHA^{commit}"; then
+            paths="$RUNNER_TEMP/changed-paths.nul"
+            git diff --no-renames --name-only -z "$BASE_SHA" "$HEAD_SHA" > "$paths"
+            args+=(--changed-paths "$paths")
+          fi
+          "$CI_CLI" "${args[@]}"
+  quality:
+    needs: select
+    uses: ./.github/workflows/quality.yml
+    with:
+      native_matrix: ${{ needs.select.outputs.matrix }}
+      has_native: ${{ needs.select.outputs.has_native == 'true' }}
+    permissions:
+      contents: read

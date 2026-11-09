@@ -11,3 +11,4 @@ pub mod qualification;
 pub mod release;
 pub mod source;
 pub mod tooling;
+pub mod workflows;

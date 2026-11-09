@@ -1,0 +1,121 @@
+name: Quality
+on:
+  workflow_call:
+    inputs:
+      source_ref:
+        type: string
+        default: ''
+      native_matrix:
+        type: string
+        required: true
+      has_native:
+        type: boolean
+        required: true
+permissions:
+  contents: read
+jobs:
+  tooling:
+    name: Host tooling (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025-vs2026, ubuntu-26.04]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/bootstrap
+        id: setup
+        with:
+          profile: lint
+      - name: Check Rust formatting, lints and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+          cargo test --locked --workspace
+      - name: Check workflows and Bash
+        shell: bash
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+        run: '"$CI_CLI" workflows --root "$GITHUB_WORKSPACE" --toolset "$TOOLSET"'
+      - name: Check the Windows command bridge
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        env:
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+        run: |
+          $tools = Get-Content -LiteralPath $env:TOOLSET -Raw | ConvertFrom-Json
+          & $tools.tools.powershell.path -NoProfile -File tools/ci/tests/Test-ArgumentForwarding.ps1
+          exit $LASTEXITCODE
+  native:
+    if: ${{ inputs.has_native }}
+    name: ${{ matrix.product }} / ${{ matrix.architecture }} / ${{ matrix.check }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.native_matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/bootstrap
+        id: setup
+        with:
+          profile: ${{ matrix.tool_profile }}
+          compiler: production
+      - name: Run native check
+        shell: pwsh
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          COMPILER: ${{ steps.setup.outputs.compiler }}
+          PRODUCT: ${{ matrix.product }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+          CHECK: ${{ matrix.check }}
+        run: |
+          $tools = Get-Content -LiteralPath $env:TOOLSET -Raw | ConvertFrom-Json
+          $arguments = @('native', '--root', $env:GITHUB_WORKSPACE, '--output', "$env:RUNNER_TEMP/native", '--toolset', $env:TOOLSET, '--compiler-report', $env:COMPILER, '--product', $env:PRODUCT, '--architecture', $env:ARCHITECTURE, '--check', $env:CHECK)
+          $bridge = '& ./tools/ci/Invoke-CI.ps1 -Cli $env:CI_CLI -Toolset $env:TOOLSET -Compiler $env:COMPILER -Architecture $env:ARCHITECTURE -Arguments $args; exit $LASTEXITCODE'
+          & $tools.tools.powershell.path -NoProfile -CommandWithArgs $bridge @arguments
+          exit $LASTEXITCODE
+      - name: Create development packages
+        if: ${{ matrix.check == 'package' }}
+        shell: pwsh
+        env:
+          CI_CLI: ${{ steps.setup.outputs.cli }}
+          TOOLSET: ${{ steps.setup.outputs.toolset }}
+          COMPILER: ${{ steps.setup.outputs.compiler }}
+          PRODUCT: ${{ matrix.product }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          $tools = Get-Content -LiteralPath $env:TOOLSET -Raw | ConvertFrom-Json
+          $output = "$env:RUNNER_TEMP/native"
+          $key = "$env:PRODUCT-$env:ARCHITECTURE-package"
+          $packages = "$env:RUNNER_TEMP/development-packages"
+          $arguments = @('package', '--root', $env:GITHUB_WORKSPACE, '--toolset', $env:TOOLSET, '--product', $env:PRODUCT, '--architecture', $env:ARCHITECTURE, '--build-directory', "$output/builds/$key", '--output', $packages, '--report', "$packages/package-report.json", '--mode', 'development')
+          $bridge = '& ./tools/ci/Invoke-CI.ps1 -Cli $env:CI_CLI -Toolset $env:TOOLSET -Compiler $env:COMPILER -Architecture $env:ARCHITECTURE -Arguments $args; exit $LASTEXITCODE'
+          & $tools.tools.powershell.path -NoProfile -CommandWithArgs $bridge @arguments
+          exit $LASTEXITCODE
+      - name: Save diagnostics and development packages
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: check-${{ matrix.product }}-${{ matrix.architecture }}-${{ matrix.check }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native/logs/
+            ${{ runner.temp }}/native/reports/
+            ${{ runner.temp }}/native/junit/
+            ${{ runner.temp }}/development-packages/
+            ${{ runner.temp }}/native/builds/**/Testing/Temporary/*.log
+            ${{ runner.temp }}/native/builds/**/results/*.txt
+            ${{ runner.temp }}/native/builds/**/*.sarif
+          if-no-files-found: ignore
+          retention-days: 14
