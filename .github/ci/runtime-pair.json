@@ -1,4 +1,24 @@
 {
   "schemaVersion": 1,
-  "published": null
+  "kind": "published",
+  "version": "1.0.0",
+  "headers": {
+    "coreSha256": "d561b0304ad6628e627c338db3d0626be3f7c90f8cedbaa5cbb3cede63be57c5",
+    "effectsSha256": "3f5b18fd35db13e75288892e6211ad3b59d94ed6276f80a52dbae2132b4e603c"
+  },
+  "repository": "osyka-yuri/InputNext",
+  "releaseId": 439093337,
+  "tag": "v1.0.0",
+  "assets": {
+    "x64": {
+      "id": 727365581,
+      "name": "InputNext-1.0.0-windows-x64.zip",
+      "sha256": "ac3e71a7c41799ca74334320d9cc4ac9ece8dd58079ba4215746f0e994e1de27"
+    },
+    "x86": {
+      "id": 727366331,
+      "name": "InputNext-1.0.0-windows-x86.zip",
+      "sha256": "fc862419cce945b74e4e2e62c11352812ee9e9a10ebb577cec67535a776065e6"
+    }
+  }
 }
