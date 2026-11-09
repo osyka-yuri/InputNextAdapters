@@ -1,12 +1,12 @@
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use inputnext_adapters_ci::{native, package, plan, process, qualification, tooling};
+use inputnext_adapters_ci::{native, package, plan, process, qualification, release, tooling};
 
 #[derive(Debug, Parser)]
 #[command(
     version,
-    about = "InputNextAdapters native build and runtime qualification"
+    about = "InputNextAdapters native, release and qualification tooling"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -22,6 +22,8 @@ enum Command {
     Native(native::NativeArgs),
     Package(package::PackageArgs),
     Qualify(qualification::QualifyArgs),
+    #[command(subcommand)]
+    Release(release::ReleaseCommand),
 }
 
 fn main() -> ExitCode {
@@ -34,6 +36,7 @@ fn main() -> ExitCode {
         Command::Native(command) => command.run(&mut runner),
         Command::Package(command) => command.run(&mut runner),
         Command::Qualify(command) => command.run(&mut runner),
+        Command::Release(command) => command.run(&mut runner),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
