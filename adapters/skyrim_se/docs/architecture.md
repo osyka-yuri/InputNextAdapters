@@ -27,7 +27,7 @@ Mandatory sink-registration failure leaves the owner inert. The optional footste
 
 ## Native interpretation
 
-Native health, combat and optional sneaking/detection values enter the shared `LedPolicy` through Skyrim's policy. LE supplies health and combat only. The selected lightbar intent uses shared delivery; native sources never submit output. See lightbar behavior and delivery contracts.
+Native health, combat and optional sneaking/detection values enter the shared `LedPolicy` through Skyrim's policy. LE supplies health and combat only. The selected lightbar intent uses shared delivery; native sources never submit output. See [lightbar behavior](../../../docs/leds.md) and [delivery contracts](../../../docs/effects.md#lightbar-policy-and-delivery).
 
 SE/AE native tasks retain the immutable startup LED settings. Disabled LED or stealth skips detection queries; health values already needed by haptics are reused. Detection is sampled only during admitted gameplay while actually sneaking.
 
@@ -61,7 +61,7 @@ after that pass wait for the next tick; later admission checks do not repeat a f
 `BUSY` body clear retains its exact owner for retry; other failures retire the binding through context cleanup.
 `STALE_LEASE` settles the local lease. Cleanup failure never extends the native lease or discards a close receipt.
 
-Shared delivery contracts are in effect delivery.
+Shared delivery contracts are in [effect delivery](../../../docs/effects.md).
 
 ## Extending effects
 

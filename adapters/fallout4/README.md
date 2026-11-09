@@ -18,14 +18,14 @@ Adaptive triggers, vibration, and prioritized lightbar feedback for Fallout 4 th
 
 - 64-bit Windows and Fallout 4 **1.11.240.0**.
 - **F4SE 0.7.9** and the matching Address Library database, `version-1-11-240-0.bin`.
-- The x64 InputNext runtime; see runtime setup.
+- The x64 InputNext runtime; see [runtime setup](../../docs/runtime-setup.md).
 - The Microsoft Visual C++ x64 Redistributable required by the plugin's build.
 
 Other executable versions and Fallout 4 VR are unsupported. DLC is optional. DualSense and DualSense Edge require USB for feedback; HD haptics also require the controller's audio device to be available.
 
 ## Installation
 
-1. Close Fallout 4 and install x64 InputNext beside `Fallout4.exe`.
+1. Close Fallout 4 and install [x64 InputNext](../../docs/runtime-setup.md) beside `Fallout4.exe`.
 2. Install F4SE 0.7.9 and place `version-1-11-240-0.bin` under `Data/F4SE/Plugins/`.
 3. Merge the plugin package's `Data/` folder into Fallout 4's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/F4SE/Plugins/`.
 4. Launch through F4SE.
@@ -56,7 +56,7 @@ Body profiles support `Enabled`, `HDScale` and `ClassicScale` (0–2), `Duration
 
 Ordinary walking, running and sneaking steps are disabled by default; sprint and power-armor steps are enabled. Each profile can be adjusted independently.
 
-The `[LED]` group independently controls health, stealth and radiation feedback. Radiation remains unknown until the first real source-count event after startup or load. See lightbar settings, priorities and source limits for the complete configuration.
+The `[LED]` group independently controls health, stealth and radiation feedback. Radiation remains unknown until the first real source-count event after startup or load. See [lightbar settings, priorities and source limits](../../docs/leds.md) for the complete configuration.
 
 Invalid, unknown, out-of-range, or duplicate settings and read errors prevent startup without applying a partial configuration. Check `Documents/My Games/Fallout4/F4SE/InputNextFallout4.log` for the reason.
 
@@ -66,7 +66,7 @@ Menus suppress gameplay effects while retaining a finite silent body lease to su
 
 ## Uninstall
 
-Close Fallout 4 and remove the plugin's DLL and INI files from `Data/F4SE/Plugins/`, or uninstall it through your mod manager. InputNext is removed separately.
+Close Fallout 4 and remove the plugin's DLL and INI files from `Data/F4SE/Plugins/`, or uninstall it through your mod manager. [InputNext is removed separately](../../docs/runtime-setup.md#uninstall).
 
 ## License
 

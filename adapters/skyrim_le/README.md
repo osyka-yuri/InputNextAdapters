@@ -16,14 +16,14 @@ Adaptive triggers, magic feedback, sustained bow tension, footsteps and mounted 
 ## Requirements
 
 - Windows supported by InputNext, Skyrim **1.9.32.0**, and **SKSE 1.7.3**.
-- The native x86 InputNext runtime; see runtime setup.
+- The native x86 InputNext runtime; see [runtime setup](../../docs/runtime-setup.md).
 - The Microsoft Visual C++ x86 Redistributable required by the plugin's build.
 
 Dawnguard, HearthFires, and Dragonborn are optional. Vampire-lord detection requires Dawnguard. Creation Club Survival and VR are unsupported.
 
 ## Installation
 
-1. Close Skyrim and install x86 InputNext beside `TESV.exe`.
+1. Close Skyrim and install [x86 InputNext](../../docs/runtime-setup.md) beside `TESV.exe`.
 2. Install SKSE 1.7.3 for Skyrim 1.9.32.0.
 3. Merge the plugin package's `Data/` folder into Skyrim's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/SKSE/Plugins/`.
 4. Launch through SKSE.
@@ -44,7 +44,7 @@ The INI is read at startup. Restart Skyrim after editing it. Missing settings us
 | `AudioHapticsEnabled` | `true` | Use compiled audio profiles and optional bank overrides |
 | `RespectGameVibration` | `true` | Follow Skyrim's Vibration option for body effects |
 
-The independent `[LED]` group controls health feedback. LE has no stealth colors. See lightbar settings.
+The independent `[LED]` group controls health feedback. LE has no stealth colors. See [lightbar settings](../../docs/leds.md).
 
 Copy the overrides you need from [InputNextSkyrimLE.reference.ini](InputNextSkyrimLE.reference.ini) into [InputNextSkyrimLE.ini](InputNextSkyrimLE.ini). The reference file is not loaded. Each section may appear once. Older body and trigger options remain accepted for compatibility; unsupported effects stay inactive.
 
@@ -58,7 +58,7 @@ The log is `Data/SKSE/Plugins/InputNextSkyrimLE.log`. It records lifecycle and o
 
 ## Uninstall
 
-Close Skyrim and remove the plugin's DLL and INI files from `Data/SKSE/Plugins/`, or uninstall it through your mod manager. InputNext is removed separately.
+Close Skyrim and remove the plugin's DLL and INI files from `Data/SKSE/Plugins/`, or uninstall it through your mod manager. [InputNext is removed separately](../../docs/runtime-setup.md#uninstall).
 
 ## License
 

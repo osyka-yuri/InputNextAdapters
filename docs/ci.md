@@ -17,7 +17,7 @@ cargo run --locked -p inputnext-adapters-ci -- plan `
   --root . --output build/ci --product skyrim-le --architecture x86 --check native-tests
 ```
 
-Run native checks from an architecture-matched Developer PowerShell with the prepared `--toolset` report. Use `--help` on `toolchain`, `native`, `package` and `qualify` for input and report paths. `--jobs` overrides build concurrency; the default uses available processors. See Contributing for local verification scripts.
+Run native checks from an architecture-matched Developer PowerShell with the prepared `--toolset` report. Use `--help` on `toolchain`, `native`, `package` and `qualify` for input and report paths. `--jobs` overrides build concurrency; the default uses available processors. See [Contributing](../CONTRIBUTING.md) for local verification scripts.
 
 Use a short absolute `--output` path for native Windows builds. MSVC dependency files can exceed its path limit beneath deeply nested workspaces; hosted jobs use temporary build roots.
 
@@ -42,4 +42,4 @@ Only the final draft job receives release write permission. It independently che
 
 The draft job does not execute downloaded producer tools, DLLs or source scripts. An existing release fails qualification; assets are never overwritten or published automatically. If an upload fails after draft creation, the reported partial draft requires explicit recovery.
 
-Plugin packages contain their own DLL, settings and notices. Install InputNext and game dependencies separately. Binary, symbol and corresponding-source archives have independent manifests and outer SHA-256 hashes. See product packages for their contents.
+Plugin packages contain their own DLL, settings and notices. Install InputNext and game dependencies separately. Binary, symbol and corresponding-source archives have independent manifests and outer SHA-256 hashes. See [product packages](packaging.md) for their contents.

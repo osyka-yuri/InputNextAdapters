@@ -6,7 +6,7 @@ The DLL includes 49 audio-derived stock profiles. An optional `InputNextSkyrim.a
 temporal envelopes for transients and stationary source-mean gains for supported held profiles. It is loaded once before gameplay callbacks start.
 `AudioHapticsEnabled=false` in `[InputNextSkyrim]` disables both compiled and external audio profiles and uses synthetic waveforms. Missing, corrupt,
 wrong-game or inapplicable entries retain those profiles; triggers and classic fallback keep their
-existing behavior. See offline preparation.
+existing behavior. See [offline preparation](../../../docs/audio-haptics-baking.md).
 
 | Action | Feedback |
 | --- | --- |
@@ -88,7 +88,7 @@ Blunt contacts use damped bass pulses. Blade contacts combine a resonant compone
 body component; body weight increases from dagger to sword to axe. Preparatory swings omit the
 impact-excited resonant component. Two-handed is a neutral heavy profile because the current class
 does not distinguish every blade/blunt subtype. These are authored tactile projections of impact
-properties, not recordings or material recognition. See the research and selection rationale.
+properties, not recordings or material recognition. See the [research and selection rationale](../../../docs/haptics-rationale.md).
 
 | Weapon | Swing / contact duration |
 | --- | --- |
@@ -105,7 +105,7 @@ Power attacks add 10 ms to contact, capped at 120 ms; bash contact remains short
 
 Menus retain finite neutral body ownership while suppressing gameplay effects. Loading, death, lost focus, faults, and stale observations withdraw output. Recovery requires fresh game state.
 
-USB HD requires the exact ready audio instance. Classic fallback uses the authored rumble envelope or silence. Renewals preserve cue timing, and failed one-shot PCM is not replayed after reacquisition. See [architecture](architecture.md) and shared delivery.
+USB HD requires the exact ready audio instance. Classic fallback uses the authored rumble envelope or silence. Renewals preserve cue timing, and failed one-shot PCM is not replayed after reacquisition. See [architecture](architecture.md) and [shared delivery](../../../docs/effects.md).
 
 Configure strengths and individual profiles through the [INI settings](../README.md#settings).
-The LED policy and its full priority order are documented in lightbar feedback.
+The LED policy and its full priority order are documented in [lightbar feedback](../../../docs/leds.md).

@@ -3,7 +3,7 @@
 `inputnext-adapters-ci` prepares pinned tools, verifies compilers, selects product checks and runs
 CMake/CTest. Reports, step logs and JUnit results use the output root's `reports/`, `logs/` and
 `junit/` directories; native build trees use `builds/`. See [CI and releases](../../docs/ci.md)
-for workflow scope and product packages for packaging commands.
+for workflow scope and [product packages](../../docs/packaging.md) for packaging commands.
 
 `Invoke-CI.ps1` enters the verified Visual Studio developer environment, checks that the selected
 MSVC executable matches the compiler report, and forwards the supplied argument array to the CLI.

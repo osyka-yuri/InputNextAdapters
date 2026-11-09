@@ -18,7 +18,7 @@ The native boundary captures game state and copies events into bounded value dat
 | Shared `LedPolicy` | Health baselines, LED timing, color transitions and indication priorities |
 | `Session` | Lifecycle epochs, observation freshness, event admission, and serialized output |
 
-Native LED bindings supply copied facts to `Policy`, which composes the shared `LedPolicy`. The shared `OutputSession` delivers its one selected intent through an independent finite LED cache. Source acquisition, indication selection and SDK ownership remain separate; see [native source contracts](bindings.md#led-health-stealth-and-radiation) and shared delivery.
+Native LED bindings supply copied facts to `Policy`, which composes the shared `LedPolicy`. The shared `OutputSession` delivers its one selected intent through an independent finite LED cache. Source acquisition, indication selection and SDK ownership remain separate; see [native source contracts](bindings.md#led-health-stealth-and-radiation) and [shared delivery](../../../docs/effects.md#lightbar-policy-and-delivery).
 
 `Policy` owns the sanitized configuration and coordinates copied observations, events, and bounded cue intents. Each detector owns its history; `BodyVoiceMixer` owns the voice pool and sequence counter. Resource cues are offered before event cues, then mechanic and landing cues, preserving arbitration order. Mode and weapon changes clear active voices while preserving the sequence counter; a full effect reset also restarts that counter. LED history follows its independent reset and pause rules.
 

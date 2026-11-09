@@ -65,7 +65,7 @@ Diagnostic presets `msvc-x64-asan`, `clang-cl-x64-ubsan`, and `msvc-x64-analysis
 
 The package probe normally loads the build-tree DLL. Set `INPUTNEXTADAPTERS_PACKAGE_PLUGIN` to an extracted package DLL to test that binary instead.
 
-ASan and UBSan are mutually exclusive. UBSan uses clang-cl with the static CRT; MSVC analysis writes per-object SARIF logs. See build profiles and source tools.
+ASan and UBSan are mutually exclusive. UBSan uses clang-cl with the static CRT; MSVC analysis writes per-object SARIF logs. See [build profiles](../../../docs/building.md#analysis-and-sanitizers) and [source tools](../../../CONTRIBUTING.md).
 
 Run formatting, native clang-tidy, and CTest for owned test targets from the repository root:
 
@@ -74,6 +74,6 @@ pwsh -File tools/check_quality.ps1
 pwsh -File tools/verify.ps1 -Project skyrim-se -Preset msvc-x64-native-quality
 ```
 
-The dedicated quality preset enables the native plugin and tests, retains MSVC for CommonLib, and uses a separate build directory. See Contributing for tool versions and options.
+The dedicated quality preset enables the native plugin and tests, retains MSVC for CommonLib, and uses a separate build directory. See [Contributing](../../../CONTRIBUTING.md) for tool versions and options.
 
 For startup logs and configuration errors, see [diagnostics](../README.md#diagnostics).

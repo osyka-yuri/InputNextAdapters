@@ -18,7 +18,7 @@ Adaptive triggers and vibration for Skyrim Special Edition and Anniversary Editi
 
 - 64-bit Windows and a Skyrim runtime listed below.
 - SKSE and Address Library matching the game runtime.
-- The x64 InputNext runtime; see runtime setup.
+- The x64 InputNext runtime; see [runtime setup](../../docs/runtime-setup.md).
 - The Microsoft Visual C++ x64 Redistributable required by the plugin's build.
 
 | Store | Accepted runtime versions |
@@ -31,7 +31,7 @@ VR is unsupported. DLC is optional. DualSense and DualSense Edge require USB for
 
 ## Installation
 
-1. Close Skyrim and install x64 InputNext beside `SkyrimSE.exe`.
+1. Close Skyrim and install [x64 InputNext](../../docs/runtime-setup.md) beside `SkyrimSE.exe`.
 2. Install SKSE and Address Library matching your game version.
 3. Merge the plugin package's `Data/` folder into Skyrim's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/SKSE/Plugins/`.
 4. Launch through SKSE.
@@ -52,7 +52,7 @@ The INI is read at startup. Restart Skyrim after editing it. Missing settings us
 | `TriggersEnabled` | `true` | Enable adaptive triggers |
 | `RespectGameVibration` | `true` | Follow Skyrim's Vibration option for body effects |
 
-The independent `[LED]` group controls timed health feedback and a blue-to-magenta gradient while actually sneaking. Unavailable detection data suppresses stealth; raw score endpoints may need tuning. See lightbar settings, priorities and source limits.
+The independent `[LED]` group controls timed health feedback and a blue-to-magenta gradient while actually sneaking. Unavailable detection data suppresses stealth; raw score endpoints may need tuning. See [lightbar settings, priorities and source limits](../../docs/leds.md).
 
 To keep InputNext body effects while disabling Skyrim's original vibration, set `RespectGameVibration=false` and turn off Vibration in the game. Triggers are independent of that option.
 
@@ -79,7 +79,7 @@ Check both folders if needed; the folder name may differ from your storefront. C
 
 ## Uninstall
 
-Close Skyrim and remove the plugin's DLL and INI files from `Data/SKSE/Plugins/`, or uninstall it through your mod manager. InputNext is removed separately.
+Close Skyrim and remove the plugin's DLL and INI files from `Data/SKSE/Plugins/`, or uninstall it through your mod manager. [InputNext is removed separately](../../docs/runtime-setup.md#uninstall).
 
 ## License
 

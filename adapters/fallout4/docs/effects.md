@@ -8,9 +8,9 @@ leaving other built-in profiles active. It loads before the native owner starts;
 `AudioHapticsEnabled=false` in `[Effects]` disables both sources and retains synthetic waveforms.
 Missing, corrupt or wrong-game external banks retain the compiled defaults. Classic fallback and
 adaptive triggers are unchanged. See
-offline preparation.
+[offline preparation](../../../docs/audio-haptics-baking.md).
 
-The haptic design rationale separates published research,
+The [haptic design rationale](../../../docs/haptics-rationale.md) separates published research,
 authored waveform choices, and digital verification. Carrier values are design parameters, not
 experimentally established ideal frequencies for each action. Firearm families use their complete
 carrier/component/envelope/trigger combinations; frequency alone does not guarantee recognition.
@@ -120,7 +120,7 @@ Health and AP use normalized current Actor Values, fresh baselines, and hysteres
 
 Fallout 4 supplies absolute health, combat state, actual sneaking/detection and optional current radiation-source counts to the shared lightbar policy. Unknown damage can gain recent-damage priority only when correlated with a sampled HP decrease; known positive damage also covers simultaneous healing with no net HP change.
 
-Radiation remains unknown until a real count event after startup or loading. Missing optional bindings disable only their source. See lightbar feedback for timing, priorities and settings, and [native bindings](bindings.md#led-health-stealth-and-radiation) for source validation and lifecycle details.
+Radiation remains unknown until a real count event after startup or loading. Missing optional bindings disable only their source. See [lightbar feedback](../../../docs/leds.md) for timing, priorities and settings, and [native bindings](bindings.md#led-health-stealth-and-radiation) for source validation and lifecycle details.
 
 ## Reload and power armor
 

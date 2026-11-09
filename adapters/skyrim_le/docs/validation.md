@@ -73,7 +73,7 @@ pwsh -File tools/verify.ps1 -Project skyrim-le -Preset msvc-x86-native-quality
 ```
 
 `clang-cl-x86` is an alternative SDK-free build. Native clang-cl builds additionally set
-`INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN=ON`. The quality preset retains the x86 MSVC native build and enables tests in its own incremental directory. See Contributing for tool versions.
+`INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN=ON`. The quality preset retains the x86 MSVC native build and enables tests in its own incremental directory. See [Contributing](../../../CONTRIBUTING.md) for tool versions.
 
 ## Diagnostics
 

@@ -22,7 +22,7 @@ This build needs no game SDK.
 
 The targets are `skyrim_policy`, `skyrim_session`, and `skyrim_config`. Native frontends include the project with `add_subdirectory` and select tests with `INPUTNEXT_SKYRIM_BUILD_TESTS`.
 
-`Policy` composes `BodyCueHistory` (finite cues and held admission fences), `EffectMixer` (trigger and rumble envelopes), `CriticalHealthHeartbeat` (heartbeat timing), and the shared `LedPolicy` (lightbar selection and timing). These components use value observations and explicit time, with no runtime I/O. Native frontends supply LED capabilities; shared delivery owns SDK submission.
+`Policy` composes `BodyCueHistory` (finite cues and held admission fences), `EffectMixer` (trigger and rumble envelopes), `CriticalHealthHeartbeat` (heartbeat timing), and the shared `LedPolicy` (lightbar selection and timing). These components use value observations and explicit time, with no runtime I/O. Native frontends supply LED capabilities; [shared delivery](../../docs/effects.md#lightbar-policy-and-delivery) owns SDK submission.
 
 `reset_body_history()` clears body cues, rumble, and heartbeat history while preserving trigger overlays and LED state. `reset()` also clears trigger overlays, LED state and event deduplication. Both preserve held admission fences. The coordinator owns session admission and output delivery.
 

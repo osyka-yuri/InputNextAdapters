@@ -34,7 +34,7 @@ The build fetches pinned CommonLibF4, commonlib-shared and spdlog. See [third-pa
 for revisions and terms. FetchContent source overrides can reuse Git checkouts with initialized submodules
 offline. `cmake/CommonLibF4Patches.cmake` declares an existing engine destructor without implementing it or changing the dependency pin. Corresponding source includes the dependencies and this amendment.
 
-Ordinary builds check the shared submodule's Git `HEAD`. Extracted source packages use a verified bundle manifest instead. Release packaging rejects source overrides. To test an extracted plugin DLL, set `INPUTNEXTADAPTERS_PACKAGE_PLUGIN` to its absolute path.
+Ordinary builds check the shared submodule's Git `HEAD`. Extracted [source packages](../../../docs/packaging.md#build-an-extracted-source-package) use a verified bundle manifest instead. Release packaging rejects source overrides. To test an extracted plugin DLL, set `INPUTNEXTADAPTERS_PACKAGE_PLUGIN` to its absolute path.
 
 Staging creates DLL/settings under `Data/F4SE/Plugins/`, a root README and terms under `licenses/`.
 Install InputNext, F4SE and the matching Address Library separately. Before distribution, check the staged DLL's architecture and imports, verify SDK hashes and confirm the exact `F4SEPlugin_Load`/`F4SEPlugin_Version` exports.
@@ -74,8 +74,8 @@ pwsh -File tools/check_quality.ps1
 pwsh -File tools/verify.ps1 -Project fallout4 -Preset msvc-x64-native-quality
 ```
 
-The tidy profile uses a separate build directory and does not change the ordinary native preset. See source checks
-and build profiles for tools and supported configurations.
+The tidy profile uses a separate build directory and does not change the ordinary native preset. See [source checks](../../../CONTRIBUTING.md)
+and [build profiles](../../../docs/building.md#analysis-and-sanitizers) for tools and supported configurations.
 
 ## Diagnostics
 
