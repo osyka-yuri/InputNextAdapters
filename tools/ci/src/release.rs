@@ -1,7 +1,9 @@
-//! Release identity and current-run artifact qualification.
+//! Release identity, artifact qualification, and draft authority.
 
 mod artifacts;
+mod draft;
 mod identity;
+mod verify;
 
 use std::path::{Path, PathBuf};
 
@@ -16,17 +18,22 @@ use crate::tooling::load_toolset;
 pub enum ReleaseCommand {
     Qualify(QualifyArgs),
     Artifacts(ArtifactsArgs),
+    Verify(VerifyArgs),
+    Draft(DraftArgs),
 }
 
 impl ReleaseCommand {
-    /// Runs one release identity or artifact qualification operation.
+    /// Runs one release qualification or draft-authority operation.
     ///
     /// # Errors
-    /// Returns an error if trusted workflow identity, tag, artifact, or output paths are invalid.
+    ///
+    /// Returns an error if any trusted workflow, tag, artifact, report, or package input is invalid.
     pub fn run(self, runner: &mut dyn Runner) -> Result<()> {
         match self {
             Self::Qualify(args) => args.run(runner),
             Self::Artifacts(args) => args.run(runner),
+            Self::Verify(args) => verify::run(&args, runner),
+            Self::Draft(args) => draft::run(&args, runner),
         }
     }
 }
@@ -41,6 +48,8 @@ pub struct QualifyArgs {
     tag: String,
     #[arg(long)]
     out_identity: PathBuf,
+    #[arg(long)]
+    out_source_data: Option<PathBuf>,
     #[arg(long)]
     github_output: Option<PathBuf>,
 }
@@ -57,6 +66,27 @@ impl QualifyArgs {
                 normalized_output_target(path)? != normalized_output_target(&self.out_identity)?,
                 "identity and GitHub outputs must use different paths"
             );
+        }
+        if let Some(path) = &self.out_source_data {
+            let identity_target = normalized_output_target(&self.out_identity)?;
+            let source_target = normalized_output_target(path)?;
+            ensure!(
+                identity_target != source_target,
+                "identity and tag source outputs must use different paths"
+            );
+            if let Some(github_output) = &self.github_output {
+                ensure!(
+                    normalized_output_target(github_output)? != source_target,
+                    "GitHub output and tag source outputs must use different paths"
+                );
+            }
+            verify::materialize_tag_source_to(
+                &self.root,
+                &self.git,
+                &release.source_commit,
+                path,
+                runner,
+            )?;
         }
         identity::write_identity(&self.out_identity, &release)?;
         if let Some(path) = &self.github_output {
@@ -115,6 +145,46 @@ impl ArtifactsArgs {
         );
         Ok(())
     }
+}
+
+#[derive(Debug, Args)]
+pub struct VerifyArgs {
+    #[arg(long)]
+    pub(super) root: PathBuf,
+    #[arg(long)]
+    pub(super) git: PathBuf,
+    #[arg(long)]
+    pub(super) tag: String,
+    #[arg(long)]
+    pub(super) toolset: PathBuf,
+    #[arg(long)]
+    pub(super) receipt: PathBuf,
+    #[arg(long)]
+    pub(super) handoff: PathBuf,
+    #[arg(long)]
+    pub(super) runtime_manifest: PathBuf,
+    #[arg(long)]
+    pub(super) report: Option<PathBuf>,
+}
+
+#[derive(Debug, Args)]
+pub struct DraftArgs {
+    #[arg(long)]
+    pub(super) root: PathBuf,
+    #[arg(long)]
+    pub(super) git: PathBuf,
+    #[arg(long)]
+    pub(super) tag: String,
+    #[arg(long)]
+    pub(super) toolset: PathBuf,
+    #[arg(long)]
+    pub(super) receipt: PathBuf,
+    #[arg(long)]
+    pub(super) handoff: PathBuf,
+    #[arg(long)]
+    pub(super) runtime_manifest: PathBuf,
+    #[arg(long)]
+    pub(super) report: Option<PathBuf>,
 }
 
 fn validate_output_path(root: &Path, path: &Path) -> Result<()> {

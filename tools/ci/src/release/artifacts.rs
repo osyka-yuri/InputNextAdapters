@@ -123,6 +123,87 @@ pub(super) fn select_current_run(
     })
 }
 
+pub(super) fn verify_receipt(
+    path: &Path,
+    context: &WorkflowContext,
+    identity: &ReleaseIdentity,
+    toolset: &Toolset,
+    runner: &mut dyn Runner,
+) -> Result<ArtifactReceipt> {
+    context.validate()?;
+    let receipt = read_receipt(path)?;
+    ensure!(
+        receipt.repository == context.repository,
+        "artifact receipt repository differs from the current run"
+    );
+    ensure!(
+        receipt.run_id == context.run_id,
+        "artifact receipt run ID differs from the current run"
+    );
+    ensure!(
+        receipt.run_attempt == context.run_attempt,
+        "artifact receipt run attempt differs from the current attempt"
+    );
+    ensure!(
+        receipt.workflow_commit == context.workflow_commit,
+        "artifact receipt workflow commit differs from trusted main"
+    );
+    ensure!(
+        receipt.product == identity.product.as_str(),
+        "artifact receipt product differs from the requested tag"
+    );
+    ensure!(
+        receipt.version == identity.version,
+        "artifact receipt version differs from the requested tag"
+    );
+    ensure!(
+        receipt.tag == identity.tag,
+        "artifact receipt tag differs from the requested tag"
+    );
+    ensure!(
+        receipt.source_commit == identity.source_commit,
+        "artifact receipt source commit differs from the qualified tag"
+    );
+
+    let current = select_current_run(context, identity, toolset, runner)?;
+    ensure!(
+        receipt.run_started_at == current.run_started_at,
+        "artifact receipt belongs to a different run attempt"
+    );
+    ensure!(
+        receipt.artifacts == current.artifacts,
+        "artifact receipt differs from current GitHub artifact service identity"
+    );
+    Ok(receipt)
+}
+
+pub(super) fn validate_remote_tag(
+    context: &WorkflowContext,
+    identity: &ReleaseIdentity,
+    toolset: &Toolset,
+    runner: &mut dyn Runner,
+) -> Result<()> {
+    let gh = toolset.executable("gh")?.to_path_buf();
+    let endpoint = format!(
+        "repos/{}/commits/{}",
+        context.repository,
+        encode_path_segment(&identity.tag)
+    );
+    let commit = api_json(
+        &gh,
+        &context.repository,
+        &context.run_id,
+        &endpoint,
+        toolset,
+        runner,
+    )?;
+    ensure!(
+        required_string(&commit, "sha")? == identity.source_commit,
+        "remote product tag no longer resolves to the qualified source commit"
+    );
+    Ok(())
+}
+
 pub(super) fn write_receipt(path: &Path, receipt: &ArtifactReceipt) -> Result<()> {
     ensure!(
         path.is_absolute(),
@@ -172,6 +253,27 @@ fn append_output(path: &Path, name: &str, value: &str) -> Result<()> {
         .with_context(|| format!("could not open GitHub output {}", path.display()))?;
     writeln!(file, "{name}={value}").context("could not append GitHub output")?;
     file.flush().context("could not flush GitHub output")
+}
+
+fn read_receipt(path: &Path) -> Result<ArtifactReceipt> {
+    let metadata = std::fs::symlink_metadata(path)
+        .with_context(|| format!("could not inspect artifact receipt {}", path.display()))?;
+    ensure!(
+        metadata.is_file() && !metadata.file_type().is_symlink(),
+        "artifact receipt must be a regular file"
+    );
+    ensure!(
+        metadata.len() <= 4 * 1024 * 1024,
+        "artifact receipt exceeds the size limit"
+    );
+    let bytes = std::fs::read(path).context("could not read artifact receipt")?;
+    let receipt: ArtifactReceipt =
+        crate::json::parse(&bytes).context("artifact receipt is not valid strict JSON")?;
+    ensure!(
+        receipt.schema_version == 1,
+        "unsupported artifact receipt schema"
+    );
+    Ok(receipt)
 }
 
 fn api_json(
@@ -547,5 +649,8 @@ fn is_prior_attempt_artifact(
     Ok(false)
 }
 
+fn encode_path_segment(value: &str) -> String {
+    value.replace('%', "%25").replace('/', "%2F")
+}
 #[cfg(test)]
 mod tests;

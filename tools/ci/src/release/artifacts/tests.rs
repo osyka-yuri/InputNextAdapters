@@ -1,4 +1,6 @@
-use super::{is_prior_attempt_artifact, select_current_run, validate_jobs, validate_run};
+use super::{
+    encode_path_segment, is_prior_attempt_artifact, select_current_run, validate_jobs, validate_run,
+};
 use crate::model::Product;
 use crate::process::{CommandOutput, CommandSpec, Runner};
 use crate::tooling::load_toolset;
@@ -134,6 +136,14 @@ fn api_responses(product: Product) -> Result<BTreeMap<String, Vec<u8>>> {
             }));
     }
     Ok(BTreeMap::from([
+        (
+            format!(
+                "repos/{}/commits/{}",
+                ctx.repository,
+                encode_path_segment(&id.tag)
+            ),
+            serde_json::to_vec(&json!({ "sha": id.source_commit }))?,
+        ),
         (
             format!(
                 "repos/{}/actions/runs/{run_id}/attempts/{}",
@@ -637,6 +647,14 @@ fn matrix_rows_cover_full_foundation_and_required_adapter_pairings() {
     assert_eq!(required_rows(Product::SkyrimSe).len(), 3);
     assert_eq!(required_rows(Product::SkyrimLe).len(), 3);
     assert_eq!(required_rows(Product::Fallout4).len(), 3);
+}
+
+#[test]
+fn product_tag_ref_is_encoded_as_one_commit_endpoint_segment() {
+    assert_eq!(
+        encode_path_segment("foundation/v1.2.3"),
+        "foundation%2Fv1.2.3"
+    );
 }
 
 #[test]
