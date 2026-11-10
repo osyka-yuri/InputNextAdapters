@@ -27,8 +27,9 @@ Other executable versions and Fallout 4 VR are unsupported. DLC is optional. Dua
 
 1. Close Fallout 4 and install [x64 InputNext](../../docs/runtime-setup.md) beside `Fallout4.exe`.
 2. Install F4SE 0.7.9 and place `version-1-11-240-0.bin` under `Data/F4SE/Plugins/`.
-3. Merge the plugin package's `Data/` folder into Fallout 4's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/F4SE/Plugins/`.
-4. Launch through F4SE.
+3. Download the `InputNextAdapters-fallout4-*-windows-x64.zip` package from [Fallout 4 releases](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout4).
+4. Merge the plugin package's `Data/` folder into Fallout 4's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/F4SE/Plugins/`.
+5. Launch through F4SE.
 
 Keep the package's notices and licenses under `licenses/` with the plugin. Use one plugin or other direct-effect integration per controller slot. Sony Bluetooth currently supports input only.
 

@@ -25,8 +25,9 @@ Dawnguard, HearthFires, and Dragonborn are optional. Vampire-lord detection requ
 
 1. Close Skyrim and install [x86 InputNext](../../docs/runtime-setup.md) beside `TESV.exe`.
 2. Install SKSE 1.7.3 for Skyrim 1.9.32.0.
-3. Merge the plugin package's `Data/` folder into Skyrim's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/SKSE/Plugins/`.
-4. Launch through SKSE.
+3. Download the `InputNextAdapters-skyrim-le-*-windows-x86.zip` package from [Skyrim LE releases](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-le).
+4. Merge the plugin package's `Data/` folder into Skyrim's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/SKSE/Plugins/`.
+5. Launch through SKSE.
 
 Keep the package's notices and licenses under `licenses/` with the plugin. Use one plugin or other direct-effect integration per controller slot.
 

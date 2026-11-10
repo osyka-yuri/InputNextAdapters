@@ -33,8 +33,9 @@ VR is unsupported. DLC is optional. DualSense and DualSense Edge require USB for
 
 1. Close Skyrim and install [x64 InputNext](../../docs/runtime-setup.md) beside `SkyrimSE.exe`.
 2. Install SKSE and Address Library matching your game version.
-3. Merge the plugin package's `Data/` folder into Skyrim's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/SKSE/Plugins/`.
-4. Launch through SKSE.
+3. Download the `InputNextAdapters-skyrim-se-*-windows-x64.zip` package from [Skyrim SE releases](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-se).
+4. Merge the plugin package's `Data/` folder into Skyrim's `Data/`, or install it with a mod manager. The DLL and INI files belong in `Data/SKSE/Plugins/`.
+5. Launch through SKSE.
 
 Keep the package's notices and licenses under `licenses/` with the plugin. Use one plugin or other direct-effect integration per controller slot.
 

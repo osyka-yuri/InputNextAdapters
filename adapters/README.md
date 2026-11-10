@@ -2,11 +2,11 @@
 
 Each plugin translates game actions and player state into InputNext effects. Choose a guide for supported versions, installation and settings.
 
-| Game | Architecture | Guide |
-| --- | --- | --- |
-| Skyrim Special Edition / Anniversary Edition | x64 | [InputNextSkyrim](skyrim_se/README.md) |
-| Skyrim Classic / Legendary Edition 1.9.32.0 | x86 | [InputNextSkyrimLE](skyrim_le/README.md) |
-| Fallout 4 1.11.240.0 | x64 | [InputNextFallout4](fallout4/README.md) |
+| Game | Architecture | Guide | Releases |
+| --- | --- | --- | --- |
+| Skyrim Special Edition / Anniversary Edition | x64 | [InputNextSkyrim](skyrim_se/README.md) | [Skyrim SE](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-se) |
+| Skyrim Classic / Legendary Edition 1.9.32.0 | x86 | [InputNextSkyrimLE](skyrim_le/README.md) | [Skyrim LE](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-le) |
+| Fallout 4 1.11.240.0 | x64 | [InputNextFallout4](fallout4/README.md) | [Fallout 4](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout4) |
 
 Install [InputNext](../docs/runtime-setup.md) before the plugin. VR is unsupported. DLC is optional; absent content disables its related effects. Classic/LE has no Creation Club Survival integration.
 
