@@ -7,6 +7,10 @@
 #include <atomic>
 
 namespace fallout4_adapter::native {
+inline constexpr std::uintptr_t graph_reference_acquire_rva = 0x528E47;
+inline constexpr std::uintptr_t graph_reference_release_rva = 0x528E53;
+inline constexpr std::uintptr_t animation_source_rva = 0x5292BA;
+
 class AnimationGraphReference final {
 public:
     AnimationGraphReference() noexcept = default;

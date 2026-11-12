@@ -1,6 +1,7 @@
 #include "animation_subscription.hpp"
 
 #include "bindings.hpp"
+#include "diagnostic_logging.hpp"
 
 #include <RE/B/BSAnimationGraphManager.h>
 #include <RE/B/BSSpinLock.h>
@@ -9,6 +10,9 @@
 #include <RE/P/PlayerCharacter.h>
 
 #include <Windows.h>
+#ifdef ERROR
+#    undef ERROR
+#endif
 
 #include <array>
 #include <atomic>
@@ -19,11 +23,6 @@
 
 namespace fallout4_adapter::native {
 namespace {
-constexpr std::uint32_t image_timestamp = 0x6A727FCC;
-constexpr std::uint32_t image_size = 0x425A000;
-constexpr std::uintptr_t graph_reference_acquire_rva = 0x528E47;
-constexpr std::uintptr_t graph_reference_release_rva = 0x528E53;
-constexpr std::uintptr_t animation_source_rva = 0x5292BA;
 constexpr std::size_t animation_source_offset = 0x68;
 constexpr std::size_t graph_reference_count_offset = 0x08;
 
@@ -34,34 +33,21 @@ static_assert(offsetof(RE::BSAnimationGraphManager, activeGraph) == 0xD8);
 template <std::size_t Size>
 [[nodiscard]] bool matches(const std::byte* image,
     std::uintptr_t rva,
-    const std::array<std::uint8_t, Size>& bytes) noexcept {
+    const std::array<std::uint8_t, Size>& bytes,
+    std::size_t image_size) noexcept {
     return rva <= image_size && Size <= image_size - rva &&
            std::memcmp(image + rva, bytes.data(), bytes.size()) == 0;
 }
 
 [[nodiscard]] bool animation_layout_available() noexcept {
     static const bool available = [] {
-        if (!bindings_available()) {
+        const auto base = checked_image_base();
+        const auto image_size = checked_image_size();
+        if (base == 0 || image_size == 0) {
             return false;
         }
 
-        const auto* image = reinterpret_cast<const std::byte*>(GetModuleHandleW(nullptr));
-        if (!image) {
-            return false;
-        }
-        const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image);
-        if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew < 0 ||
-            static_cast<std::uint32_t>(dos->e_lfanew) > 0x1000U - sizeof(IMAGE_NT_HEADERS64)) {
-            return false;
-        }
-        const auto* nt_headers = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image + dos->e_lfanew);
-        if (nt_headers->Signature != IMAGE_NT_SIGNATURE ||
-            nt_headers->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64 ||
-            nt_headers->FileHeader.TimeDateStamp != image_timestamp ||
-            nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC ||
-            nt_headers->OptionalHeader.SizeOfImage != image_size) {
-            return false;
-        }
+        const auto* image = reinterpret_cast<const std::byte*>(base);
 
         constexpr std::array<std::uint8_t, 4> acquire{0xF0, 0xFF, 0x40, 0x08};
         constexpr std::array<std::uint8_t, 25> release{
@@ -93,9 +79,15 @@ template <std::size_t Size>
         };
         constexpr std::array<std::uint8_t, 9>
             source_offset{0x48, 0x83, 0xC1, 0x68, 0xE8, 0x3D, 0x15, 0x00, 0x00};
-        return matches(image, graph_reference_acquire_rva, acquire) &&
-               matches(image, graph_reference_release_rva, release) &&
-               matches(image, animation_source_rva, source_offset);
+        const bool matched = matches(image, graph_reference_acquire_rva, acquire, image_size) &&
+                             matches(image, graph_reference_release_rva, release, image_size) &&
+                             matches(image, animation_source_rva, source_offset, image_size);
+        if (!matched) {
+            log_warn("Fallout 4 animation graph instruction signatures did not match; "
+                     "compatibility not confirmed.");
+            return false;
+        }
+        return true;
     }();
     return available;
 }

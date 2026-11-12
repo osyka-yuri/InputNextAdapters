@@ -10,15 +10,19 @@
 namespace fallout4_adapter::native {
 struct WeaponFiredEvent;
 
+inline constexpr std::uintptr_t register_rva = 0x476000;
+inline constexpr std::uintptr_t input_context_stack_lock_rva = 0x339FB98;
+
 struct ShotFacts {
     std::uintptr_t shooter_address{};
     std::uint64_t weapon_identity{};
 };
 
-// Checked against the exact 1.11.240 executable before any adapter-local native call.
+// Validated against the supported runtime and required instruction signatures.
 [[nodiscard]] bool bindings_available() noexcept;
 [[nodiscard]] std::uintptr_t checked_image_base() noexcept;
-// Borrowed engine lock; valid only while the exact supported executable remains loaded.
+[[nodiscard]] std::size_t checked_image_size() noexcept;
+// Borrowed engine lock; valid only while the validated executable remains loaded.
 [[nodiscard]] RE::BSReadWriteLock* input_context_stack_lock() noexcept;
 [[nodiscard]] bool register_weapon_fired(const RE::BSTEventSink<WeaponFiredEvent>* sink) noexcept;
 // Consume only during the synchronous native callback; no engine pointer escapes.

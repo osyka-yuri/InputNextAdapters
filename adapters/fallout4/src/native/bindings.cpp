@@ -1,6 +1,10 @@
 #include "bindings.hpp"
 
+#include "animation_subscription.hpp"
+#include "diagnostic_logging.hpp"
+#include "dispatch.hpp"
 #include "observation.hpp"
+#include "ui_capture.hpp"
 
 #include <RE/B/BGSObjectInstance.h>
 #include <RE/B/BSSpinLock.h>
@@ -8,6 +12,9 @@
 #include <RE/T/TESForm.h> // IWYU pragma: keep
 
 #include <Windows.h>
+#ifdef ERROR
+#    undef ERROR
+#endif
 
 #include <algorithm>
 #include <array>
@@ -20,37 +27,52 @@
 
 namespace fallout4_adapter::native {
 namespace {
-constexpr std::uintptr_t register_rva = 0x476000;
-constexpr std::uint32_t image_timestamp = 0x6A727FCC;
-constexpr std::uint32_t image_size = 0x425A000;
+struct CheckedModule {
+    std::uintptr_t base{};
+    std::size_t size{};
+};
+
+struct AddressRange {
+    std::uintptr_t rva{};
+    std::size_t size{};
+};
+
+[[nodiscard]] constexpr bool
+range_within_image(std::uintptr_t rva, std::size_t access_size, std::size_t image_size) noexcept {
+    return rva <= image_size && access_size <= image_size - rva;
+}
 
 bool matches(const std::byte* image,
     std::uintptr_t rva,
-    std::span<const std::uint8_t> bytes) noexcept {
-    return rva <= image_size && bytes.size() <= image_size - rva &&
+    std::span<const std::uint8_t> bytes,
+    std::size_t image_size) noexcept {
+    return range_within_image(rva, bytes.size(), image_size) &&
            std::memcmp(image + rva, bytes.data(), bytes.size()) == 0;
 }
 
-std::uintptr_t checked_image() noexcept {
+CheckedModule find_checked_module() noexcept {
     const auto* image = reinterpret_cast<const std::byte*>(GetModuleHandleW(nullptr));
     if (!image) {
-        return 0;
+        return {};
     }
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image);
     if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew < 0 ||
         static_cast<std::uint32_t>(dos->e_lfanew) > 0x1000U - sizeof(IMAGE_NT_HEADERS64)) {
-        return 0;
+        return {};
     }
     const auto* nt_headers = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image + dos->e_lfanew);
     if (nt_headers->Signature != IMAGE_NT_SIGNATURE ||
         nt_headers->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64 ||
-        nt_headers->FileHeader.TimeDateStamp != image_timestamp ||
-        nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC ||
-        nt_headers->OptionalHeader.SizeOfImage != image_size) {
-        return 0;
+        nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+        return {};
     }
 
-    // Exact-build wrapper and payload guards. See docs/bindings.md for the evidence.
+    const auto image_size = static_cast<std::size_t>(nt_headers->OptionalHeader.SizeOfImage);
+    if (image_size == 0) {
+        return {};
+    }
+
+    // Verified instruction signatures and payload guards. See docs/bindings.md for details.
     static constexpr std::array<std::uint8_t, 15> registration{
         0x48,
         0x8B,
@@ -492,16 +514,49 @@ std::uintptr_t checked_image() noexcept {
         },
     };
     for (const auto& signature : signature_checks) {
-        if (!matches(image, signature.rva, signature.bytes)) {
-            return 0;
+        if (!matches(image, signature.rva, signature.bytes, image_size)) {
+            log_warn("Fallout 4 verified instruction signature mismatch at RVA 0x{:X}; "
+                     "compatibility not confirmed.",
+                signature.rva);
+            return {};
         }
     }
-    return reinterpret_cast<std::uintptr_t>(image);
+
+    // Static address ranges accessed by the native adapter layer (locks, manager instance, hook sites).
+    constexpr std::array required_static_ranges{
+        AddressRange{.rva = register_rva, .size = registration.size()},
+        AddressRange{.rva = input_context_stack_lock_rva, .size = sizeof(RE::BSReadWriteLock)},
+        AddressRange{.rva = ui_static_slot_rva, .size = sizeof(std::uintptr_t)},
+        AddressRange{.rva = ui_static_storage_rva, .size = ui_static_storage_size},
+        AddressRange{.rva = menu_stack_lock_rva, .size = sizeof(RE::BSReadWriteLock)},
+        AddressRange{.rva = native_dispatch_helper_rva,
+            .size = native_dispatch_helper_guard.size()},
+        AddressRange{.rva = native_dispatch_main_call_rva - native_dispatch_main_arguments.size(),
+            .size =
+                native_dispatch_main_arguments.size() + native_dispatch_main_original_call.size()},
+        AddressRange{.rva = native_dispatch_main_message_loop_rva, .size = 5},
+        AddressRange{.rva = native_dispatch_remap_button_rva,
+            .size = native_dispatch_remap_guard.size()},
+        AddressRange{.rva = graph_reference_acquire_rva, .size = 4},
+        AddressRange{.rva = graph_reference_release_rva, .size = 25},
+        AddressRange{.rva = animation_source_rva, .size = 9},
+    };
+    for (const auto& range : required_static_ranges) {
+        if (!range_within_image(range.rva, range.size, image_size)) {
+            log_warn("Fallout 4 executable image size (0x{:X}) is insufficient for required "
+                     "static range at RVA 0x{:X} (size 0x{:X}); compatibility not confirmed.",
+                image_size,
+                range.rva,
+                range.size);
+            return {};
+        }
+    }
+    return CheckedModule{.base = reinterpret_cast<std::uintptr_t>(image), .size = image_size};
 }
 
-std::uintptr_t image_base() noexcept {
-    static const auto base = checked_image();
-    return base;
+const CheckedModule& checked_image() noexcept {
+    static const CheckedModule module = find_checked_module();
+    return module;
 }
 
 // Only the observed prefix is decoded; no undocumented collection template is declared.
@@ -516,20 +571,25 @@ static_assert(offsetof(FiredPrefix, shooter) == 8 && offsetof(FiredPrefix, proje
 } // namespace
 
 bool bindings_available() noexcept {
-    return image_base() != 0;
+    return checked_image().base != 0;
 }
 
 std::uintptr_t checked_image_base() noexcept {
-    return image_base();
+    return checked_image().base;
+}
+
+std::size_t checked_image_size() noexcept {
+    return checked_image().size;
 }
 
 RE::BSReadWriteLock* input_context_stack_lock() noexcept {
-    const auto base = image_base();
-    return base ? reinterpret_cast<RE::BSReadWriteLock*>(base + 0x339FB98) : nullptr;
+    const auto base = checked_image_base();
+    return base ? reinterpret_cast<RE::BSReadWriteLock*>(base + input_context_stack_lock_rva)
+                : nullptr;
 }
 
 bool register_weapon_fired(const RE::BSTEventSink<WeaponFiredEvent>* sink) noexcept {
-    const auto base = image_base();
+    const auto base = checked_image_base();
     if (!base || !sink) {
         return false;
     }

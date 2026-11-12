@@ -13,7 +13,6 @@
 #include <RE/V/VATS.h>
 
 #include <Windows.h>
-#include <intrin.h>
 #ifdef ERROR
 #    undef ERROR
 #endif
@@ -28,14 +27,6 @@
 
 namespace fallout4_adapter::native {
 namespace {
-constexpr std::uintptr_t ui_static_slot_rva = 0x32A12F0;
-constexpr std::uintptr_t ui_static_storage_rva = 0x32A1320;
-constexpr std::uintptr_t ui_state_rva = 0x32A1388;
-constexpr std::uintptr_t ui_shutdown_rva = 0x32A138C;
-constexpr std::uintptr_t ui_running_rva = 0x32A138E;
-constexpr std::uintptr_t menu_stack_lock_rva = 0x3DBD368;
-constexpr std::uintptr_t context_stack_lock_rva = 0x339FB98;
-
 NativeUiCapturePipeline g_ui_capture_pipeline{};
 
 struct UiInterns {

@@ -35,7 +35,7 @@ std::optional<ImageSections> image_sections() noexcept {
         return std::nullopt;
     }
     // The checked host gate validates DOS/NT signatures, e_lfanew within the first page,
-    // architecture and exact SizeOfImage before these header reads.
+    // architecture, non-zero SizeOfImage, required address bounds, and instruction signatures before these header reads.
     const auto* image = reinterpret_cast<const std::byte*>(base);
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image);
     const auto* headers = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image + dos->e_lfanew);

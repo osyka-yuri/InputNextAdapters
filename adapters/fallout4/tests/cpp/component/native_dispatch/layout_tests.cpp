@@ -1,4 +1,6 @@
 #include "cpp/component/native_ui_capture/ui_capture_test.hpp"
+#include "native/animation_subscription.hpp"
+#include "native/bindings.hpp"
 #include "native/dispatch.hpp"
 #include "native/ui_capture.hpp"
 #include "native/ui_capture_abi.hpp"
@@ -172,6 +174,26 @@ TEST_CASE("fallout4.native_dispatch.fixed_pool_layout_emitted_targets",
     check(!make_native_dispatch_layout(UINTPTR_MAX - 16U, native_dispatch_pool_size, unaligned) &&
               !make_native_dispatch_layout(address, native_dispatch_pool_size - 1U, unaligned),
         "fixed pool layout rejects address overflow and undersized allocations");
+}
+
+TEST_CASE("fallout4.native_dispatch.rva_consistency_and_invariants",
+    "[component][fallout4][native_dispatch]") {
+    // Cross-module RVA alignment
+    static_assert(native_dispatch_manager_slot_rva == ui_static_slot_rva);
+    static_assert(context_stack_lock_rva == input_context_stack_lock_rva);
+
+    CHECK(native_dispatch_manager_slot_rva == 0x32A12F0);
+    CHECK(ui_static_storage_rva == 0x32A1320);
+    CHECK(ui_static_storage_size == 0x70);
+    CHECK(ui_state_rva == 0x32A1388);
+    CHECK(ui_shutdown_rva == 0x32A138C);
+    CHECK(ui_running_rva == 0x32A138E);
+    CHECK(menu_stack_lock_rva == 0x3DBD368);
+    CHECK(context_stack_lock_rva == 0x339FB98);
+    CHECK(register_rva == 0x476000);
+    CHECK(graph_reference_acquire_rva == 0x528E47);
+    CHECK(graph_reference_release_rva == 0x528E53);
+    CHECK(animation_source_rva == 0x5292BA);
 }
 
 } // namespace fallout4_adapter::tests::dispatch

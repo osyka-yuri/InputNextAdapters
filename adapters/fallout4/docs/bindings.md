@@ -5,7 +5,7 @@ The native layer targets **Fallout 4 1.11.240.0**, x64, with **F4SE 0.7.9**. Bin
 | Identity | Value |
 | --- | --- |
 | Executable SHA-256 | `fdcef37ac1230af6d0b0050eb2142b139ef3a867b37b9211fb6edfcc646072f8` |
-| PE timestamp / image size | `0x6a727fcc` / `0x0425a000` |
+| Reference Steam PE timestamp / image size | `0x6a727fcc` / `0x0425a000` |
 | PDB identity / age | `90f7c238-fc83-4ce6-b480-28951cf1d740` / `1` |
 | Address Library SHA-256 | `65985cc2259384a13cffb538d74776e422e62b0cd3766485a000620242b72b06` |
 | CommonLibF4 pin | `7c8c6f8a349ac85abf6fc8a7e5a71732d9339954` |
@@ -86,7 +86,7 @@ The health HUD also processes active effects and overlays. The adapter's Actor V
 
 `native/led_bindings.*` owns optional LED address resolution and source access. It uses `bindings.*` only for the checked executable base; weapon events and mandatory host checks remain there. `radiation_source.*` owns the event sink and lifecycle cache, while `observation.cpp` copies source values into the shared policy input.
 
-Before optional section parsing, `checked_image_base()` validates the loader-provided host's DOS signature, nonnegative `e_lfanew` with the complete NT header in the first 4 KiB, NT signature, x64 architecture, optional-header magic, timestamp and exact image size. Section-table and address bounds are then checked against that validated size. `REL::Offset2ID` is the public API in the pinned `commonlib-shared` revision `29fbdb0e2dc548c9ab22f6964981d75090dc9094`.
+Before optional section parsing, `checked_image_base()` validates the loader-provided host's DOS signature, nonnegative `e_lfanew` with the complete NT header in the first 4 KiB, NT signature, x64 architecture, optional-header magic, non-zero image size, required static address bounds, and verified 1.11.240 instruction signatures. Section-table and address bounds are then checked against that validated size. `REL::Offset2ID` is the public API in the pinned `commonlib-shared` revision `29fbdb0e2dc548c9ab22f6964981d75090dc9094`.
 
 The LED health sample copies the absolute current health and gameplay maximum on the admitted main observation path. Health is read once; both haptics and enabled LED health use that same sample. Its maximum uses the existing Actor Value relation `current - GetModifier(kDamage, info)` and does not change haptic normalization. A maximum change is a new color basis, not evidence of damage or healing. Native LED reads follow the immutable startup settings; disabled stealth skips detection queries.
 

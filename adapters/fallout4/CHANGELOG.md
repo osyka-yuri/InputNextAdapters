@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1]
+
+- Improve compatibility with modified Fallout 4 1.11.240.0 executables by replacing strict PE timestamp and image size checks with instruction signature and address bounds validation.
+- Centralize executable validation and static address bounds checking across native bindings, animation events, dispatch hooks, and UI capture.
+- Improve diagnostic logging for executable compatibility failures and F4SE trampoline allocation errors.
+
 ## [0.1.0]
 
 - Native integration for Fallout 4 1.11.240 with F4SE 0.7.9.

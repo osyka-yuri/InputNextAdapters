@@ -87,7 +87,7 @@ F4SE_PLUGIN_LOAD(const F4SE::LoadInterface* interfaces) {
                 messaging->Version(),
                 trampoline->Version())) {
             REX::ERROR("The Fallout 4 plugin requires F4SE 0.7.9 with the pinned messaging and "
-                       "trampoline interfaces.");
+                       "trampoline interfaces; startup rejected.");
             return false;
         }
 
@@ -158,7 +158,8 @@ F4SE_PLUGIN_LOAD(const F4SE::LoadInterface* interfaces) {
             new (std::nothrow) fallout4_adapter::native::NativeOwner{config}};
         if (!owner) {
             fallout4_adapter::native::disable_ui_capture();
-            REX::ERROR("Unable to allocate the Fallout 4 process-lifetime native owner.");
+            REX::ERROR("Unable to allocate the Fallout 4 process-lifetime native owner; startup "
+                       "rejected.");
             return false;
         }
 

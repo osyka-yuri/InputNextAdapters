@@ -71,6 +71,26 @@ struct UiStaticOffsets {
     std::uintptr_t running{};
 };
 
+inline constexpr std::uintptr_t ui_static_slot_rva = 0x32A12F0;
+inline constexpr std::uintptr_t ui_static_storage_rva = 0x32A1320;
+inline constexpr std::size_t ui_static_storage_size = 0x70;
+inline constexpr std::uintptr_t ui_state_rva = 0x32A1388;
+inline constexpr std::uintptr_t ui_shutdown_rva = 0x32A138C;
+inline constexpr std::uintptr_t ui_running_rva = 0x32A138E;
+inline constexpr std::uintptr_t menu_stack_lock_rva = 0x3DBD368;
+inline constexpr std::uintptr_t context_stack_lock_rva = 0x339FB98;
+
+// Static manager instance layout invariants and containment within storage range.
+static_assert(ui_static_storage_rva + 0x68 == ui_state_rva);
+static_assert(ui_static_storage_rva + 0x6C == ui_shutdown_rva);
+static_assert(ui_static_storage_rva + 0x6E == ui_running_rva);
+static_assert(
+    ui_state_rva + sizeof(std::uint32_t) <= ui_static_storage_rva + ui_static_storage_size);
+static_assert(
+    ui_shutdown_rva + sizeof(std::uint8_t) <= ui_static_storage_rva + ui_static_storage_size);
+static_assert(
+    ui_running_rva + sizeof(std::uint8_t) <= ui_static_storage_rva + ui_static_storage_size);
+
 struct UiStaticFields {
     std::uintptr_t manager_slot{};
     std::uint32_t state{};

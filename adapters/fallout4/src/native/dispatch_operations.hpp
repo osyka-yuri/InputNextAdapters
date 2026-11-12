@@ -1,5 +1,6 @@
 #pragma once
 
+#include "native/diagnostic_logging.hpp"
 #include "native/dispatch.hpp"
 #include "native/ui_capture.hpp"
 #include "native/ui_capture_abi.hpp"
@@ -11,7 +12,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <span>
+#include <string_view>
 #include <utility>
 
 namespace F4SE {
@@ -131,14 +134,39 @@ public:
     [[nodiscard]] bool preflight() noexcept {
         image = platform_.image_base();
         trampoline = platform_.trampoline();
-        return image != 0 && platform_.bindings_available() &&
-               platform_.interfaces_supported(trampoline) && read_manager_slot(image) == 0 &&
-               site_guards_match(image);
+        if (image == 0 || !platform_.bindings_available()) {
+            log_warn("Fallout 4 native dispatch preflight: executable image validation or verified "
+                     "signatures did not match; compatibility not confirmed.");
+            return false;
+        }
+        if (!platform_.interfaces_supported(trampoline)) {
+            log_warn("Fallout 4 native dispatch preflight: F4SE messaging or trampoline interface "
+                     "version mismatch.");
+            return false;
+        }
+        const auto manager_slot = read_manager_slot(image);
+        if (manager_slot != 0) {
+            log_warn("Fallout 4 native dispatch preflight: manager slot at 0x{:X} was not "
+                     "empty (0x{:X}).",
+                native_dispatch_manager_slot_rva,
+                manager_slot);
+            return false;
+        }
+        if (!site_guards_match(image)) {
+            log_warn("Fallout 4 native dispatch preflight: hook site byte guards did not "
+                     "match original code.");
+            return false;
+        }
+        return true;
     }
 
     [[nodiscard]] bool prepare() noexcept {
         allocation = platform_.allocate_branch_pool(trampoline, native_dispatch_pool_size);
         if (!allocation) {
+            log_error("Fallout 4 native dispatch prepare: unable to allocate {} bytes from "
+                      "F4SE branch pool "
+                      "(increasing iBranchTrampolineSize in f4se.ini may resolve this).",
+                native_dispatch_pool_size);
             return false;
         }
         const auto address = reinterpret_cast<std::uintptr_t>(allocation);

@@ -11,7 +11,6 @@
 #include <REL/Utility.h>
 
 #include <Windows.h>
-#include <intrin.h>
 #ifdef ERROR
 #    undef ERROR
 #endif
