@@ -298,33 +298,6 @@ CheckedModule find_checked_module() noexcept {
     };
     static constexpr std::array<std::uint8_t, 7>
         manager_kill_clear_slot{0x48, 0x89, 0x2D, 0x06, 0xC3, 0x6C, 0x02};
-    static constexpr std::array<std::uint8_t, 6> worker_reset_completion{0xFF,
-        0x15,
-        0xD1,
-        0x8E,
-        0x86,
-        0x01};
-    static constexpr std::array<std::uint8_t, 4> worker_load_ui_state{0x41, 0x8B, 0x4E, 0x68};
-    static constexpr std::array<std::uint8_t, 11> worker_ui_state2_loop{
-        0x41,
-        0x83,
-        0x7E,
-        0x68,
-        0x02,
-        0x0F,
-        0x84,
-        0xA7,
-        0xFE,
-        0xFF,
-        0xFF,
-    };
-    static constexpr std::array<std::uint8_t, 6> worker_signal_completion{0xFF,
-        0x15,
-        0xA6,
-        0x8B,
-        0x86,
-        0x01};
-    static constexpr std::array<std::uint8_t, 5> worker_clear_running{0x41, 0xC6, 0x46, 0x6E, 0x00};
     static constexpr std::array<std::uint8_t, 19> native_process_lock_release{
         0x44,
         0x89,
@@ -474,7 +447,7 @@ CheckedModule find_checked_module() noexcept {
         std::span<const std::uint8_t> bytes;
     };
 
-    static constexpr std::array<SignatureCheck, 35> signature_checks{
+    static constexpr std::array<SignatureCheck, 30> signature_checks{
         {
             {.rva = register_rva, .bytes = registration},
             {.rva = 0x476020, .bytes = unregistration},
@@ -495,11 +468,6 @@ CheckedModule find_checked_module() noexcept {
             {.rva = 0xBD4FAA, .bytes = manager_kill_shutdown},
             {.rva = 0xBD4FB4, .bytes = manager_kill_running_wait},
             {.rva = 0xBD4FE3, .bytes = manager_kill_clear_slot},
-            {.rva = 0xBD74C9, .bytes = worker_reset_completion},
-            {.rva = 0xBD74CF, .bytes = worker_load_ui_state},
-            {.rva = 0xBD7653, .bytes = worker_ui_state2_loop},
-            {.rva = 0xBD775C, .bytes = worker_signal_completion},
-            {.rva = 0xBD77A1, .bytes = worker_clear_running},
             {.rva = 0xBD5127, .bytes = native_process_lock_release},
             {.rva = 0x2DD800, .bytes = process_spin_lock_acquire},
             {.rva = 0x1A8070A, .bytes = process_messages_lock_call},

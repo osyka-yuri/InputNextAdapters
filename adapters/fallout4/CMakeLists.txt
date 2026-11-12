@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.4.4)
-project(InputNextFallout4 VERSION 0.1.1 LANGUAGES CXX)
+project(InputNextFallout4 VERSION 0.1.2 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 

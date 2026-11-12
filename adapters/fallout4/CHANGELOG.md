@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.2]
+
+- Remove unnecessary executable checks to improve compatibility with modified Fallout 4 installations.
+
 ## [0.1.1]
 
 - Improve compatibility with modified Fallout 4 1.11.240.0 executables by replacing strict PE timestamp and image size checks with instruction signature and address bounds validation.
