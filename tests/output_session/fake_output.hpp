@@ -146,6 +146,7 @@ public:
     std::vector<input_next_effects_close_receipt_v1> acknowledgements;
     std::vector<input_next_effects_progress_query_v1> progress_queries;
     std::vector<FakeContext> contexts;
+    std::function<void()> after_context_query;
     std::function<void()> after_body_submit;
     std::function<void()> after_trigger_submit;
     std::function<void()> after_trigger_clear;
@@ -213,6 +214,9 @@ public:
             info.struct_size = sizeof(info);
             info.state = record->state;
             info.context = record->context;
+            if (after_context_query) {
+                after_context_query();
+            }
             return query_context_status;
         });
     }

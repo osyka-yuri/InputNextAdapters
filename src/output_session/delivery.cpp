@@ -13,9 +13,17 @@ namespace inputnext::adapters {
 OutputSession::OutputSession(OutputPort& output,
     DeliveryObserver& observer,
     std::uint32_t slot) noexcept
+    : OutputSession(output, observer, slot, true) {
+}
+
+OutputSession::OutputSession(OutputPort& output,
+    DeliveryObserver& observer,
+    std::uint32_t slot,
+    bool body_enabled) noexcept
     : output_(output),
       observer_(observer),
-      slot_(slot) {
+      slot_(slot),
+      body_enabled_(body_enabled) {
 }
 
 OutputFrame OutputSession::apply_frame_restriction(OutputFrame frame, MonoTime now) noexcept {
@@ -179,6 +187,10 @@ bool OutputSession::deliver_send_body(OutputFrame& frame,
     MonoTime sampled_at,
     TickClock& clock,
     SendProgress& progress) noexcept {
+    if (!body_enabled_) {
+        progress.body_sent = true;
+        return refresh_send_frame(frame, clock);
+    }
     if (!deliver_body_frame(frame, sampled_at, clock, progress.body_sent)) {
         remember_first_failure(progress.first_failure);
         return false;

@@ -20,6 +20,13 @@ std::optional<MonoTime> OutputSession::binding_started_at() const noexcept {
     return binding_->started_at;
 }
 
+std::optional<input_next_device_target_v1> OutputSession::bound_target() const noexcept {
+    if (!binding_ || binding_->context_state != INPUT_NEXT_EFFECTS_CONTEXT_OPEN) {
+        return std::nullopt;
+    }
+    return binding_->target;
+}
+
 bool OutputSession::bound() const noexcept {
     return binding_ && binding_->context_state == INPUT_NEXT_EFFECTS_CONTEXT_OPEN;
 }
@@ -29,10 +36,9 @@ bool OutputSession::reconcile(std::optional<MonoTime> observation_at, TickClock&
         binding_->delivery_ready = false;
     }
     advance_pending_cleanup();
-    if (binding_ && binding_->context_state == INPUT_NEXT_EFFECTS_CONTEXT_REVOKED) {
-        if (!close_binding(INPUT_NEXT_STATUS_REVOKED, true)) {
-            return false;
-        }
+    if (binding_ && binding_->context_state == INPUT_NEXT_EFFECTS_CONTEXT_REVOKED &&
+        !close_binding(INPUT_NEXT_STATUS_REVOKED, true)) {
+        return false;
     }
     if (slot_ > 3U) {
         observation_at_ = observation_at;
@@ -64,8 +70,8 @@ bool OutputSession::reconcile(std::optional<MonoTime> observation_at, TickClock&
     }
     diagnostics_.last_status = INPUT_NEXT_STATUS_OK;
 
-    const auto current_audio_instance = advertised_audio_instance(capabilities);
-    const bool current_body_support = supports_body_lease(capabilities);
+    const auto current_audio_instance = body_enabled_ ? advertised_audio_instance(capabilities) : 0;
+    const bool current_body_support = body_enabled_ && supports_body_lease(capabilities);
     if (!binding_ || !equal_target(binding_->target, target)) {
         if (binding_ && !close_binding(INPUT_NEXT_STATUS_STALE_TARGET, true)) {
             return false;

@@ -61,6 +61,11 @@ struct DeliveryDiagnostics {
 class OutputSession final {
 public:
     OutputSession(OutputPort& output, DeliveryObserver& observer, std::uint32_t slot) noexcept;
+    // Set body_enabled to false to leave the body lease available to other sources.
+    OutputSession(OutputPort& output,
+        DeliveryObserver& observer,
+        std::uint32_t slot,
+        bool body_enabled) noexcept;
     ~OutputSession() = default;
 
     OutputSession(const OutputSession&) = delete;
@@ -69,6 +74,7 @@ public:
     OutputSession& operator=(OutputSession&&) = delete;
 
     [[nodiscard]] std::optional<MonoTime> binding_started_at() const noexcept;
+    [[nodiscard]] std::optional<input_next_device_target_v1> bound_target() const noexcept;
     [[nodiscard]] bool bound() const noexcept;
     [[nodiscard]] bool has_body_owner() const noexcept;
     void reset_attempt_history() noexcept;
@@ -319,6 +325,7 @@ private:
     OutputPort& output_;
     DeliveryObserver& observer_;
     std::uint32_t slot_{};
+    const bool body_enabled_;
     std::optional<MonoTime> observation_at_;
     std::optional<Binding> binding_;
     std::optional<BodyOwner> body_owner_;

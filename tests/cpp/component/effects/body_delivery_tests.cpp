@@ -18,6 +18,28 @@ using namespace std::chrono_literals;
 using namespace inputnext::adapters;
 using namespace inputnext::test::output_session;
 
+TEST_CASE("effects.output_session.body_opt_out", "[component][effects][output_session]") {
+    FakeOutput output;
+    advertise_hd(output, 920);
+    FakeObserver observer;
+    const auto session = std::make_unique<OutputSession>(output, observer, 0, false);
+    TickClock clock{.supplied = MonoTime{} + 40s, .use_steady_clock = false};
+    bind_with_fresh_sample(*session, observer, clock);
+
+    REQUIRE(session->send(body_frame(clock.now(), 41), clock.now(), clock));
+    REQUIRE(output.body_calls.empty());
+    REQUIRE_FALSE(session->has_body_owner());
+
+    clock.supplied += 20ms;
+    advertise_hd(output, 921);
+    REQUIRE(session->reconcile(clock.now(), clock));
+    REQUIRE(observer.body_rebound_count == 0);
+    REQUIRE(session->send(OutputFrame{}, clock.now(), clock));
+    REQUIRE(session->close_and_drain(clock));
+    REQUIRE(output.body_calls.empty());
+    REQUIRE(output.body_clears.empty());
+}
+
 TEST_CASE("effects.output_session.body_routes_sequence_receipts",
     "[component][effects][output_session]") {
     FakeOutput classic_output;

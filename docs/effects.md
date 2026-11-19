@@ -74,6 +74,7 @@ Left and right triggers share a request when both need submission and have the s
 `send()` attempts eligible triggers, then LEDs, then body work. A retryable channel failure leaves independent channels eligible. After synchronous calls, cleanup removes accepted trigger and LED state that expired or became restricted; it does not replay the cue. Calls remain serialized, so this order provides an earlier delivery opportunity without guaranteeing a continuing cadence through a blocked runtime call.
 
 Body ownership uses a 200 ms lease with a 100 ms refresh interval. A silent lease still suppresses lower-priority rumble. Clears address the exact accepted owner; failed clears never extend the native lease.
+Pass `false` for `body_enabled` when constructing an `OutputSession` to leave body ownership available to other sources while delivering triggers and LEDs.
 
 Before destroying a session, retry `close_and_drain()` until it completes, keeping the output port and observer alive.
 Session destruction performs no output I/O. TTL expiry alone does not release context capacity.
