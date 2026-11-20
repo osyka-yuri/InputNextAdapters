@@ -70,7 +70,8 @@ AudioHapticProfile profile() {
 }
 
 std::vector<std::byte> bank_bytes(const AudioHapticProfile& value = profile(),
-    std::string_view section = "Body.Melee.Unarmed.Hit") {
+    std::string_view section = "Body.Melee.Unarmed.Hit",
+    AudioHapticGame game = AudioHapticGame::skyrim_se) {
     std::vector<std::byte> payload;
     append_u16(payload, static_cast<std::uint16_t>(section.size()));
     for (const char character : section) {
@@ -87,7 +88,7 @@ std::vector<std::byte> bank_bytes(const AudioHapticProfile& value = profile(),
 
     std::vector<std::byte> bytes{std::byte{'I'}, std::byte{'N'}, std::byte{'H'}, std::byte{'B'}};
     append_u32(bytes, 1U);
-    append_u32(bytes, static_cast<std::uint32_t>(AudioHapticGame::skyrim_se));
+    append_u32(bytes, static_cast<std::uint32_t>(game));
     append_u32(bytes, 1U);
     append_u32(bytes, static_cast<std::uint32_t>(payload.size()));
     append_u32(bytes, crc32(payload));
@@ -179,8 +180,13 @@ TEST_CASE("effects.audio_haptics.bank_format", "[unit][effects][audio_haptics]")
     bad_version[4] = std::byte{2};
     CHECK(parse_audio_haptic_bank(bad_version).status == AudioHapticBankStatus::invalid);
     auto bad_game = bytes;
-    bad_game[8] = std::byte{4};
+    bad_game[8] = std::byte{5};
     CHECK(parse_audio_haptic_bank(bad_game).status == AudioHapticBankStatus::invalid);
+    const auto oblivion = parse_audio_haptic_bank(
+        bank_bytes(profile(), "Body.Action.CreatePotion", AudioHapticGame::oblivion));
+    REQUIRE(oblivion.status == AudioHapticBankStatus::loaded);
+    CHECK(oblivion.bank.game == AudioHapticGame::oblivion);
+    CHECK(oblivion.bank.entries[0].section == "Body.Action.CreatePotion");
     auto too_many_records = bytes;
     too_many_records[12] = std::byte{129};
     CHECK(parse_audio_haptic_bank(too_many_records).status == AudioHapticBankStatus::invalid);
@@ -213,6 +219,22 @@ TEST_CASE("effects.audio_haptics.bank_format", "[unit][effects][audio_haptics]")
     }
     rewrite_crc(duplicate);
     CHECK(parse_audio_haptic_bank(duplicate).status == AudioHapticBankStatus::invalid);
+}
+
+TEST_CASE("effects.audio_haptics.builtins_include_all_supported_game_tags",
+    "[unit][effects][audio_haptics]") {
+    const std::array games{AudioHapticGame::skyrim_se,
+        AudioHapticGame::skyrim_le,
+        AudioHapticGame::fallout4,
+        AudioHapticGame::oblivion};
+    for (const auto game : games) {
+        const auto bank = builtin_audio_haptic_bank(game);
+        CAPTURE(static_cast<std::uint32_t>(game));
+        REQUIRE(bank.status == AudioHapticBankStatus::loaded);
+        CHECK(bank.bank.game == game);
+        CHECK_FALSE(bank.bank.entries.empty());
+        CHECK(std::ranges::is_sorted(bank.bank.entries, {}, &AudioHapticEntry::section));
+    }
 }
 
 TEST_CASE("effects.audio_haptics.shared_v1_binary_fixtures_have_identical_ordering_rules",

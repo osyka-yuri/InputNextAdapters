@@ -1,0 +1,397 @@
+{
+  "version": 1,
+  "game": "oblivion",
+  "profiles": [
+    {
+      "section": "Body.Melee.Unarmed.Swing",
+      "duration_ms": 160,
+      "frequency": 86,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "whoosh",
+      "sources": ["sound/fx/wpn/swish/hand/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BladeOneHand.Swing",
+      "duration_ms": 180,
+      "frequency": 90,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "whoosh",
+      "sources": ["sound/fx/wpn/swish/medium/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BladeTwoHand.Swing",
+      "duration_ms": 220,
+      "frequency": 78,
+      "second_frequency": 118,
+      "mix": 0.24,
+      "style": "resonant",
+      "sources": ["sound/fx/wpn/swish/large/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BluntOneHand.Swing",
+      "duration_ms": 185,
+      "frequency": 84,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "whoosh",
+      "sources": ["sound/fx/wpn/swish/medium/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BluntTwoHand.Swing",
+      "duration_ms": 230,
+      "frequency": 76,
+      "second_frequency": 115,
+      "mix": 0.22,
+      "style": "resonant",
+      "sources": ["sound/fx/wpn/swish/large/*.wav"]
+    },
+    {
+      "section": "Body.Melee.Unarmed.Hit",
+      "duration_ms": 135,
+      "frequency": 104,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": ["sound/fx/wpn/weaponhit/hand/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BladeOneHand.Hit",
+      "duration_ms": 150,
+      "frequency": 100,
+      "second_frequency": 150,
+      "mix": 0.28,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/weaponhit/blade/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BladeTwoHand.Hit",
+      "duration_ms": 180,
+      "frequency": 88,
+      "second_frequency": 130,
+      "mix": 0.31,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/weaponhit/blade/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BluntOneHand.Hit",
+      "duration_ms": 165,
+      "frequency": 94,
+      "second_frequency": 138,
+      "mix": 0.29,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/weaponhit/blunt/*.wav"]
+    },
+    {
+      "section": "Body.Melee.BluntTwoHand.Hit",
+      "duration_ms": 205,
+      "frequency": 82,
+      "second_frequency": 122,
+      "mix": 0.32,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/weaponhit/blunt/*.wav"]
+    },
+    {
+      "section": "Body.Combat.IncomingDamage",
+      "duration_ms": 190,
+      "frequency": 112,
+      "second_frequency": 72,
+      "mix": 0.24,
+      "style": "recoil",
+      "sources": ["sound/fx/phy/combat/damage/flesh/*.wav"]
+    },
+    {
+      "section": "Body.Combat.BlockHit",
+      "duration_ms": 155,
+      "frequency": 96,
+      "second_frequency": 150,
+      "mix": 0.25,
+      "style": "impact",
+      "sources": [
+        "sound/fx/wpn/weaponblock/blade/wpn_block_blade_01.wav",
+        "sound/fx/wpn/weaponblock/blunt/wpn_block_blunt_01.wav",
+        "sound/fx/wpn/weaponblock/hand/wpn_block_hand_01.wav",
+        "sound/fx/wpn/weaponblock/shieldheavy/wpn_block_shield_h_01.wav"
+      ]
+    },
+    {
+      "section": "Body.Combat.Dodge",
+      "duration_ms": 105,
+      "frequency": 106,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "whoosh",
+      "sources": ["sound/fx/fst/dodge/*.wav"]
+    },
+    {
+      "section": "Body.Bow.Draw",
+      "duration_ms": 170,
+      "onset_search_ms": 450,
+      "frequency": 72,
+      "second_frequency": 118,
+      "mix": 0.23,
+      "style": "resonant",
+      "sources": ["sound/fx/wpn/wpn_bowdraw.wav"]
+    },
+    {
+      "section": "Body.Bow.Shot",
+      "duration_ms": 175,
+      "frequency": 105,
+      "second_frequency": 150,
+      "mix": 0.25,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/wpn_bowshoot.wav"]
+    },
+    {
+      "section": "Body.Bow.Hit",
+      "duration_ms": 150,
+      "frequency": 102,
+      "second_frequency": 148,
+      "mix": 0.23,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/weaponhit/arrow/*.wav"]
+    },
+    {
+      "section": "Body.Magic.Casting",
+      "duration_ms": 70,
+      "frequency": 90,
+      "second_frequency": 128,
+      "mix": 0.2,
+      "style": "resonant",
+      "sources": [
+        "sound/fx/spl/spl_fireball_cast.wav",
+        "sound/fx/spl/spl_frost_cast.wav",
+        "sound/fx/spl/spl_shock_cast.wav",
+        "sound/fx/spl/spl_restoration_cast.wav"
+      ]
+    },
+    {
+      "section": "Body.Magic.Fire",
+      "duration_ms": 105,
+      "frequency": 104,
+      "second_frequency": 158,
+      "mix": 0.25,
+      "style": "impact",
+      "sources": ["sound/fx/spl/spl_fireball_hit.wav"]
+    },
+    {
+      "section": "Body.Magic.Frost",
+      "duration_ms": 120,
+      "frequency": 86,
+      "second_frequency": 132,
+      "mix": 0.3,
+      "style": "resonant",
+      "sources": ["sound/fx/spl/spl_frost_hit.wav"]
+    },
+    {
+      "section": "Body.Magic.Shock",
+      "duration_ms": 95,
+      "frequency": 128,
+      "second_frequency": 185,
+      "mix": 0.22,
+      "style": "impact",
+      "sources": ["sound/fx/spl/spl_shock_hit.wav"]
+    },
+    {
+      "section": "Body.Magic.Healing",
+      "duration_ms": 150,
+      "frequency": 68,
+      "second_frequency": 102,
+      "mix": 0.18,
+      "style": "resonant",
+      "sources": ["sound/fx/spl/spl_restoration_hit.wav"]
+    },
+    {
+      "section": "Body.World.Landing",
+      "duration_ms": 180,
+      "frequency": 36,
+      "second_frequency": 72,
+      "mix": 0.5,
+      "style": "impact",
+      "sources": [
+        "sound/fx/fst/earthland/fst_earthland_01.wav",
+        "sound/fx/fst/grassland/fst_grassland_01.wav",
+        "sound/fx/fst/stoneland/fst_stoneland_01.wav",
+        "sound/fx/fst/woodland/fst_woodland_01.wav"
+      ]
+    },
+    {
+      "section": "Body.World.Mount",
+      "duration_ms": 180,
+      "frequency": 40,
+      "second_frequency": 74,
+      "mix": 0.48,
+      "style": "resonant",
+      "sources": ["sound/fx/npc/human/npc_human_horsemount.wav"]
+    },
+    {
+      "section": "Body.World.Dismount",
+      "duration_ms": 150,
+      "onset_search_ms": 1000,
+      "frequency": 47,
+      "second_frequency": 86,
+      "mix": 0.42,
+      "style": "impact",
+      "sources": ["sound/fx/npc/human/npc_human_horsedismount.wav"]
+    },
+    {
+      "section": "Body.World.Walk",
+      "duration_ms": 55,
+      "onset_search_ms": 1000,
+      "frequency": 56,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": [
+        "sound/fx/fst/wood/fst_wood_03.wav",
+        "sound/fx/fst/metal/fst_metal_07.wav",
+        "sound/fx/fst/snow/fst_snow_02.wav",
+        "sound/fx/fst/earth/fst_earth_06.wav"
+      ]
+    },
+    {
+      "section": "Body.World.Run",
+      "duration_ms": 55,
+      "onset_search_ms": 1000,
+      "frequency": 64,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": [
+        "sound/fx/fst/wood/fst_wood_06.wav",
+        "sound/fx/fst/metal/fst_metal_05.wav",
+        "sound/fx/fst/snow/fst_snow_04.wav",
+        "sound/fx/fst/grass/fst_grass_01.wav"
+      ]
+    },
+    {
+      "section": "Body.World.Sneak",
+      "duration_ms": 45,
+      "onset_search_ms": 1000,
+      "frequency": 48,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": [
+        "sound/fx/fst/wood/sneak/fst_wood_sneak_04.wav",
+        "sound/fx/fst/earth/sneak/fst_earth_sneak_03.wav",
+        "sound/fx/fst/stone/sneak/fst_stone_sneak_07.wav",
+        "sound/fx/fst/metal/sneak/fst_metal_sneak_04.wav"
+      ]
+    },
+    {
+      "section": "Body.World.MountedWalk",
+      "duration_ms": 55,
+      "onset_search_ms": 1000,
+      "frequency": 52,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": [
+        "sound/fx/npc/horse/foot/npc_horse_hoof_01.wav",
+        "sound/fx/npc/horse/foot/npc_horse_hoof_02.wav",
+        "sound/fx/npc/horse/foot/npc_horse_hoof_03.wav",
+        "sound/fx/npc/horse/foot/npc_horse_hoof_04.wav"
+      ]
+    },
+    {
+      "section": "Body.World.MountedRun",
+      "duration_ms": 55,
+      "onset_search_ms": 1000,
+      "frequency": 60,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": [
+        "sound/fx/npc/horse/foot/npc_horse_hoof_03.wav",
+        "sound/fx/npc/horse/foot/npc_horse_hoof_04.wav",
+        "sound/fx/npc/horse/foot/npc_horse_hoof_05.wav",
+        "sound/fx/npc/horse/foot/npc_horse_hoof_06.wav"
+      ]
+    },
+    {
+      "section": "Body.Action.DrinkPotion",
+      "duration_ms": 100,
+      "frequency": 66,
+      "second_frequency": 142,
+      "mix": 0.25,
+      "style": "resonant",
+      "sources": ["sound/fx/npc/human/swallow/*.wav"]
+    },
+    {
+      "section": "Body.Action.CreatePotion",
+      "duration_ms": 220,
+      "frequency": 74,
+      "second_frequency": 110,
+      "mix": 0.18,
+      "style": "resonant",
+      "sources": ["sound/fx/ui/ui_potioncreate.wav"]
+    },
+    {
+      "section": "Body.Action.Enchant",
+      "duration_ms": 240,
+      "frequency": 82,
+      "second_frequency": 124,
+      "mix": 0.2,
+      "style": "resonant",
+      "sources": ["sound/fx/ui/ui_itemenchant.wav"]
+    },
+    {
+      "section": "Body.Action.LockOpened",
+      "duration_ms": 130,
+      "frequency": 116,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": ["sound/fx/ui/lock/ui_lock_success.wav"]
+    },
+    {
+      "section": "Body.Action.PickBroken",
+      "duration_ms": 185,
+      "frequency": 105,
+      "second_frequency": 158,
+      "mix": 0.2,
+      "style": "impact",
+      "sources": ["sound/fx/ui/lock/ui_lock_pickbreak.wav"]
+    },
+    {
+      "section": "Body.Action.VampireFeed",
+      "duration_ms": 165,
+      "onset_search_ms": 1000,
+      "frequency": 80,
+      "second_frequency": 122,
+      "mix": 0.21,
+      "style": "recoil",
+      "sources": ["sound/fx/npc/human/npc_human_vampirefeed.wav"]
+    },
+    {
+      "section": "Body.Action.SoulTrap",
+      "duration_ms": 180,
+      "frequency": 76,
+      "second_frequency": 116,
+      "mix": 0.2,
+      "style": "resonant",
+      "sources": ["sound/fx/itm/itm_soultrap.wav"]
+    },
+    {
+      "section": "Body.Action.SkillUp",
+      "duration_ms": 215,
+      "frequency": 37,
+      "second_frequency": 73,
+      "mix": 0.43,
+      "style": "resonant",
+      "sources": ["sound/fx/ui/ui_stats_skillup.wav"]
+    },
+    {
+      "section": "Body.Action.GateClosed",
+      "duration_ms": 350,
+      "onset_search_ms": 1000,
+      "frequency": 46,
+      "second_frequency": 92,
+      "mix": 0.2,
+      "style": "impact",
+      "sources": ["sound/fx/doors/drs_obliviongate_close.wav"]
+    }
+  ]
+}

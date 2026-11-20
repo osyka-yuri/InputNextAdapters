@@ -1,19 +1,15 @@
 # Offline audio haptics baker
 
-The DLLs include 49 source-derived profiles for Skyrim SE, 18 for Skyrim LE, and 30 for Fallout 4.
-The current catalogue has 83 base roles; 79 distinct roles have admitted sound mappings.
-The three game banks contain 97 entries because supported Skyrim roles occur in both editions. See the
-[source coverage summary](../tools/haptics/source-coverage.md) for mapping limits,
-explicit fallbacks, archive requirements and edition-specific inactive events.
-An optional `.audiohaptics` file beside the adapter INI overrides matching built-in sections and
-can add other known transient or supported Skyrim held sections. Unspecified built-in entries remain active. Missing,
-corrupt, wrong-game, or unreadable external banks keep the compiled defaults. Setting
-`AudioHapticsEnabled=false` disables both compiled and external audio envelopes, returning all
-effects to their synthetic waveforms.
+The baker turns selected game sounds into haptic profiles. It uses the same envelope pipeline for
+Skyrim SE, Skyrim LE, Fallout 4 and Oblivion. Each game's manifest selects its source families,
+cue durations and carrier values. [Source coverage and bank hashes](../tools/haptics/source-coverage.md)
 
-The checked-in [bank resources](../resources/audio-haptics/) are compiled into the DLLs by CMake.
-Ordinary C++ builds need no game archives or FFmpeg. Expected bank hashes are listed in the
-source coverage summary; rebaking is only needed to change or regenerate profiles.
+CMake embeds the checked-in banks in the DLLs. Use the baker when you want to regenerate a bank or
+change its mappings. Ordinary C++ builds use the ready-made banks. [Bank resources](../resources/audio-haptics/)
+
+Run these commands from the repository root. Use an installed game's data and supply your own
+FFmpeg executable for `bake`. The tool reads game resources in place and writes the bank and report
+outside the game's `Data/` directory.
 
 ~~~text
 cargo run --release -p inputnext-haptics -- inspect --game-data "D:\Games\Skyrim Special Edition\Data" --game skyrim-se
@@ -24,22 +20,30 @@ cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Skyrim Sp
 cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Fallout 4\Data" --game fallout4 --manifest tools/haptics/manifests/fallout4.json --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe" --output artifacts/InputNextFallout4.audiohaptics
 ~~~
 
-The tool is a build-time utility. It does not run in the game, install or rewrite game resources, bundle audio, download FFmpeg, or include an FFmpeg binary. Supply a trusted FFmpeg executable separately. Windows FFmpeg processes run without a visible console window.
+~~~text
+cargo run --release -p inputnext-haptics -- inspect --game-data "D:\Games\Oblivion\Data" --game oblivion
+cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Oblivion\Data" --game oblivion --manifest tools/haptics/manifests/oblivion.json --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe" --output artifacts/InputNextOblivion.audiohaptics
+~~~
 
 ## Inputs and override order
 
 ~~~text
-inputnext-haptics inspect --game-data <Data-or-game-root> --game <skyrim-se|skyrim-le|fallout4> [--archive <path>]...
+inputnext-haptics inspect --game-data <Data-or-game-root> --game <skyrim-se|skyrim-le|fallout4|oblivion> [--archive <path>]...
 inputnext-haptics bake --game-data <Data-or-game-root> --game <game> --manifest <json> --ffmpeg <executable> --output <bank> [--archive <path>]... [--allow-missing]
 ~~~
 
---game-data may be the game's Data directory or its parent when that directory contains Data. The default archive is Skyrim - Sounds.bsa for Skyrim SE/LE and Fallout4 - Sounds.ba2 for Fallout 4. Each repeated --archive is applied after the default archive, in command-line order; later archives override earlier archive resources. Loose audio files under Data override all archives. Matching is case-insensitive on Windows-style game resource paths. inspect writes a deterministic JSON inventory of the visible WAV and XWM resources.
+`--game-data` accepts the game's `Data/` directory or its parent. The default archives are
+`Skyrim - Sounds.bsa` for Skyrim SE and LE, `Fallout4 - Sounds.ba2` for Fallout 4 and
+`Oblivion - Sounds.bsa` for Oblivion. Each `--archive` is applied in command-line order after the
+default archive. Later archives override earlier archives, and loose audio files override them all.
+`inspect` writes a deterministic JSON inventory of the available WAV and XWM resources.
 
-The reader indexes BSA v104/v105 and general BA2 v1/v8 directories using bounded seeks. It does not load the multi-gigabyte archive into memory or extract the archive.
+The reader indexes BSA v103, v104 and v105 and general BA2 v1 and v8 with bounded seeks.
+Oblivion's v103 uses the same 16-byte folder and file record widths and zlib framing as v104.
 
 Each archive and the loose audio inventory are limited to 100,000 entries. The merged store permits at most 1,000,000 unique paths and 128 MiB of retained metadata text, including resource keys, duplicated names, origins and stored filesystem paths; this is not a process-memory cap. Replacements credit the previous record's text size and preserve override precedence.
 
-BA2 aggregate filename metadata is capped at 16 MiB before filename strings are allocated; BSA folder-name and filename tables are each capped at 16 MiB. Selected resource reads are capped at 32 MiB uncompressed. BSA v104 zlib and BA2 v1/v8 zlib payloads are bounded and decoded. Compressed BSA v105 entries use LZ4 and are explicitly rejected by this build; raw v105 entries remain readable. Other BSA and BA2 versions, BA2 subtypes, path traversal, truncated structures, and payloads outside bounds fail explicitly.
+BA2 aggregate filename metadata is capped at 16 MiB before filename strings are allocated; BSA folder-name and filename tables are each capped at 16 MiB. Selected resource reads are capped at 32 MiB uncompressed. BSA v103/v104 zlib and BA2 v1/v8 zlib payloads are bounded and decoded. Compressed BSA v105 entries use LZ4 and are explicitly rejected by this build; raw v105 entries remain readable. Other BSA and BA2 versions, BA2 subtypes, path traversal, truncated structures, and payloads outside bounds fail explicitly.
 
 Output bank and report paths must be outside the selected game's Data directory and cannot overwrite an input archive, the manifest, or the FFmpeg executable. The report is written beside the bank as <bank-path>.json. Both outputs are fully staged before replacement; the bank is validated and the report serialized before publication. Source archives and loose resources are opened read-only.
 
@@ -87,7 +91,12 @@ The DSP policy is deterministic and is recorded in each report:
 
 The JSON report records each chosen resource path, archive/loose origin, input size, SHA-256, detected onset, coverage status, DSP choices, and any missing or failed resources. SHA-256 is over the bounded resource bytes read from the archive or loose path. The report also includes a SHA-256 of the emitted bank.
 
-These envelopes reproduce sampled temporal energy as a bounded haptic shape. They are not audio playback, acoustic-frequency analysis, physical controller calibration, proof of a game-selected sample, or a claim of physical sensation. Transients retain authored levels, gain, limiter, routing and expiry. For Skyrim held profiles, the means P and S of all 32 amplitude knots set a stationary carrier blend: secondary mix S/(P+S) and level multiplied by P+S. This retains the legacy continuous phase, noise, modulation, attack/release and finite horizon; it does not replay a transient envelope or stretch it as the held horizon renews. Synthetic fallbacks remain for explicitly unsupported roles.
+The envelope captures how the representative source's energy changes over time. Authoring sets
+carrier frequencies, duration and level, and the adapter applies its normal limiter, routing and
+expiry rules. Supported held effects use the two envelope means. With means
+`P` and `S` and a positive total, the renderer scales the level by `P + S` and uses
+`S / (P + S)` for the secondary mix. It keeps phase, modulation and attack/release behavior
+across renewals.
 
 `FrequencyHz` sets the primary carrier and preserves the secondary/primary ratio while possible.
 After user tuning and Skyrim hit modifiers, active carriers are bounded to 20–1000 Hz; the
@@ -98,10 +107,19 @@ For transient audio profiles, `DurationScale` is applied once to the delivered v
 The source knots stretch across that lifetime. Carrier pitch and the fixed 1.5 ms edge guards
 use real time; the renderer does not apply the duration multiplier a second time.
 
+The Oblivion dismount profile uses a 1000 ms onset search and a 150 ms cue.
+
 ## Local manifests
 
-- [skyrim-se.json](../tools/haptics/manifests/skyrim-se.json): 49 profiles; include the installed `ccQDRSSE001-SurvivalMode.bsa` with `--archive` when baking this full template.
-- [skyrim-le.json](../tools/haptics/manifests/skyrim-le.json): 18 profiles for supported LE events; include `Dawnguard.bsa` with `--archive` for Vampire Lord sources. Unsupported magic, full-draw/held bow phases, crossbow shots, shield blocks, footsteps, mounts, knockdown, killmove and landing profiles are omitted.
-- [fallout4.json](../tools/haptics/manifests/fallout4.json): 30 profiles; PowerArmorEnter explicitly uses a 2000 ms onset search for its late-starting recordings.
+- Skyrim SE uses `ccQDRSSE001-SurvivalMode.bsa` with `--archive` for the full template. [Manifest](../tools/haptics/manifests/skyrim-se.json)
+- Skyrim LE uses `Dawnguard.bsa` with `--archive` for Vampire Lord sources. [Manifest](../tools/haptics/manifests/skyrim-le.json)
+- Fallout 4's power armor entry uses a 2000 ms onset search for its late-starting recordings. [Manifest](../tools/haptics/manifests/fallout4.json)
+- Oblivion's manifest requires the base sound archive. [Manifest](../tools/haptics/manifests/oblivion.json)
 
-Install a generated `.audiohaptics` file next to the adapter INI only after reviewing its report. The external bank is optional and game-tagged; an absent, invalid, or wrong-game external bank leaves the compiled profiles active. The opt-out setting disables both compiled and external profiles.
+## Use an external bank
+
+Review the generated report, then place the game-tagged `.audiohaptics` file beside the adapter
+INI with the same base name. A valid bank overlays any supported sections it supplies. Other
+sections keep their embedded or synthesized profiles. An absent, invalid or wrong-game bank
+leaves the built-in profiles active. Set `AudioHapticsEnabled=false` to use synthesized profiles
+throughout.

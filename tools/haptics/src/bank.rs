@@ -157,6 +157,7 @@ pub fn decode(bytes: &[u8]) -> Result<Bank> {
         1 => Game::SkyrimSe,
         2 => Game::SkyrimLe,
         3 => Game::Fallout4,
+        4 => Game::Oblivion,
         _ => anyhow::bail!("invalid game tag {tag}"),
     };
     let count = read_u32(bytes, 12)? as usize;
@@ -306,6 +307,22 @@ mod tests {
         assert_eq!(decoded.game, Game::SkyrimSe);
         assert_eq!(decoded.profiles[0].section, "Body.Test");
         assert_eq!(decoded.profiles[0].primary[1], 0.6);
+    }
+
+    #[test]
+    fn oblivion_game_tag_round_trips_in_the_shared_v1_bank() {
+        let bank = Bank {
+            game: Game::Oblivion,
+            profiles: vec![profile("Body.Action.CreatePotion")],
+        };
+        let bytes = encode(&bank).expect("valid Oblivion bank encodes");
+        assert_eq!(
+            u32::from_le_bytes(bytes[8..12].try_into().expect("game tag")),
+            4
+        );
+        let decoded = decode(&bytes).expect("Oblivion bank decodes");
+        assert_eq!(decoded.game, Game::Oblivion);
+        assert_eq!(decoded.profiles[0].section, "Body.Action.CreatePotion");
     }
 
     #[test]

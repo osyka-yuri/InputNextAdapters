@@ -11,7 +11,12 @@
 
 namespace inputnext::adapters {
 // NOLINTNEXTLINE(performance-enum-size): Preserve the public enum's 32-bit representation.
-enum class AudioHapticGame : std::uint32_t { skyrim_se = 1, skyrim_le = 2, fallout4 = 3 };
+enum class AudioHapticGame : std::uint32_t {
+    skyrim_se = 1,
+    skyrim_le = 2,
+    fallout4 = 3,
+    oblivion = 4,
+};
 
 struct AudioHapticEntry {
     std::string section;

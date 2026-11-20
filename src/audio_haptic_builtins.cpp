@@ -13,6 +13,8 @@ AudioHapticBankResult builtin_audio_haptic_bank(AudioHapticGame game) {
         return parse_audio_haptic_bank(std::as_bytes(std::span{detail::skyrim_le_bank}));
     case AudioHapticGame::fallout4:
         return parse_audio_haptic_bank(std::as_bytes(std::span{detail::fallout4_bank}));
+    case AudioHapticGame::oblivion:
+        return parse_audio_haptic_bank(std::as_bytes(std::span{detail::oblivion_bank}));
     }
     return {.status = AudioHapticBankStatus::invalid, .bank = {}};
 }

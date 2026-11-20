@@ -31,6 +31,47 @@ fn reads_bsa_104_uncompressed_and_105_deflate_payloads() {
 }
 
 #[test]
+fn reads_bsa_103_raw_and_zlib_payloads_with_v104_record_widths() {
+    let dir = tempdir().expect("tempdir");
+    for compressed in [false, true] {
+        let path = dir.path().join(if compressed {
+            "v103-zlib.bsa"
+        } else {
+            "v103-raw.bsa"
+        });
+        let payload = b"Oblivion v103 bounded audio resource";
+        bsa_fixture(&path, 103, payload, compressed);
+        let entries = parse_archive(&path).expect("index BSA v103 fixture");
+        assert_eq!(entries[0].info.path, "Sound/Pulse.wav");
+        assert_eq!(
+            read_entry(&mut File::open(path).expect("open archive"), &entries[0])
+                .expect("read v103 resource"),
+            payload
+        );
+    }
+}
+
+#[test]
+fn rejects_malformed_bsa_103_tables_and_payload_bounds() {
+    let dir = tempdir().expect("tempdir");
+    let valid = dir.path().join("v103-valid.bsa");
+    bsa_fixture(&valid, 103, b"bounded", false);
+
+    let truncated = dir.path().join("v103-truncated.bsa");
+    let mut bytes = fs::read(&valid).expect("read v103 fixture");
+    bytes.truncate(51);
+    fs::write(&truncated, bytes).expect("write truncated v103 fixture");
+    assert!(parse_archive(&truncated).is_err());
+
+    let out_of_bounds = dir.path().join("v103-out-of-bounds.bsa");
+    let mut bytes = fs::read(valid).expect("read v103 fixture");
+    // The payload offset is the last four bytes of the file record at byte 59.
+    bytes[71..75].copy_from_slice(&u32::MAX.to_le_bytes());
+    fs::write(&out_of_bounds, bytes).expect("write malformed v103 fixture");
+    assert!(parse_archive(&out_of_bounds).is_err());
+}
+
+#[test]
 fn explicitly_rejects_compressed_bsa_105_lz4_payloads() {
     let dir = tempdir().expect("tempdir");
     let path = dir.path().join("compressed-v105.bsa");

@@ -7,7 +7,7 @@ For authored haptic values, research boundaries and numeric selection criteria, 
 not establish perceived intensity, realism or discrimination on a physical controller.
 
 Compiled [audio-derived haptic profiles](audio-haptics-baking.md) provide representative
-source-shaped temporal envelopes and held mean-gain projections for 97 game-specific entries. An optional bank prepared
+source-shaped temporal envelopes and held mean-gain projections. An optional bank prepared
 offline from game sound resources overrides matching sections and leaves other defaults active.
 Both sources load before the native owner starts; the renderer receives copied values and performs
 no file access or decoding. Missing or invalid external banks retain the compiled profiles.

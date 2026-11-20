@@ -27,7 +27,7 @@ struct BsaPending {
 pub(super) fn parse(path: &Path, file: &mut File, file_len: u64) -> Result<Vec<ArchiveEntry>> {
     let version = u32_at(file, file_len, 4)?;
     ensure!(
-        matches!(version, 104 | 105),
+        matches!(version, 103..=105),
         "unsupported BSA version {version} in {}",
         path.display()
     );
@@ -61,8 +61,8 @@ pub(super) fn parse(path: &Path, file: &mut File, file_len: u64) -> Result<Vec<A
     for index in 0..folder_count {
         let at = folder_offset + index as u64 * folder_width;
         let count = u32_at(file, file_len, at + 8)?;
-        // Bethesda's folder offset points into the file-name table for these archive flags;
-        // folder blocks themselves follow the table in folder-index order.
+        // Stored offsets can include the filename table length. Read the folder blocks
+        // sequentially after the folder table.
         let _folder_name_offset = if version == 105 {
             u64_at(file, file_len, at + 16)?
         } else {

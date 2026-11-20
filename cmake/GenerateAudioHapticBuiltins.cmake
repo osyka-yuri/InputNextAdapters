@@ -38,7 +38,7 @@ function(_inputnext_append_builtin_bank output_variable symbol input_file)
     set(${output_variable} "${_bank_source}" PARENT_SCOPE)
 endfunction()
 
-foreach(_required INPUT_SKYRIM_SE INPUT_SKYRIM_LE INPUT_FALLOUT4)
+foreach(_required INPUT_SKYRIM_SE INPUT_SKYRIM_LE INPUT_FALLOUT4 INPUT_OBLIVION)
     if(NOT DEFINED ${_required} OR "${${_required}}" STREQUAL "")
         message(FATAL_ERROR "${_required} must name a source audio haptic bank.")
     endif()
@@ -47,6 +47,7 @@ endforeach()
 _inputnext_append_builtin_bank(_skyrim_se_source skyrim_se "${INPUT_SKYRIM_SE}")
 _inputnext_append_builtin_bank(_skyrim_le_source skyrim_le "${INPUT_SKYRIM_LE}")
 _inputnext_append_builtin_bank(_fallout4_source fallout4 "${INPUT_FALLOUT4}")
+_inputnext_append_builtin_bank(_oblivion_source oblivion "${INPUT_OBLIVION}")
 
 string(CONCAT _generated_source
     "// Generated from the checked-in audio haptic banks. Do not edit.\n"
@@ -56,7 +57,8 @@ string(CONCAT _generated_source
     "namespace inputnext::adapters::detail {\n"
     "${_skyrim_se_source}\n"
     "${_skyrim_le_source}\n"
-    "${_fallout4_source}"
+    "${_fallout4_source}\n"
+    "${_oblivion_source}"
     "} // namespace inputnext::adapters::detail\n"
 )
 get_filename_component(_output_directory "${OUTPUT_FILE}" DIRECTORY)

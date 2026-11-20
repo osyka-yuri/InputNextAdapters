@@ -65,12 +65,14 @@ add_custom_command(
         "-DINPUT_SKYRIM_SE=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-se.audiohaptics"
         "-DINPUT_SKYRIM_LE=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-le.audiohaptics"
         "-DINPUT_FALLOUT4=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/fallout4.audiohaptics"
+        "-DINPUT_OBLIVION=${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/oblivion.audiohaptics"
         "-DOUTPUT_FILE=${_audio_haptic_builtin_header}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAudioHapticBuiltins.cmake"
     DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-se.audiohaptics"
         "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/skyrim-le.audiohaptics"
         "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/fallout4.audiohaptics"
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/audio-haptics/oblivion.audiohaptics"
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAudioHapticBuiltins.cmake"
     VERBATIM
     COMMENT "Generating built-in audio haptic banks"
