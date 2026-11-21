@@ -26,6 +26,22 @@ set_tests_properties(oblivion_health_calculation PROPERTIES
     LABELS "unit;oblivion"
 )
 
+add_executable(oblivion_native_abi_tests native_abi_tests.cpp
+    "${PROJECT_SOURCE_DIR}/src/native/magic_forms.cpp"
+)
+target_include_directories(oblivion_native_abi_tests PRIVATE
+    "${PROJECT_SOURCE_DIR}/src"
+    "${InputNextAdapters_SOURCE_DIR}/tests"
+)
+target_link_libraries(oblivion_native_abi_tests PRIVATE oblivion_sdk InputNextAdapters::effects)
+oblivion_enable_checks(oblivion_native_abi_tests)
+
+add_test(NAME oblivion_native_abi COMMAND oblivion_native_abi_tests)
+set_tests_properties(oblivion_native_abi PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;oblivion;native;abi"
+)
+
 add_executable(oblivion_effect_policy_tests
     effect_policy/action_results_tests.cpp
     effect_policy/actions_tests.cpp

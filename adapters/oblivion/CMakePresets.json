@@ -25,6 +25,7 @@
         "INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY": "OFF",
         "INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY": "OFF",
         "INPUTNEXT_OBLIVION_BUILD_TESTS": "ON",
+        "INPUTNEXT_OBLIVION_BUILD_PLUGIN": "OFF",
         "INPUTNEXT_OBLIVION_ENABLE_ASAN": "OFF",
         "INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE": "OFF"
       }
@@ -45,6 +46,35 @@
       "cacheVariables": {
         "INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY": "ON"
       }
+    },
+    {
+      "name": "msvc-x86-native",
+      "inherits": "msvc-x86",
+      "displayName": "Oblivion — MSVC x86 native plugin",
+      "cacheVariables": {
+        "INPUTNEXT_OBLIVION_BUILD_PLUGIN": "ON",
+        "INPUTNEXTADAPTERS_PRODUCTION": "ON",
+        "INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "INPUTNEXT_OBLIVION_BUILD_TESTS": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "inherits": "msvc-x86-native",
+      "displayName": "Oblivion — MSVC x86 native tests",
+      "cacheVariables": {
+        "INPUTNEXT_OBLIVION_BUILD_PLUGIN": "ON",
+        "INPUTNEXT_OBLIVION_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "inherits": "msvc-x86-native-tests",
+      "displayName": "Oblivion — MSVC x86 native tests with clang-tidy",
+      "cacheVariables": {
+        "INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -55,6 +85,18 @@
     {
       "name": "msvc-x86-quality",
       "configurePreset": "msvc-x86-quality"
+    },
+    {
+      "name": "msvc-x86-native",
+      "configurePreset": "msvc-x86-native"
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-tests"
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "configurePreset": "msvc-x86-native-quality"
     }
   ],
   "testPresets": [
@@ -73,6 +115,22 @@
       "name": "msvc-x86-quality",
       "inherits": "msvc-x86",
       "configurePreset": "msvc-x86-quality"
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "inherits": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-quality"
     }
   ]
 }

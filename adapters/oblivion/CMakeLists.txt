@@ -4,6 +4,7 @@ project(InputNextOblivion VERSION 0.1.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 
 option(INPUTNEXT_OBLIVION_BUILD_TESTS "Build isolated Oblivion adapter tests" "${PROJECT_IS_TOP_LEVEL}")
+option(INPUTNEXT_OBLIVION_BUILD_PLUGIN "Build the native Oblivion xOBSE plugin" OFF)
 option(INPUTNEXT_OBLIVION_ENABLE_ASAN "Enable AddressSanitizer for owned targets" OFF)
 option(INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze for owned targets" OFF)
 option(INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY "Run clang-tidy for owned targets" OFF)
@@ -11,6 +12,14 @@ option(INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY "Run clang-tidy for owned targets" O
 set(INPUTNEXTADAPTERS_ENABLE_ASAN "${INPUTNEXT_OBLIVION_ENABLE_ASAN}")
 set(INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE "${INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE}")
 set(INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY "${INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY}")
+
+if(INPUTNEXT_OBLIVION_BUILD_PLUGIN AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
+        AND NOT INPUTNEXT_OBLIVION_ENABLE_ASAN
+        AND NOT INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE
+        AND NOT DEFINED CACHE{INPUTNEXTADAPTERS_PRODUCTION})
+    set(INPUTNEXTADAPTERS_PRODUCTION ON CACHE BOOL
+        "Use the optimized Release policy for owned product targets")
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/ProductionOptions.cmake")
 inputnext_prepare_production_configuration()
@@ -58,6 +67,14 @@ add_library(oblivion_effects STATIC
 target_include_directories(oblivion_effects PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(oblivion_effects PUBLIC InputNextAdapters::effects)
 oblivion_enable_checks(oblivion_effects PRODUCTION)
+
+if(INPUTNEXT_OBLIVION_BUILD_PLUGIN OR INPUTNEXT_OBLIVION_BUILD_TESTS)
+    include(cmake/Dependencies.cmake)
+endif()
+
+if(INPUTNEXT_OBLIVION_BUILD_PLUGIN)
+    include(cmake/NativePlugin.cmake)
+endif()
 
 if(INPUTNEXT_OBLIVION_BUILD_TESTS)
     include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/InputNextCatch2.cmake")

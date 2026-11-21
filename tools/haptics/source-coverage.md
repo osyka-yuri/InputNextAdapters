@@ -64,7 +64,7 @@ LE has no native Survival integration. Survival profiles are excluded from its s
 ## Verification and rebaking
 
 Build the foundation `msvc-x64` preset and the adapter test presets. Then run the audio profile
-checks from the repository root. [Skyrim SE](../../adapters/skyrim_se/docs/validation.md) · [Skyrim LE](../../adapters/skyrim_le/docs/validation.md) · [Fallout 4](../../adapters/fallout4/docs/validation.md)
+checks from the repository root. [Skyrim SE](../../adapters/skyrim_se/docs/validation.md) · [Skyrim LE](../../adapters/skyrim_le/docs/validation.md) · [Fallout 4](../../adapters/fallout4/docs/validation.md) · [Oblivion](../../adapters/oblivion/README.md#build-and-package)
 
 ```powershell
 cargo test --locked -p inputnext-haptics
@@ -72,7 +72,7 @@ ctest --test-dir build/msvc-x64 -R 'audio_haptics' --output-on-failure --no-test
 ctest --test-dir build/skyrim-se-msvc-x64 -R 'audio_haptics|calibration' --output-on-failure --no-tests=error
 ctest --test-dir build/skyrim-le-msvc-x86 -R 'audio_haptics|calibration' --output-on-failure --no-tests=error
 ctest --test-dir build/fallout4-msvc-x64 -R 'audio_haptics' --output-on-failure --no-tests=error
-ctest --test-dir build/oblivion-msvc-x86 -R 'oblivion_audio_profiles|oblivion\.effect_policy\.(body|bow)\.' --output-on-failure --no-tests=error
+ctest --test-dir build/oblivion-msvc-x86-native-tests -R 'oblivion_audio_profiles|oblivion\.effect_policy\.(body|bow)\.' --output-on-failure --no-tests=error
 ```
 
 These checks validate software output; physical distinction and perceived strength still require controller tests. For source-level reproduction, follow the [baking guide](../../docs/audio-haptics-baking.md) with the installed game archives and a separately supplied FFmpeg executable. Every bake emits a JSON report with selected paths, origins, source sizes and hashes, onset measurements, failures and the output bank hash. Keep that report with the generated bank. Different game assets, sound mods or decoder versions may change the result; raw game audio and local development reports are not distributed.
