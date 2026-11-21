@@ -4,11 +4,14 @@
 #include "native/magic_effects.hpp"
 #include "native/magic_forms.hpp"
 #include "native/memory_guard.hpp"
+#include "native/options_input.hpp"
 #include "support/test_runner.hpp"
 
 #include <GameExtraData.h>
 #include <GameForms.h>
 #include <GameObjects.h>
+#include <input_next_core.h>
+#include <inputnext_adapters/body_program.hpp>
 
 #include <array>
 #include <chrono>
@@ -21,6 +24,7 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <string_view>
 #include <type_traits>
 
 namespace {
@@ -294,6 +298,175 @@ void test_projectile_confirmation() {
         "Repeated detachment samples cannot restart the 150 ms window");
 }
 
+struct FakeGamepad {
+    std::uint32_t resolved_slot{};
+    std::uint32_t buttons{};
+    std::uint64_t qpc{1};
+    std::uint64_t connection{1};
+    input_next_status read_status{INPUT_NEXT_STATUS_OK};
+};
+
+FakeGamepad fake_gamepad;
+
+input_next_status INPUT_NEXT_CORE_CALL resolve_gamepad(
+    const input_next_device_selector_v1* selector,
+    input_next_device_target_v1* target) noexcept {
+    if (selector->struct_size != sizeof(*selector) ||
+        selector->target.struct_size != sizeof(selector->target) ||
+        selector->kind != INPUT_NEXT_CORE_SELECTOR_XINPUT_SLOT || selector->xinput_slot >= 4U ||
+        target->struct_size != sizeof(*target)) {
+        return INPUT_NEXT_STATUS_INVALID_ARGUMENT;
+    }
+    fake_gamepad.resolved_slot = selector->xinput_slot;
+    target->connection_id = fake_gamepad.connection;
+    return INPUT_NEXT_STATUS_OK;
+}
+
+input_next_status INPUT_NEXT_CORE_CALL read_gamepad(const input_next_device_target_v1* target,
+    input_next_input_snapshot_v1* snapshot) noexcept {
+    if (target->struct_size != sizeof(*target) || snapshot->struct_size != sizeof(*snapshot)) {
+        return INPUT_NEXT_STATUS_INVALID_ARGUMENT;
+    }
+    if (target->connection_id != fake_gamepad.connection) {
+        return INPUT_NEXT_STATUS_STALE_TARGET;
+    }
+    snapshot->state.buttons = fake_gamepad.buttons;
+    snapshot->qpc = fake_gamepad.qpc;
+    return fake_gamepad.read_status;
+}
+
+const input_next_core_api_v1* INPUT_NEXT_CORE_CALL query_gamepad(std::uint32_t abi) noexcept {
+    static constexpr auto api = [] {
+        input_next_core_api_v1 result{};
+        result.struct_size = sizeof(result);
+        result.abi_version = INPUT_NEXT_CORE_ABI_VERSION;
+        result.resolve_target = resolve_gamepad;
+        result.read_latest = read_gamepad;
+        return result;
+    }();
+    return abi == INPUT_NEXT_CORE_ABI_VERSION ? &api : nullptr;
+}
+
+void test_options_press() {
+    using namespace std::chrono_literals;
+    using namespace oblivion_adapter::native;
+    using oblivion_adapter::MonoTime;
+
+    constexpr auto start = MonoTime{} + 1s;
+    constexpr auto menu = 1U << 4U;
+    constexpr auto right_shoulder = 1U << 9U;
+    OptionsInput input;
+    OptionsPress press;
+    require(!input.bind(nullptr, 2), "Missing Core interface leaves the shortcut disabled");
+    require(input.bind(query_gamepad, 2), "The shortcut binds the Core ABI");
+
+    const auto read = [&](MonoTime sample_time, std::uint32_t buttons) {
+        fake_gamepad.buttons = buttons;
+        ++fake_gamepad.qpc;
+        input.poll(true, sample_time);
+        return press.take(input.sample(), sample_time);
+    };
+    require(!read(start, menu), "An already held Options is ignored on attach");
+    require(fake_gamepad.resolved_slot == 2, "The shortcut uses the configured controller slot");
+    require(!read(start + 20ms, right_shoulder), "The magic button never sends Escape");
+    require(read(start + 40ms, menu), "A release followed by Options sends Escape");
+    require(!read(start + 60ms, menu), "A held button cannot toggle pause repeatedly");
+
+    input.poll(false, start + 80ms);
+    require(!input.sample(), "Losing focus clears the polled button state");
+    press.reset(fake_gamepad.qpc);
+    require(!read(start + 100ms, menu), "A held button stays quiet when focus returns");
+    require(!read(start + 120ms, 0), "Releasing the button rearms the shortcut");
+    require(read(start + 140ms, menu), "A fresh press works after regaining focus");
+
+    require(!read(start + 160ms, 0), "A release does not emit Escape");
+    ++fake_gamepad.connection;
+    require(!read(start + 180ms, menu) && !input.sample(),
+        "A retired controller cannot send Escape through its old target");
+    require(!read(start + 360ms, menu), "A held button is ignored after controller replacement");
+    fake_gamepad.read_status = INPUT_NEXT_STATUS_NO_DATA;
+    require(!read(start + 380ms, 0) && !input.sample(), "Missing data does not arm the shortcut");
+    fake_gamepad.read_status = INPUT_NEXT_STATUS_OK;
+    require(!read(start + 400ms, 0) && read(start + 420ms, menu),
+        "A new controller can pause after a valid release");
+}
+
+void test_pause_command_and_session_fence() {
+    using namespace std::chrono_literals;
+    using namespace oblivion_adapter::native;
+    using oblivion_adapter::MonoTime;
+
+    require(std::string_view{escape_command(PauseContext::gameplay)} == "TapKey 1",
+        "Gameplay uses the one-frame Escape input");
+    require(std::string_view{escape_command(PauseContext::settings_menu)} == "MenuTapKey 1",
+        "Pause and settings use the buffered Escape input");
+    require(escape_command(PauseContext::unavailable) == nullptr,
+        "Unrelated menus and the console receive no Escape");
+
+    constexpr auto now = MonoTime{} + 1s;
+    OptionsPress press;
+    press.reset(100);
+    OptionsSample sample{.polled_at = now, .binding = 1, .qpc = 98, .down = false};
+    require(!press.take(sample, now), "A released snapshot can establish a baseline");
+    sample.down = true;
+    sample.qpc = 100;
+    require(!press.take(sample, now), "A press from before a save load cannot replay");
+    sample.down = false;
+    sample.qpc = 101;
+    require(!press.take(sample, now), "A current release arms the shortcut");
+    sample.down = true;
+    sample.qpc = 102;
+    require(!press.take(sample, now + 151ms), "An expired worker sample cannot open pause");
+    require(!press.take(sample, now + 160ms), "Expired input does not rearm a held button");
+}
+
+void test_options_prolonged_no_data_and_reconnect() {
+    using namespace std::chrono_literals;
+    using namespace oblivion_adapter::native;
+    using oblivion_adapter::MonoTime;
+
+    fake_gamepad = {};
+    constexpr auto start = MonoTime{} + 1s;
+    constexpr auto menu = 1U << 4U;
+    OptionsInput input;
+    OptionsPress press;
+    require(input.bind(query_gamepad, 0), "The Options reader binds the test gamepad");
+    const auto poll = [&](MonoTime now, std::uint32_t buttons) {
+        fake_gamepad.buttons = buttons;
+        ++fake_gamepad.qpc;
+        input.poll(true, now);
+    };
+    poll(start, 0);
+    require(!press.take(input.sample(), start), "An up report only arms Options");
+
+    fake_gamepad.read_status = INPUT_NEXT_STATUS_NO_DATA;
+    for (auto elapsed = 20ms; elapsed <= 2s; elapsed += 20ms) {
+        poll(start + elapsed, menu);
+        require(!input.sample(), "Repeated NO_DATA invalidates the prior button report");
+    }
+    // The game thread missed the NO_DATA reports while stalled.
+    fake_gamepad.read_status = INPUT_NEXT_STATUS_OK;
+    poll(start + 2020ms, menu);
+    require(!press.take(input.sample(), start + 2020ms),
+        "A held button after a gap cannot use the pre-gap release baseline");
+
+    fake_gamepad.read_status = INPUT_NEXT_STATUS_NO_DATA;
+    poll(start + 2040ms, 0);
+    ++fake_gamepad.connection;
+    poll(start + 2060ms, menu);
+    poll(start + 2080ms, menu);
+    require(!press.take(input.sample(), start + 2080ms) && !input.sample(),
+        "A replacement connection without reports does not arm Options");
+    fake_gamepad.read_status = INPUT_NEXT_STATUS_OK;
+    poll(start + 2100ms, menu);
+    require(!press.take(input.sample(), start + 2100ms), "A new held press cannot toggle pause");
+    poll(start + 2120ms, 0);
+    require(!press.take(input.sample(), start + 2120ms), "Releasing the new pad rearms Options");
+    poll(start + 2140ms, menu);
+    require(press.take(input.sample(), start + 2140ms),
+        "Options works after reconnect and release");
+}
+
 } // namespace
 
 int main() {
@@ -303,6 +476,9 @@ int main() {
         test_magic_effect_codes();
         test_applied_magic_forms();
         test_projectile_confirmation();
+        test_options_press();
+        test_pause_command_and_session_fence();
+        test_options_prolonged_no_data_and_reconnect();
         std::cout << "All Oblivion native ABI tests passed.\n";
         return 0;
     });

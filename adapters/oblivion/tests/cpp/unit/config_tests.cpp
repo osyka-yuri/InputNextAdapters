@@ -22,6 +22,7 @@ TEST_CASE("oblivion.config.defaults_and_global_controls", "[unit][oblivion][conf
     CHECK(settings.triggers_enabled);
     CHECK(settings.menu_effects_enabled);
     CHECK(settings.audio_haptics_enabled);
+    CHECK_FALSE(settings.pause_on_options);
     CHECK(settings.led.health_enabled);
     CHECK(settings.led.stealth_enabled);
     CHECK(!settings.profiles[profile_index(EffectId::walk)].enabled);
@@ -34,7 +35,7 @@ TEST_CASE("oblivion.config.defaults_and_global_controls", "[unit][oblivion][conf
     REQUIRE(parse_config("\xEF\xBB\xBF[InputNextOblivion]\r\nControllerSlot=3\r\n"
                          "RumbleScale=0.25 ; comment\r\nTriggerScale=0\r\n"
                          "BodyEnabled=fAlSe\r\nMenuEffectsEnabled=TRUE\r\n"
-                         "AudioHapticsEnabled=false\r\n",
+                         "AudioHapticsEnabled=false\r\nPauseOnOptions=true\r\n",
         settings,
         &error));
     CHECK(settings.controller_slot == 3);
@@ -43,6 +44,7 @@ TEST_CASE("oblivion.config.defaults_and_global_controls", "[unit][oblivion][conf
     CHECK_FALSE(settings.body_enabled);
     CHECK(settings.menu_effects_enabled);
     CHECK_FALSE(settings.audio_haptics_enabled);
+    CHECK(settings.pause_on_options);
 }
 
 TEST_CASE("oblivion.config.every_profile_and_audio_frequency_override",
@@ -119,6 +121,7 @@ TEST_CASE("oblivion.config.duplicates_unknowns_and_bounds_are_rejected",
     CHECK_FALSE(parse_config("[Body.Bow.Draw]\nFrequencyHz=19.99\n", settings, &error));
     CHECK_FALSE(parse_config("[Body.Bow.Draw]\nDurationScale=2.01\n", settings, &error));
     CHECK_FALSE(parse_config("[Unknown]\nEnabled=true\n", settings, &error));
+    CHECK_FALSE(parse_config("[InputNextOblivion]\nPauseOnOptions=yes\n", settings, &error));
     CHECK_FALSE(parse_config("[LED]\nStealthEnabled=yes\n", settings, &error));
 
     const std::string too_large((64U * 1024U) + 1U, ' ');

@@ -2,13 +2,16 @@
 #include "diagnostics.hpp"
 #include "effect_worker.hpp"
 #include "event_handler.hpp"
+#include "native/options_input.hpp"
 #include "observation.hpp"
+#include "player_state.hpp"
 #include "task_handler.hpp"
 #include "xobse_sdk.hpp"
 
 #include <Windows.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -25,6 +28,7 @@ struct ResolvedInterfaces {
     OBSEMessagingInterface& messaging;
     OBSESerializationInterface& serialization;
     PluginHandle plugin_handle;
+    const OBSEConsoleInterface* pause_console;
 };
 
 std::optional<ResolvedInterfaces> check_compatibility(const OBSEInterface* obse) noexcept {
@@ -86,11 +90,18 @@ std::optional<ResolvedInterfaces> check_compatibility(const OBSEInterface* obse)
         return std::nullopt;
     }
 
+    const auto* console =
+        static_cast<const OBSEConsoleInterface*>(obse->QueryInterface(kInterface_Console));
+    if (console &&
+        (console->version < OBSEConsoleInterface::kVersion || !console->RunScriptLine2)) {
+        console = nullptr;
+    }
     return ResolvedInterfaces{.event_manager = *event_mgr,
         .tasks = *tasks2,
         .messaging = *messaging,
         .serialization = *serialization,
-        .plugin_handle = plugin_handle};
+        .plugin_handle = plugin_handle,
+        .pause_console = console};
 }
 } // namespace
 
@@ -115,7 +126,7 @@ bool PluginInterfaceManager::initialize(const OBSEInterface* obse,
 
     std::unique_ptr<EffectWorker> worker;
     try {
-        worker = EffectWorker::prepare(game_dir);
+        worker = EffectWorker::prepare(game_dir, resolved->pause_console != nullptr);
     } catch (...) {
         diagnostics::write("initialize: failed to prepare controller output");
         return false;
@@ -164,6 +175,10 @@ bool PluginInterfaceManager::initialize(const OBSEInterface* obse,
     context_.tasks = &resolved->tasks;
     context_.serialization = &resolved->serialization;
     context_.plugin_handle = resolved->plugin_handle;
+    if (worker->options_available()) {
+        context_.pause_console = resolved->pause_console;
+        diagnostics::write("Options shortcut enabled");
+    }
     // The retained module and worker keep the callbacks valid until process exit.
     session_state_ = SessionState::NoSession;
     context_.effects = &EffectWorker::activate_for_process(std::move(worker));
@@ -175,6 +190,7 @@ bool PluginInterfaceManager::initialize(const OBSEInterface* obse,
 
 void PluginInterfaceManager::start_new_game_session() noexcept {
     session_state_ = SessionState::InSession;
+    pause_press_.reset(input_clock());
     context_.effects->invalidate();
     ObservationManager::instance().reset();
     TaskHandler::reset_diagnostics();
@@ -205,12 +221,36 @@ void PluginInterfaceManager::set_session_state(SessionState state) noexcept {
     }
     const SessionState old_state = session_state_;
     session_state_ = state;
+    pause_press_.reset(input_clock());
 
     if (state != SessionState::InSession || old_state != SessionState::Loading) {
         // A save load already reset state on entry to Loading.
         context_.effects->invalidate();
         ObservationManager::instance().reset();
         TaskHandler::reset_diagnostics();
+    }
+}
+
+void PluginInterfaceManager::poll_pause_shortcut() noexcept {
+    if (!context_.pause_console) {
+        return;
+    }
+    if (!is_session_active() || !foreground_is_game()) {
+        pause_press_.reset(input_clock());
+        return;
+    }
+    if (!pause_press_.take(context_.effects->options_sample(), std::chrono::steady_clock::now())) {
+        return;
+    }
+    const auto* command = escape_command(PlayerStateReader::read_pause_context());
+    if (!foreground_is_game()) {
+        pause_press_.reset(input_clock());
+        return;
+    }
+    if (command) {
+        const bool sent = context_.pause_console->RunScriptLine2(command, nullptr, true);
+        diagnostics::write(
+            sent ? "Options shortcut sent Escape" : "Options shortcut could not send Escape");
     }
 }
 

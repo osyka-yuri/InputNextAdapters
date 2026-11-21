@@ -1,5 +1,6 @@
 #pragma once
 
+#include "options_input.hpp"
 #include "xobse_sdk.hpp"
 
 #include <atomic>
@@ -22,6 +23,7 @@ struct PluginContext {
     OBSESerializationInterface* serialization{nullptr};
     PluginHandle plugin_handle{static_cast<PluginHandle>(0xFFFFFFFFU)};
     EffectWorker* effects{};
+    const OBSEConsoleInterface* pause_console{};
 };
 
 // Load may run off the game thread. GameInitialized binds the thread that
@@ -39,6 +41,7 @@ public:
         const std::filesystem::path& game_dir) noexcept;
     void shutdown() noexcept;
     [[nodiscard]] bool on_game_thread() const noexcept;
+    void poll_pause_shortcut() noexcept;
 
     [[nodiscard]] EffectWorker* effects() const noexcept { return context_.effects; }
 
@@ -59,6 +62,7 @@ private:
     void start_new_game_session() noexcept;
 
     PluginContext context_{};
+    OptionsPress pause_press_;
     SessionState session_state_{SessionState::NoSession};
     std::atomic<bool> loaded_;
     std::atomic<std::uint32_t> game_thread_id_;

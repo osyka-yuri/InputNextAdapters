@@ -32,7 +32,7 @@ bool has_focus() noexcept {
 void verify_active_shutdown(const std::filesystem::path& runtime, const char* mode) {
     static_assert(!std::is_destructible_v<EffectWorker>);
     {
-        auto const prepared = EffectWorker::prepare(runtime.parent_path(), has_focus);
+        auto const prepared = EffectWorker::prepare(runtime.parent_path(), false, has_focus);
         require(prepared != nullptr && (GetModuleHandleW(runtime.c_str()) != nullptr),
             "A prepared worker retains the runtime before callback registration");
     }
@@ -56,7 +56,7 @@ void verify_active_shutdown(const std::filesystem::path& runtime, const char* mo
 
     require(SetEnvironmentVariableA("INPUTNEXT_OBLIVION_TEST_RUNTIME_MODE", mode) != FALSE,
         "Configure the fixture's close response");
-    auto prepared = EffectWorker::prepare(runtime.parent_path(), has_focus);
+    auto prepared = EffectWorker::prepare(runtime.parent_path(), false, has_focus);
     require(prepared != nullptr, "Prepare a native worker with the valid fixture ABI");
     auto& worker = EffectWorker::activate_for_process(std::move(prepared));
     dll.reset();

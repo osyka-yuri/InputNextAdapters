@@ -7,8 +7,6 @@
 #include "inputnext_adapters/output_session.hpp"
 #include "native/diagnostics.hpp"
 
-#include <Windows.h>
-
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -49,13 +47,6 @@ void log_config_error(const ConfigError& error) noexcept {
 
 } // namespace
 
-bool EffectWorker::foreground_is_game() noexcept {
-    auto* const foreground = GetForegroundWindow();
-    DWORD process_id{};
-    return (foreground != nullptr) && GetWindowThreadProcessId(foreground, &process_id) != 0U &&
-           process_id == GetCurrentProcessId();
-}
-
 EffectWorker::EffectWorker(const EffectSettings& settings,
     bool (*game_has_focus)() noexcept) noexcept
     : session_(runtime_, settings),
@@ -64,6 +55,7 @@ EffectWorker::EffectWorker(const EffectSettings& settings,
 }
 
 std::unique_ptr<EffectWorker> EffectWorker::prepare(const std::filesystem::path& game_dir,
+    bool pause_api_available,
     bool (*game_has_focus)() noexcept) {
     if (!game_dir.is_absolute()) {
         return {};
@@ -102,6 +94,13 @@ std::unique_ptr<EffectWorker> EffectWorker::prepare(const std::filesystem::path&
             static_cast<unsigned>(result.error),
             static_cast<unsigned long>(result.native_error));
         return {};
+    }
+    if (settings.pause_on_options) {
+        if (!pause_api_available) {
+            diagnostics::write("Options shortcut unavailable: missing xOBSE console API");
+        } else if (!worker->options_.bind(runtime_path, settings.controller_slot)) {
+            diagnostics::write("Options shortcut unavailable: missing InputNext Core API");
+        }
     }
     worker->thread_ = std::thread([instance = worker.get()] { instance->run(); });
     return worker;
@@ -168,6 +167,7 @@ void EffectWorker::run() noexcept {
     while (!stopped_.load()) {
         const bool focused = game_has_focus_();
         session_.set_focus(focused, clock.now());
+        options_.poll(focused, clock.now());
         session_.tick(clock);
 
         const auto current = session_.diagnostics();

@@ -10,6 +10,7 @@
 namespace oblivion_adapter::native {
 
 struct ProjectileScan;
+enum class PauseContext : std::uint8_t;
 
 class PlayerStateReader {
 public:
@@ -17,6 +18,7 @@ public:
     [[nodiscard]] static bool is_player_pointer_valid(const PlayerCharacter* player) noexcept;
     [[nodiscard]] static bool is_game_mode() noexcept;
     [[nodiscard]] static EffectMode read_effect_mode() noexcept;
+    [[nodiscard]] static PauseContext read_pause_context() noexcept;
 
     [[nodiscard]] static std::optional<PlayerHealth> read_player_health(
         PlayerCharacter* player) noexcept;

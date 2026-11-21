@@ -6,6 +6,7 @@ add_library(InputNextOblivion SHARED
     src/InputNextOblivion.def
     src/native/diagnostics.cpp
     src/native/effect_worker.cpp
+    src/native/options_input.cpp
     src/native/player_state.cpp
     src/native/magic_forms.cpp
     src/native/event_handler.cpp

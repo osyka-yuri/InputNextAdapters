@@ -1,6 +1,7 @@
 #pragma once
 
 #include "effect_session.hpp"
+#include "options_input.hpp"
 
 #include <atomic>
 #include <condition_variable>
@@ -23,6 +24,7 @@ public:
     // A prepared worker can be joined on load failure before it starts output.
     [[nodiscard]] static std::unique_ptr<EffectWorker> prepare(
         const std::filesystem::path& game_dir,
+        bool pause_api_available,
         bool (*game_has_focus)() noexcept = foreground_is_game);
     // Keep the active worker alive for xOBSE callbacks until process exit.
     [[nodiscard]] static EffectWorker& activate_for_process(
@@ -32,9 +34,13 @@ public:
 
     [[nodiscard]] std::uint64_t generation() const noexcept { return session_.generation(); }
 
-    [[nodiscard]] static bool foreground_is_game() noexcept;
-
     [[nodiscard]] bool stealth_enabled() const noexcept { return stealth_enabled_; }
+
+    [[nodiscard]] bool options_available() const noexcept { return options_.available(); }
+
+    [[nodiscard]] std::optional<OptionsSample> options_sample() const noexcept {
+        return options_.sample();
+    }
 
     void publish(EffectObservation observation) noexcept;
     bool push_event(EffectEvent event) noexcept;
@@ -50,6 +56,7 @@ private:
 
     inputnext::adapters::RuntimeOutput runtime_;
     EffectSession session_;
+    OptionsInput options_;
     bool (*const game_has_focus_)() noexcept;
     const bool stealth_enabled_;
     std::mutex wake_mutex_;

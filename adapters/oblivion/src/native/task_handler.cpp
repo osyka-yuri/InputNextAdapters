@@ -7,6 +7,7 @@
 #include "interfaces.hpp"
 #include "model.hpp"
 #include "observation.hpp"
+#include "options_input.hpp"
 #include "player_state.hpp"
 #include "xobse_sdk.hpp"
 
@@ -135,7 +136,7 @@ void record_bow_shot(std::uint32_t arrow, const EffectObservation& observation) 
 } // namespace
 
 void TaskHandler::on_game_tick() noexcept {
-    const auto& interfaces = PluginInterfaceManager::instance();
+    auto& interfaces = PluginInterfaceManager::instance();
     if (!interfaces.on_game_thread() || !interfaces.effects()) {
         return;
     }
@@ -143,6 +144,7 @@ void TaskHandler::on_game_tick() noexcept {
         diagnostics::write("on_game_tick: first game loop tick observed on game thread");
     }
 
+    interfaces.poll_pause_shortcut();
     if (!interfaces.is_session_active()) {
         mark_player_unavailable("on_game_tick: player unavailable (no active session)");
         return;
@@ -216,7 +218,7 @@ void TaskHandler::on_game_tick() noexcept {
     observation.player_id = form_id;
     PlayerStateReader::read_effect_state(player,
         observation,
-        effects.stealth_enabled() && EffectWorker::foreground_is_game());
+        effects.stealth_enabled() && foreground_is_game());
     complete_attack(effects, observation);
 
     if (mode == EffectMode::gameplay && previous_effect_mode == EffectMode::gameplay) {

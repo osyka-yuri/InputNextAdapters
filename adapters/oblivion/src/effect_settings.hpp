@@ -172,6 +172,7 @@ struct EffectSettings {
     bool triggers_enabled{true};
     bool menu_effects_enabled{true};
     bool audio_haptics_enabled{true};
+    bool pause_on_options{false};
     inputnext::adapters::LedSettings led{.radiation_enabled = false};
     std::array<ProfileAdjustment, effect_sections.size()> profiles;
 };

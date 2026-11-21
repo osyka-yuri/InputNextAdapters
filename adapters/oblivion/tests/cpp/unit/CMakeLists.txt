@@ -28,6 +28,7 @@ set_tests_properties(oblivion_health_calculation PROPERTIES
 
 add_executable(oblivion_native_abi_tests native_abi_tests.cpp
     "${PROJECT_SOURCE_DIR}/src/native/magic_forms.cpp"
+    "${PROJECT_SOURCE_DIR}/src/native/options_input.cpp"
 )
 target_include_directories(oblivion_native_abi_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/src"

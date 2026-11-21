@@ -40,6 +40,7 @@ add_executable(oblivion_worker_shutdown_tests
     worker_shutdown_tests.cpp
     "${PROJECT_SOURCE_DIR}/src/native/diagnostics.cpp"
     "${PROJECT_SOURCE_DIR}/src/native/effect_worker.cpp"
+    "${PROJECT_SOURCE_DIR}/src/native/options_input.cpp"
 )
 target_include_directories(oblivion_worker_shutdown_tests PRIVATE "${InputNextAdapters_SOURCE_DIR}/tests")
 target_link_libraries(oblivion_worker_shutdown_tests PRIVATE oblivion_effects)

@@ -206,6 +206,7 @@ parse_root_value(KeyValue entry, EffectSettings& settings, std::string_view& mes
         Switch{.key = "TriggersEnabled", .member = &EffectSettings::triggers_enabled},
         Switch{.key = "MenuEffectsEnabled", .member = &EffectSettings::menu_effects_enabled},
         Switch{.key = "AudioHapticsEnabled", .member = &EffectSettings::audio_haptics_enabled},
+        Switch{.key = "PauseOnOptions", .member = &EffectSettings::pause_on_options},
     };
     const auto [key, value] = entry;
     const auto setting = std::ranges::find_if(switches,

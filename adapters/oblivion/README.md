@@ -29,6 +29,10 @@ trigger_threshold = 0.35
 
 Restart Oblivion and assign LT to Block and RT to Attack in the game's controls. This example reports a press at 35% of remapped trigger travel. Adjust resistance separately with `TriggerScale` in `InputNextOblivion.ini`.
 
+### Pause on Options
+
+Set `PauseOnOptions=true` in `[InputNextOblivion]` to use the selected controller's Options or Menu button to open pause and back out of its settings. The shortcut requires an active game session and game focus. Release the button before pressing it again.
+
 ## Effects
 
 | Situation | Feedback |
@@ -57,6 +61,7 @@ Edit `Data/OBSE/Plugins/InputNextOblivion.ini` and restart Oblivion. To tune a c
 | `TriggersEnabled` | `true` | Enables adaptive trigger effects. |
 | `MenuEffectsEnabled` | `true` | Allows confirmed results in supported menus. |
 | `AudioHapticsEnabled` | `true` | Enables embedded and optional audio-haptic profiles. |
+| `PauseOnOptions` | `false` | Sends Escape from Options / Menu in gameplay, pause and settings. |
 | `[LED] Enabled` | `true` | Enables the lightbar. |
 | `[LED] HealthEnabled` | `true` | Shows recent health changes in red, yellow or green. |
 | `[LED] StealthEnabled` | `true` | Shows blue for the dim stealth eye and magenta for the bright eye. Critical health, recent damage and combat health take priority. |
@@ -81,7 +86,7 @@ Per effect, `HDScale` and `ClassicScale` accept 0–2, `DurationScale` accepts 0
 3. Compare single-element and mixed spells. In combat, drop below 20% HP and then heal to 25% or above to check the heartbeat and health light.
 4. Open a lock, break a pick and pickpocket an item. Check for a short pulse after each result. With `Body.Action.Training` enabled, take a lesson. With `Body.Action.GateClosed` enabled, take a Sigil Stone and check for one pulse after returning.
 5. With footstep and hoofbeat cues enabled, walk, run, sneak and ride. Try walking into a wall or jumping. New steps should stop. While crouched, check the lightbar against the stealth eye, then stand or open a menu.
-6. Switch focus, load a different save and reconnect the controller. Check that fresh actions produce feedback without replaying earlier cues.
+6. Switch focus, load a different save and reconnect the controller. Check that fresh actions produce feedback without replaying earlier cues. If `PauseOnOptions` is enabled, check the shortcut in gameplay and pause settings.
 
 ## Build and package
 

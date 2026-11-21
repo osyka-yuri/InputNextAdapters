@@ -3,6 +3,7 @@
 #include "effect_model.hpp"
 #include "memory_guard.hpp"
 #include "model.hpp"
+#include "options_input.hpp"
 #include "xobse_sdk.hpp"
 
 #include <GameExtraData.h>
@@ -644,6 +645,28 @@ EffectMode PlayerStateReader::read_effect_mode() noexcept {
         return EffectMode::unavailable;
     default:
         return EffectMode::menu;
+    }
+}
+
+PauseContext PlayerStateReader::read_pause_context() noexcept {
+    RawMenuState state{};
+    if (!seh_read_menu(&state)) {
+        return PauseContext::unavailable;
+    }
+    if (state.game_mode) {
+        return PauseContext::gameplay;
+    }
+    switch (state.top_menu) {
+    case kMenuType_Pause:
+    case kMenuType_Options:
+    case kMenuType_Audio:
+    case kMenuType_Video:
+    case kMenuType_VideoDisplay:
+    case kMenuType_Gameplay:
+    case kMenuType_Controls:
+        return PauseContext::settings_menu;
+    default:
+        return PauseContext::unavailable;
     }
 }
 
