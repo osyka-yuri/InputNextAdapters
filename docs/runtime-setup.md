@@ -6,26 +6,49 @@ Install InputNext beside the game executable before adding a plugin. Use the pac
 
 | Game | Executable | InputNext package |
 | --- | --- | --- |
-| Skyrim SE/AE | `SkyrimSE.exe` | x64 |
-| Skyrim Classic/LE | `TESV.exe` | x86 |
-| Fallout 4 | `Fallout4.exe` | x64 |
+| Skyrim SE/AE | `SkyrimSE.exe` | x64 XInput |
+| Skyrim Classic/LE | `TESV.exe` | x86 XInput |
+| Oblivion Classic | `Oblivion.exe` | x86 DirectInput 8 |
+| Fallout 4 | `Fallout4.exe` | x64 XInput |
 
-1. Close the game and extract the matching InputNext runtime ZIP.
-2. Back up existing files with the names below. Replacing another mod's XInput DLL replaces its controller implementation.
-3. Copy all six files from the archive's `bin/` beside the game executable, keeping their names:
+Close the game and back up any existing input DLL you are replacing. Copy the files for your game beside its executable. Keep them from the same InputNext build and update them together.
 
-   ```text
-   xinput1_3.dll
-   xinput1_4.dll
-   xinput9_1_0.dll
-   inputnext_runtime.dll
-   GameInputRedist.dll
-   GameInputRawInputProxy.exe
-   ```
+### Skyrim and Fallout 4
 
-4. Connect the controller and check ordinary input before adding the [game plugin](../adapters/README.md).
+Use these files from the matching XInput archive's `bin/` directory.
 
-Use files from the same InputNext package and update them together. Follow its guide for supported Windows versions. If the GameInput system service is missing, install Microsoft's GameInput redistributable.
+```text
+xinput1_3.dll
+xinput1_4.dll
+xinput9_1_0.dll
+inputnext_runtime.dll
+GameInputRedist.dll
+GameInputRawInputProxy.exe
+```
+
+### Oblivion
+
+Use an x86 InputNext build that includes the DirectInput 8 facade. Look for these four files in the archive's `bin/` directory.
+
+```text
+dinput8.dll
+inputnext_runtime.dll
+GameInputRedist.dll
+GameInputRawInputProxy.exe
+```
+
+For a source build, use an InputNext revision that provides `inputnext_dinput_bundle`. Run from the InputNext repository root in an x86 Visual Studio Developer PowerShell.
+
+```powershell
+cmake --preset windows-x86-production
+cmake --build --preset windows-x86-production --target inputnext_dinput_bundle
+```
+
+The four deployment files are in `build/windows-x86-production/xinput/`. [Oblivion installation and bindings](../adapters/oblivion/README.md#installation)
+
+### Check input
+
+Follow the InputNext build's Windows requirements. If the GameInput system service is missing, install Microsoft's GameInput redistributable. Connect the controller and check that the game reads its buttons and sticks before adding the plugin. [Game adapters](../adapters/README.md)
 
 ## Controller feedback
 

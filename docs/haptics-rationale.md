@@ -122,8 +122,9 @@ ladder is imposed across unrelated actions, phases, warnings or firearm families
   force and distinct zones/levels are digital properties; an encoded level is not a calibrated force
   in newtons, a comfort rating or proof of semantic recognition. Device frequency codes remain codes.
 
-The executable catalogue records all 83 base profiles, their variants and trigger scenarios directly
-from the production builders. Each body profile is assigned one of the rationale rules above.
+The executable catalogue records 83 Skyrim and Fallout 4 base profiles, their variants and trigger
+scenarios directly from the production builders. Each of those body profiles uses one of the rules
+above. [Oblivion source coverage](../tools/haptics/source-coverage.md#oblivion) lists its separate mappings.
 
 ## Physical validation still required
 

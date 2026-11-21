@@ -2,12 +2,13 @@
 
 ## Game plugins
 
-Choose a game guide for requirements, installation and settings. All plugins use the same [InputNext runtime setup](runtime-setup.md).
+Choose a game guide for requirements, installation and settings. The [runtime setup guide](runtime-setup.md) lists the InputNext files for each game.
 
 | Game | Installation and settings | Reference |
 | --- | --- | --- |
 | Skyrim SE/AE | [InputNextSkyrim](../adapters/skyrim_se/README.md) | [Effects](../adapters/skyrim_se/docs/effects.md), [architecture](../adapters/skyrim_se/docs/architecture.md), [build and testing](../adapters/skyrim_se/docs/validation.md) |
 | Skyrim Classic/LE | [InputNextSkyrimLE](../adapters/skyrim_le/README.md) | [Native bindings](../adapters/skyrim_le/docs/bindings.md), [build and testing](../adapters/skyrim_le/docs/validation.md) |
+| Oblivion Classic | [InputNextOblivion](../adapters/oblivion/README.md) | [Effects](../adapters/oblivion/README.md#effects), [in-game checks](../adapters/oblivion/README.md#in-game-check), [build and package](../adapters/oblivion/README.md#build-and-package) |
 | Fallout 4 | [InputNextFallout4](../adapters/fallout4/README.md) | [Effects](../adapters/fallout4/docs/effects.md), [architecture](../adapters/fallout4/docs/architecture.md), [native bindings](../adapters/fallout4/docs/bindings.md), [build and testing](../adapters/fallout4/docs/validation.md) |
 
 See [lightbar feedback](leds.md) for shared colors, priorities and `[LED]` settings.

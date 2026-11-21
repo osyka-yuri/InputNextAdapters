@@ -6,9 +6,10 @@ Each plugin translates game actions and player state into InputNext effects. Cho
 | --- | --- | --- | --- |
 | Skyrim Special Edition / Anniversary Edition | x64 | [InputNextSkyrim](skyrim_se/README.md) | [Skyrim SE](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-se) |
 | Skyrim Classic / Legendary Edition 1.9.32.0 | x86 | [InputNextSkyrimLE](skyrim_le/README.md) | [Skyrim LE](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-le) |
+| Oblivion Classic 1.2.0.416 | x86 | [InputNextOblivion](oblivion/README.md) | [Local build](oblivion/README.md#build-and-package) |
 | Fallout 4 1.11.240.0 | x64 | [InputNextFallout4](fallout4/README.md) | [Fallout 4](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout4) |
 
-Install [InputNext](../docs/runtime-setup.md) before the plugin. VR is unsupported. DLC is optional; absent content disables its related effects. Classic/LE has no Creation Club Survival integration.
+Install the [InputNext runtime](../docs/runtime-setup.md) for your game before adding the plugin. DLC-specific effects require the corresponding content. Skyrim Classic/LE supports body and health feedback. VR is unsupported.
 
 ## Developing an adapter
 
