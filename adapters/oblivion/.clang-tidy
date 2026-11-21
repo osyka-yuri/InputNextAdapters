@@ -1,0 +1,3 @@
+InheritParentConfig: true
+# Engine singletons and functions are accessed via fixed executable addresses in Oblivion 1.2.0.416.
+Checks: '-performance-no-int-to-ptr'

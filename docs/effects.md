@@ -6,13 +6,10 @@ For authored haptic values, research boundaries and numeric selection criteria, 
 [haptic design rationale](haptics-rationale.md). Delivery checks establish digital behavior; they do
 not establish perceived intensity, realism or discrimination on a physical controller.
 
-Compiled [audio-derived haptic profiles](audio-haptics-baking.md) provide representative
-source-shaped temporal envelopes and held mean-gain projections. An optional bank prepared
-offline from game sound resources overrides matching sections and leaves other defaults active.
-Both sources load before the native owner starts; the renderer receives copied values and performs
-no file access or decoding. Missing or invalid external banks retain the compiled profiles.
-Supported Skyrim held roles project source means onto the existing continuous renderer. The
-audio-haptics opt-out returns both transient and held roles to synthetic recipes.
+Compiled banks supply representative sound envelopes for transients and envelope-derived gains for
+supported held effects in Skyrim SE and Oblivion. A valid external bank overlays matching roles.
+Both banks load during adapter setup, and the renderer receives the resolved profile data.
+`AudioHapticsEnabled=false` selects synthesized patterns for every role. [Audio haptics baker](audio-haptics-baking.md)
 
 ## Interfaces
 

@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $Preset,
 
-    [ValidateSet('foundation', 'skyrim-se', 'skyrim-le', 'fallout4')]
+    [ValidateSet('foundation', 'skyrim-se', 'skyrim-le', 'fallout4', 'oblivion')]
     [string] $Project = 'foundation',
 
     [ValidateRange(1, 256)]
@@ -54,6 +54,7 @@ $projectRoot = switch ($Project) {
     'skyrim-se' { Join-Path $repositoryRoot 'adapters/skyrim_se' }
     'skyrim-le' { Join-Path $repositoryRoot 'adapters/skyrim_le' }
     'fallout4' { Join-Path $repositoryRoot 'adapters/fallout4' }
+    'oblivion' { Join-Path $repositoryRoot 'adapters/oblivion' }
 }
 $presetFile = Join-Path $projectRoot 'CMakePresets.json'
 if (-not (Test-Path -LiteralPath $presetFile -PathType Leaf)) {

@@ -93,7 +93,7 @@ The JSON report records each chosen resource path, archive/loose origin, input s
 
 The envelope captures how the representative source's energy changes over time. Authoring sets
 carrier frequencies, duration and level, and the adapter applies its normal limiter, routing and
-expiry rules. Supported held effects use the two envelope means. With means
+expiry rules. Supported Skyrim and Oblivion held effects use the two envelope means. With means
 `P` and `S` and a positive total, the renderer scales the level by `P + S` and uses
 `S / (P + S)` for the secondary mix. It keeps phase, modulation and attack/release behavior
 across renewals.
@@ -107,7 +107,10 @@ For transient audio profiles, `DurationScale` is applied once to the delivered v
 The source knots stretch across that lifetime. Carrier pitch and the fixed 1.5 ms edge guards
 use real time; the renderer does not apply the duration multiplier a second time.
 
-The Oblivion dismount profile uses a 1000 ms onset search and a 150 ms cue.
+The Oblivion manifest uses the adapter's default cue durations as analysis windows. Bow draw
+uses the envelope at onset and the band averages during the draw. The casting animation uses
+the band averages. Dismount uses a 1,000 ms onset search for a 150 ms cue. Footsteps and hoofbeats
+use 45–55 ms windows, and the gate-closing cue uses 350 ms. [Oblivion manifest](../tools/haptics/manifests/oblivion.json)
 
 ## Local manifests
 

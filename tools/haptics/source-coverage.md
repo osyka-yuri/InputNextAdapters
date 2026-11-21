@@ -10,7 +10,7 @@ available sounds and native events. Oblivion uses its own effect catalogue.
 | Skyrim SE | 52 | 49 | 3 | `dca79b4b6f3c139bac7d6ae582decd359bdf4570ab2af56f242d30673ccd868f` |
 | Skyrim LE | 20 | 18 | 2 | `ec12dc53d26f55a36970e0e42a4cea838a7cfe6bfb99abb42ff66aba092fd374` |
 | Fallout 4 | 31 | 30 | 1 | `dcb12acecc775306c8039c1312ec1e278c3a729da63051b9b815d6c543055379` |
-| Oblivion | — | 38 | — | `918f4c991405a4084162c19034d77e5f99de00fe7f31cf6dc5ccff1b597f96ea` |
+| Oblivion | 60 | 38 | 22 | `918f4c991405a4084162c19034d77e5f99de00fe7f31cf6dc5ccff1b597f96ea` |
 
 The four embedded banks contain 135 profiles. Each manifest records source patterns, carriers,
 durations and styles. [Banks](../../resources/audio-haptics/) · [Skyrim SE](manifests/skyrim-se.json) · [Skyrim LE](manifests/skyrim-le.json) · [Fallout 4](manifests/fallout4.json) · [Oblivion](manifests/oblivion.json)
@@ -46,6 +46,10 @@ magic, dodge, landing, mounts, potion use, crafting, locks, skill increases, vam
 Soul Trap and a gate closing. Walk, run and sneak profiles use stock steps from several
 surfaces. Mounted walk and run use individual hoof contacts. [Oblivion manifest](manifests/oblivion.json)
 
+Bow draw and casting average the envelope bands for sustained feedback. The adapter sets
+step and hoofbeat cadence from grounded travel. The remaining 22 roles use synthesis,
+including the attached-arrow phase, recoil, heartbeat, water transitions, training and pickpocketing.
+
 ## Skyrim and Fallout 4 synthetic fallbacks
 
 | Edition | Role | Mapping limitation |
@@ -68,6 +72,7 @@ ctest --test-dir build/msvc-x64 -R 'audio_haptics' --output-on-failure --no-test
 ctest --test-dir build/skyrim-se-msvc-x64 -R 'audio_haptics|calibration' --output-on-failure --no-tests=error
 ctest --test-dir build/skyrim-le-msvc-x86 -R 'audio_haptics|calibration' --output-on-failure --no-tests=error
 ctest --test-dir build/fallout4-msvc-x64 -R 'audio_haptics' --output-on-failure --no-tests=error
+ctest --test-dir build/oblivion-msvc-x86 -R 'oblivion_audio_profiles|oblivion\.effect_policy\.(body|bow)\.' --output-on-failure --no-tests=error
 ```
 
 These checks validate software output; physical distinction and perceived strength still require controller tests. For source-level reproduction, follow the [baking guide](../../docs/audio-haptics-baking.md) with the installed game archives and a separately supplied FFmpeg executable. Every bake emits a JSON report with selected paths, origins, source sizes and hashes, onset measurements, failures and the output bank hash. Keep that report with the generated bank. Different game assets, sound mods or decoder versions may change the result; raw game audio and local development reports are not distributed.
