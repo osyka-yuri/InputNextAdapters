@@ -1,8 +1,8 @@
 # Offline audio haptics baker
 
 The baker turns selected game sounds into haptic profiles. It uses the same envelope pipeline for
-Skyrim SE, Skyrim LE, Fallout 4 and Oblivion. Each game's manifest selects its source families,
-cue durations and carrier values. [Source coverage and bank hashes](../tools/haptics/source-coverage.md)
+Skyrim SE, Skyrim LE, Fallout 4, Fallout New Vegas, and Oblivion. Each manifest selects source
+families, cue durations, and carrier values. [Source coverage and bank hashes](../tools/haptics/source-coverage.md)
 
 CMake embeds the checked-in banks in the DLLs. Use the baker when you want to regenerate a bank or
 change its mappings. Ordinary C++ builds use the ready-made banks. [Bank resources](../resources/audio-haptics/)
@@ -21,6 +21,11 @@ cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Fallout 4
 ~~~
 
 ~~~text
+cargo run --release -p inputnext-haptics -- inspect --game-data "D:\Games\Fallout New Vegas\Data" --game fallout-new-vegas
+cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Fallout New Vegas\Data" --game fallout-new-vegas --manifest tools/haptics/manifests/fallout-new-vegas.json --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe" --output artifacts/InputNextFalloutNewVegas.audiohaptics
+~~~
+
+~~~text
 cargo run --release -p inputnext-haptics -- inspect --game-data "D:\Games\Oblivion\Data" --game oblivion
 cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Oblivion\Data" --game oblivion --manifest tools/haptics/manifests/oblivion.json --ffmpeg "C:\Tools\ffmpeg\bin\ffmpeg.exe" --output artifacts/InputNextOblivion.audiohaptics
 ~~~
@@ -28,15 +33,16 @@ cargo run --release -p inputnext-haptics -- bake --game-data "D:\Games\Oblivion\
 ## Inputs and override order
 
 ~~~text
-inputnext-haptics inspect --game-data <Data-or-game-root> --game <skyrim-se|skyrim-le|fallout4|oblivion> [--archive <path>]...
+inputnext-haptics inspect --game-data <Data-or-game-root> --game <skyrim-se|skyrim-le|fallout4|oblivion|fallout-new-vegas> [--archive <path>]...
 inputnext-haptics bake --game-data <Data-or-game-root> --game <game> --manifest <json> --ffmpeg <executable> --output <bank> [--archive <path>]... [--allow-missing]
 ~~~
 
 `--game-data` accepts the game's `Data/` directory or its parent. The default archives are
-`Skyrim - Sounds.bsa` for Skyrim SE and LE, `Fallout4 - Sounds.ba2` for Fallout 4 and
-`Oblivion - Sounds.bsa` for Oblivion. Each `--archive` is applied in command-line order after the
-default archive. Later archives override earlier archives, and loose audio files override them all.
-`inspect` writes a deterministic JSON inventory of the available WAV and XWM resources.
+`Skyrim - Sounds.bsa` for Skyrim SE and LE, `Fallout4 - Sounds.ba2` for Fallout 4,
+`Fallout - Sound.bsa` for Fallout New Vegas, and `Oblivion - Sounds.bsa` for Oblivion. Each
+`--archive` is applied in command-line order after the default archive. Later archives override
+earlier archives, and loose audio files override them all.
+`inspect` writes a deterministic JSON inventory of the available WAV, XWM, and Ogg resources.
 
 The reader indexes BSA v103, v104 and v105 and general BA2 v1 and v8 with bounded seeks.
 Oblivion's v103 uses the same 16-byte folder and file record widths and zlib framing as v104.
@@ -79,7 +85,7 @@ Patterns match normalized resource paths. A profile may use up to 32 patterns, e
 
 ## Decode and envelope transfer
 
-Only declared WAV/XWM files are decoded. The tool writes a bounded selected resource into a private temporary directory, invokes the supplied FFmpeg executable directly (no shell), disables stdin, and deletes the temporary directory when the operation ends. The output is mono float PCM at 16 kHz, restricted to the requested cue duration plus the profile onset-search window (120 ms by default, at most 2000 ms; at most 3000 ms total PCM). Each process has a 10 second timeout and a bounded raw-output size. A process-wait error, timeout or limit violation attempts to terminate and reap the child; cleanup errors do not replace the original failure. Empty, silent, nonfinite, unsupported, or malformed results are reported as failures.
+The baker decodes selected WAV, XWM, and Ogg resources. The tool writes a bounded selected resource into a private temporary directory, invokes the supplied FFmpeg executable directly (no shell), disables stdin, and deletes the temporary directory when the operation ends. The output is mono float PCM at 16 kHz, restricted to the requested cue duration plus the profile onset-search window (120 ms by default, at most 2000 ms; at most 3000 ms total PCM). Each process has a 10 second timeout and a bounded raw-output size. A process-wait error, timeout or limit violation attempts to terminate and reap the child; cleanup errors do not replace the original failure. Empty, silent, nonfinite, unsupported, or malformed results are reported as failures.
 
 The DSP policy is deterministic and is recorded in each report:
 
@@ -117,6 +123,7 @@ use 45–55 ms windows, and the gate-closing cue uses 350 ms. [Oblivion manifest
 - Skyrim SE uses `ccQDRSSE001-SurvivalMode.bsa` with `--archive` for the full template. [Manifest](../tools/haptics/manifests/skyrim-se.json)
 - Skyrim LE uses `Dawnguard.bsa` with `--archive` for Vampire Lord sources. [Manifest](../tools/haptics/manifests/skyrim-le.json)
 - Fallout 4's power armor entry uses a 2000 ms onset search for its late-starting recordings. [Manifest](../tools/haptics/manifests/fallout4.json)
+- Fallout New Vegas uses the base sound archive. [Manifest](../tools/haptics/manifests/fallout-new-vegas.json)
 - Oblivion's manifest requires the base sound archive. [Manifest](../tools/haptics/manifests/oblivion.json)
 
 ## Use an external bank

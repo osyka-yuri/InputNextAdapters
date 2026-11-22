@@ -92,7 +92,7 @@ std::optional<BankHeader> read_bank_header(std::span<const std::byte> bytes) noe
     const std::uint32_t record_count = read_u32(bytes, position);
     const std::uint32_t payload_size = read_u32(bytes, position);
     const std::uint32_t expected_crc = read_u32(bytes, position);
-    if (version != bank_version || game_tag < 1U || game_tag > 4U || record_count == 0U ||
+    if (version != bank_version || game_tag < 1U || game_tag > 5U || record_count == 0U ||
         record_count > maximum_record_count || payload_size > maximum_payload_size ||
         bytes.size() != header_size + static_cast<std::size_t>(payload_size)) {
         return std::nullopt;

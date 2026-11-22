@@ -16,6 +16,7 @@ enum class AudioHapticGame : std::uint32_t {
     skyrim_le = 2,
     fallout4 = 3,
     oblivion = 4,
+    fallout_new_vegas = 5,
 };
 
 struct AudioHapticEntry {

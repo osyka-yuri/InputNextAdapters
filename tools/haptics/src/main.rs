@@ -20,7 +20,7 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// List WAV and XWM resources from loose Data files and sound archives.
+    /// List WAV, XWM, and OGG resources from loose Data files and sound archives.
     Inspect {
         #[arg(long)]
         game_data: PathBuf,

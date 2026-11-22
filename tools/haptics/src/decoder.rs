@@ -32,7 +32,7 @@ impl FfmpegDecoder {
         })
     }
 
-    /// Decodes one bounded WAV/XWM resource to finite 16 kHz mono samples.
+    /// Decodes one bounded WAV/XWM/Ogg Vorbis resource to finite 16 kHz mono samples.
     ///
     /// # Errors
     /// Returns an error for unsupported formats, invalid samples, `FFmpeg` failure, timeout, or output-limit violation.
@@ -77,7 +77,7 @@ impl FfmpegDecoder {
             .context("resource has no audio extension")?
             .to_ascii_lowercase();
         ensure!(
-            matches!(extension.as_str(), "wav" | "xwm"),
+            matches!(extension.as_str(), "wav" | "xwm" | "ogg"),
             "unsupported source type: .{extension}"
         );
         let temp = tempdir().context("create private decode directory")?;
@@ -103,7 +103,7 @@ impl FfmpegDecoder {
             "-loglevel",
             "error",
             "-format_whitelist",
-            "wav,xwma",
+            "wav,xwma,ogg",
             "-protocol_whitelist",
             "file",
             "-i",
@@ -256,6 +256,10 @@ mod tests {
             executable: existing,
         };
         assert!(decoder.decode("readme.txt", b"not audio", 70).is_err());
+        let error = decoder
+            .decode("source.ogg", b"not audio", 70)
+            .expect_err("invalid Ogg bytes fail at the decoder");
+        assert!(!error.to_string().contains("unsupported source type"));
         assert!(
             decoder
                 .decode_with_onset("source.wav", b"not audio", 70, 2001)

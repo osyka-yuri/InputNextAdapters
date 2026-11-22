@@ -180,13 +180,18 @@ TEST_CASE("effects.audio_haptics.bank_format", "[unit][effects][audio_haptics]")
     bad_version[4] = std::byte{2};
     CHECK(parse_audio_haptic_bank(bad_version).status == AudioHapticBankStatus::invalid);
     auto bad_game = bytes;
-    bad_game[8] = std::byte{5};
+    bad_game[8] = std::byte{6};
     CHECK(parse_audio_haptic_bank(bad_game).status == AudioHapticBankStatus::invalid);
     const auto oblivion = parse_audio_haptic_bank(
         bank_bytes(profile(), "Body.Action.CreatePotion", AudioHapticGame::oblivion));
     REQUIRE(oblivion.status == AudioHapticBankStatus::loaded);
     CHECK(oblivion.bank.game == AudioHapticGame::oblivion);
     CHECK(oblivion.bank.entries[0].section == "Body.Action.CreatePotion");
+    const auto new_vegas = parse_audio_haptic_bank(
+        bank_bytes(profile(), "Body.ShotRifle", AudioHapticGame::fallout_new_vegas));
+    REQUIRE(new_vegas.status == AudioHapticBankStatus::loaded);
+    CHECK(new_vegas.bank.game == AudioHapticGame::fallout_new_vegas);
+    CHECK(new_vegas.bank.entries[0].section == "Body.ShotRifle");
     auto too_many_records = bytes;
     too_many_records[12] = std::byte{129};
     CHECK(parse_audio_haptic_bank(too_many_records).status == AudioHapticBankStatus::invalid);
@@ -226,7 +231,8 @@ TEST_CASE("effects.audio_haptics.builtins_include_all_supported_game_tags",
     const std::array games{AudioHapticGame::skyrim_se,
         AudioHapticGame::skyrim_le,
         AudioHapticGame::fallout4,
-        AudioHapticGame::oblivion};
+        AudioHapticGame::oblivion,
+        AudioHapticGame::fallout_new_vegas};
     for (const auto game : games) {
         const auto bank = builtin_audio_haptic_bank(game);
         CAPTURE(static_cast<std::uint32_t>(game));

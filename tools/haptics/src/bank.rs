@@ -158,6 +158,7 @@ pub fn decode(bytes: &[u8]) -> Result<Bank> {
         2 => Game::SkyrimLe,
         3 => Game::Fallout4,
         4 => Game::Oblivion,
+        5 => Game::FalloutNewVegas,
         _ => anyhow::bail!("invalid game tag {tag}"),
     };
     let count = read_u32(bytes, 12)? as usize;
@@ -323,6 +324,22 @@ mod tests {
         let decoded = decode(&bytes).expect("Oblivion bank decodes");
         assert_eq!(decoded.game, Game::Oblivion);
         assert_eq!(decoded.profiles[0].section, "Body.Action.CreatePotion");
+    }
+
+    #[test]
+    fn fallout_new_vegas_game_tag_round_trips_in_the_shared_v1_bank() {
+        let bank = Bank {
+            game: Game::FalloutNewVegas,
+            profiles: vec![profile("Body.ShotRifle")],
+        };
+        let bytes = encode(&bank).expect("New Vegas bank encodes");
+        assert_eq!(
+            u32::from_le_bytes(bytes[8..12].try_into().expect("game tag")),
+            5
+        );
+        let decoded = decode(&bytes).expect("New Vegas bank decodes");
+        assert_eq!(decoded.game, Game::FalloutNewVegas);
+        assert_eq!(decoded.profiles[0].section, "Body.ShotRifle");
     }
 
     #[test]

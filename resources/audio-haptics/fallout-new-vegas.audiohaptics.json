@@ -1,0 +1,1072 @@
+{
+  "version": 1,
+  "game": "fallout-new-vegas",
+  "manifest": "tools/haptics/manifests/fallout-new-vegas.json",
+  "ffmpeg": "FFmpeg 9.0.2-essentials_build-www.gyan.dev",
+  "bank_profiles": 25,
+  "bank_sha256": "a323b8dc9732b7cdc3b068a546dd6e8b3372fe6a18bf9e7459d9a251730884af",
+  "dsp": {
+    "sample_rate_hz": 16000,
+    "onset_detection": "5 ms RMS windows with 2 ms hop; first window reaching max(7% of search-window peak, 0.0005); per-profile onset_search_ms defaults to 120 ms and is capped at 2000 ms",
+    "alignment": "crop each onset-aligned cue window at its authored duration; zero-pad a short source window; never time-scale a complete audio tail",
+    "filter": "offline one-pole low-pass at 700 Hz; lower band is the low-pass output and upper band is the residual",
+    "rms_window_ms": 8,
+    "knot_count": 32,
+    "normalization": "average at most 4 sorted source variants after onset alignment, apply authored mix to the secondary band, jointly scale both bands so peak paired sum is 0.88, force both channel endpoints to zero",
+    "maximum_variants_per_profile": 4,
+    "source_timing": "real source samples drive onset and temporal envelopes; authored frequencies are controller carriers, not acoustic measurements"
+  },
+  "coverage": [
+    {
+      "section": "Body.ShotPistol",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/10mm_pistol/fire_2d/wpn_10mmfire_2d_01.wav",
+        "sound/fx/wpn/pistol_9mm/fire_2d/wpn_9mm_fire_2d_01.wav",
+        "sound/fx/wpn/357revolver/fire_2d/wpn_fire_357revolver_2d_01.wav",
+        "sound/fx/wpn/pistol44magnum/fire_2d/wpn_44revolv_fire_2d_01.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 90,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        82.0,
+        128.0
+      ],
+      "style": "recoil",
+      "mix": 0.28,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/10mm_pistol/fire_2d/wpn_10mmfire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 412094,
+          "sha256": "28143a184088fe8019445ab6644aff802c7800264ec4d8723dac75daa77b71cd",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/357revolver/fire_2d/wpn_fire_357revolver_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 505510,
+          "sha256": "c83d61310c6ac8abf20dfeabaec1555f8177807dec1cac05b7fea4c1d4097451",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/pistol44magnum/fire_2d/wpn_44revolv_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 460054,
+          "sha256": "d778ec47eb15cf4bc43b2a9f776450f11c4bcc290ad45b6aea31f2fac002039a",
+          "decoded": true,
+          "onset_ms": 8.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/pistol_9mm/fire_2d/wpn_9mm_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 427406,
+          "sha256": "3662fca80d21be3baaa3546858d17a4f476d246e3bf0cdfd362ac4b2c975c04c",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ShotRifle",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/rifleassaultcarbine/fire_2d/wpn_assaultcarb_fire_2d_01.wav",
+        "sound/fx/wpn/riflebrushgun/fire_2d/wpn_brushgun_fire_2d_01.wav",
+        "sound/fx/wpn/riflehunting/fire_2d/wpn_huntingrifle_fire_2d_01.wav",
+        "sound/fx/wpn/riflemarksmancarbine/fire_2d/wpn_marksmancarbine_fire_2d_01.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 105,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        61.0,
+        98.0
+      ],
+      "style": "recoil",
+      "mix": 0.32,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/rifleassaultcarbine/fire_2d/wpn_assaultcarb_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 305270,
+          "sha256": "6e11219d03c92a369ce0338c8090f5a97c4c7d778da7a6aba2e8613748d33b8f",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/riflebrushgun/fire_2d/wpn_brushgun_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 689170,
+          "sha256": "2a4bca829c5745fcc8361ad619f033831f3e04bcceadcf98ff49468252868d40",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/riflehunting/fire_2d/wpn_huntingrifle_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 556972,
+          "sha256": "927673b1b1ba40fb43bf97a49b26b51b8a0e3545f4820cf573268cd7cd2d8f22",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/riflemarksmancarbine/fire_2d/wpn_marksmancarbine_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 563922,
+          "sha256": "397aadb6e22ec581eb7334c0f3487ac17324fd1437193239a6dd71bc00be1399",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ShotShotgun",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/shotguncaravan/fire_2d/wpn_caravanshotgun_fire_2d_01.wav",
+        "sound/fx/wpn/shotguncombat/fire/wpn_shotguncombat_fire_2d.wav",
+        "sound/fx/wpn/shotgundoublebarrel/fire_2d/wpn_dblbarrelshotgun_fire_2d_01.wav",
+        "sound/fx/wpn/shotgunhunting/fire2d/wpn_huntingshotgun_fire_2d_01.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 125,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        52.0,
+        84.0
+      ],
+      "style": "impact",
+      "mix": 0.38,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/shotguncaravan/fire_2d/wpn_caravanshotgun_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 437150,
+          "sha256": "6e242cd0bc4363195d2b6b551ae107d54e9cce1db2cd5c3bc1a858a7f781b4d9",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/shotguncombat/fire/wpn_shotguncombat_fire_2d.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 227464,
+          "sha256": "5c96760d24bace2c060303d1d39b51d50cecb715c72da916444cf58d71164ed7",
+          "decoded": true,
+          "onset_ms": 14.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/shotgundoublebarrel/fire_2d/wpn_dblbarrelshotgun_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 467698,
+          "sha256": "652705e9ce81702814eb4c31548dd05c578ba09fc8463888455df024123d23d6",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/shotgunhunting/fire2d/wpn_huntingshotgun_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 565698,
+          "sha256": "b25ca331f592fb16f91608b5360fea571db310385937d5aff8ab130d7f2520e3",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ShotHeavy",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/gatlinglaser/wpn_gatlinglaser_fire_lpm.wav",
+        "sound/fx/wpn/grenademachinegun/fire_2d/wpn_grnde_mgun_fire_2d_01.wav",
+        "sound/fx/wpn/incinerator/fire_2d/wpn_incinerator_fire_2d_01.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 115,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        55.0,
+        92.0
+      ],
+      "style": "recoil",
+      "mix": 0.37,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/gatlinglaser/wpn_gatlinglaser_fire_lpm.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 168414,
+          "sha256": "9a9c7f37ccb82bac84c97feb658d1fbde26cb68a5902c1ce4abb5c21986d1b3c",
+          "decoded": true,
+          "onset_ms": 12.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/grenademachinegun/fire_2d/wpn_grnde_mgun_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 342284,
+          "sha256": "509a5d2ec427798519cb1e4edbea4b0130500bae4562006d1369f6ee59b6e436",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/incinerator/fire_2d/wpn_incinerator_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 191644,
+          "sha256": "730d2d5c16768c1c93a2113e789b0d1d14f9e0eab9e8fa33dbba4bda2ab1cc57",
+          "decoded": true,
+          "onset_ms": 4.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ShotEnergy",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/pistollaser/fire_2d/wpn_lasergun_fire_2d_01.wav",
+        "sound/fx/wpn/pistolplasma/fire_2d/wpn_plasmapistol_fire_2d_01.wav",
+        "sound/fx/wpn/riflelaser/fire_2d/wpn_laserrifle_fire_2d_01.wav",
+        "sound/fx/wpn/rifleplasma/fire_2d/wpn_plasmarifle_fire_2d_01.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 98,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        96.0,
+        152.0
+      ],
+      "style": "resonant",
+      "mix": 0.34,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/pistollaser/fire_2d/wpn_lasergun_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 199878,
+          "sha256": "0142139baceb4c3d839b8364aa86c5cd23424b7e62e7b255634c5a95aec7997b",
+          "decoded": true,
+          "onset_ms": 4.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/pistolplasma/fire_2d/wpn_plasmapistol_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 272030,
+          "sha256": "1c1ed3b711b708b4c02d1a7cfcd678b07cb33380c44195a65171a86259f07f0c",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/riflelaser/fire_2d/wpn_laserrifle_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 410826,
+          "sha256": "4f4edd2fb08a0f25f622121be96f2332aa1a806b733cc24baed50944ccfe1e10",
+          "decoded": true,
+          "onset_ms": 12.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/rifleplasma/fire_2d/wpn_plasmarifle_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 273300,
+          "sha256": "73c268bdaacd8e84d2f4c66219c4bc5ff71e33c0aecc5a3eac155d77559812d7",
+          "decoded": true,
+          "onset_ms": 6.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ShotLauncher",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/fatman/wpn_fatman_fire_2d.wav",
+        "sound/fx/wpn/grenadelauncher/fire_2d/wpn_grenadelauncher_fire_2d_01.wav",
+        "sound/fx/wpn/grenadelauncher/fire_2d/wpn_grenadelauncher_fire_2d_02.wav",
+        "sound/fx/wpn/missilelauncher/fire/wpn_missilelauncher_fire_2d.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 145,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        46.0,
+        74.0
+      ],
+      "style": "impact",
+      "mix": 0.43,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/fatman/wpn_fatman_fire_2d.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 289832,
+          "sha256": "1e18f83b31516112544805867753b8efe339ee074f06898460c1c286def75fa8",
+          "decoded": true,
+          "onset_ms": 12.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/grenadelauncher/fire_2d/wpn_grenadelauncher_fire_2d_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 419448,
+          "sha256": "bb3a11fd589d9e129e270b5733fae3cc6cf7f8c051da60d8eaf22da306a6e513",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/grenadelauncher/fire_2d/wpn_grenadelauncher_fire_2d_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 378088,
+          "sha256": "17474f34abf5933c5d678926ae868a5cd11beb06aa7cc7ea8bbd95728a2bca7c",
+          "decoded": true,
+          "onset_ms": 2.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/missilelauncher/fire/wpn_missilelauncher_fire_2d.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 395246,
+          "sha256": "cabd0c7f046a544c1c7796f6f4f4b9db36fda92f011ff9b5a3ce450e8774df64",
+          "decoded": true,
+          "onset_ms": 8.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ReloadStart",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/pistol_10mm/reload/wpn_pistol10mm_reloadout.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 90,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        58.0,
+        0.0
+      ],
+      "style": "blunt",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/pistol_10mm/reload/wpn_pistol10mm_reloadout.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 31300,
+          "sha256": "bc815748213b023b4766cbf3937ae31a0768d43cb878e8c37e4334e4e46ed1c7",
+          "decoded": true,
+          "onset_ms": 12.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ReloadFinish",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/pistol_10mm/reload/wpn_pistol10mm_reloadchamber.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 90,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        92.0,
+        138.0
+      ],
+      "style": "impact",
+      "mix": 0.27,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/pistol_10mm/reload/wpn_pistol10mm_reloadchamber.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 28048,
+          "sha256": "2a146dfdcb1cd2cd61091ff83a723d19e866c22b596172c1b42229a792bcf6ea",
+          "decoded": true,
+          "onset_ms": 36.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.DryFire",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/pistol_10mm/wpn_pistol10mm_firedry.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 75,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        150.0,
+        0.0
+      ],
+      "style": "single",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/pistol_10mm/wpn_pistol10mm_firedry.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 22768,
+          "sha256": "266ef7fe7855ef94ded30022611d754b8d29507d7efba4ad3536c85f9f5af05e",
+          "decoded": true,
+          "onset_ms": 56.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.UnarmedSwing",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/hand/swing/wpn_hand_swing_*.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 100,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        88.0,
+        0.0
+      ],
+      "style": "whoosh",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/hand/swing/wpn_hand_swing_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 31680,
+          "sha256": "feea2af1c7efde0d61ac9a17c07896c3fa6322cfc02217e79869681cd22e0c57",
+          "decoded": true,
+          "onset_ms": 36.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/hand/swing/wpn_hand_swing_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 31782,
+          "sha256": "c05b483ad916759d5240c047a769b8ee993d0cb9c56a3228298a3420daeede7d",
+          "decoded": true,
+          "onset_ms": 34.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/hand/swing/wpn_hand_swing_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 31912,
+          "sha256": "e023ab9170724113d2f97f7cc2f60c498137a995d78514bd2a630b68a3f5a5c3",
+          "decoded": true,
+          "onset_ms": 24.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.MeleeSwing",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/fx/swing/medium/fx_swing_medium_*.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 115,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        79.0,
+        124.0
+      ],
+      "style": "resonant",
+      "mix": 0.19,
+      "sources": [
+        {
+          "path": "sound/fx/fx/swing/medium/fx_swing_medium_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 25246,
+          "sha256": "b28686520f29c51312f05de9b1f03ae3eb0ae45bd0d30c7d1ce474ce8ce14776",
+          "decoded": true,
+          "onset_ms": 38.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/swing/medium/fx_swing_medium_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 20716,
+          "sha256": "51e41c7a4a05feb1228b8d42c95ff4e2da94f33355b0da8c93631d6e4bb48bc6",
+          "decoded": true,
+          "onset_ms": 38.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/swing/medium/fx_swing_medium_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 23526,
+          "sha256": "bfeb81d89a2c0a487ba74e2d9c0978cecb2f53573493c2cee04d499e9c4550bc",
+          "decoded": true,
+          "onset_ms": 48.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/swing/medium/fx_swing_medium_04.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 23510,
+          "sha256": "0aeaabcdb7905d49b959e3fea4ebeff57cbf27b0b6b81f45cd67528727d97b1d",
+          "decoded": true,
+          "onset_ms": 56.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.MeleeHit",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/fx/melee/large/impact/flesh/fx_melee_large_impact_flesh_01.wav",
+        "sound/fx/fx/melee/large/impact/metal/fx_melee_large_impact_metal_01.wav"
+      ],
+      "selected_variants": 2,
+      "decoded_variants": 2,
+      "duration_ms": 135,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        104.0,
+        0.0
+      ],
+      "style": "single",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/fx/melee/large/impact/flesh/fx_melee_large_impact_flesh_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 57560,
+          "sha256": "936c5350dd9fe21c2b20635077a0b4f12486a03abc0f74495a6307951190bccd",
+          "decoded": true,
+          "onset_ms": 14.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/melee/large/impact/metal/fx_melee_large_impact_metal_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 66172,
+          "sha256": "eb5264deafab63809fcf3456904f5a0ffc01e7de96869964bf337b829f47d73b",
+          "decoded": true,
+          "onset_ms": 2.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.Explosion",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_*.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 160,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        43.0,
+        68.0
+      ],
+      "style": "impact",
+      "mix": 0.44,
+      "sources": [
+        {
+          "path": "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 188808,
+          "sha256": "a276f56d24cd4575306606125f8d414cd149eafba6b82eae9d5c8f4d6b2c9801",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 225116,
+          "sha256": "3be6a054a8299e09c40cbd5bd680c4497a64cb778214c1da873335b2941d055a",
+          "decoded": true,
+          "onset_ms": 8.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 209968,
+          "sha256": "d30d65d912a4d98a625f4513b739afd9fce7c78bccfc4c5e2c9a562d82275a9d",
+          "decoded": true,
+          "onset_ms": 4.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.Throw",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/grenade/wpn_grenade_throw_a.wav",
+        "sound/fx/wpn/grenade/wpn_grenade_throw_b.wav",
+        "sound/fx/wpn/dynamite/wpn_dynamite_throw.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 150,
+      "onset_search_ms": 500,
+      "target_carriers_hz": [
+        66.0,
+        0.0
+      ],
+      "style": "whoosh",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/dynamite/wpn_dynamite_throw.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 222516,
+          "sha256": "e47dfbd95922affadda1ee95006833e81a564f28c7c35d19f7b5b3145496f06d",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/grenade/wpn_grenade_throw_a.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 49854,
+          "sha256": "bedc41ea26f5feed3d91f7d88d4c66a4d2c1c83efe710eafab29b22fac85f5e7",
+          "decoded": true,
+          "onset_ms": 282.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/grenade/wpn_grenade_throw_b.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 74498,
+          "sha256": "99eabc319e3e1e0b14e6306e050482be738fb719406f6c228bd02d185425d0b3",
+          "decoded": true,
+          "onset_ms": 102.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.VatsSelect",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/vats/ui_vats_selecttarget.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 75,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        101.0,
+        0.0
+      ],
+      "style": "single",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/ui/vats/ui_vats_selecttarget.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 252768,
+          "sha256": "c1801f87ba53e7e9c7800308275a613b80fedc55057554a18ef31d9e168e6019",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.VatsAccept",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/vats/ui_vats_ready.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 100,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        72.0,
+        114.0
+      ],
+      "style": "resonant",
+      "mix": 0.19,
+      "sources": [
+        {
+          "path": "sound/fx/ui/vats/ui_vats_ready.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 33836,
+          "sha256": "943b7a49f49b59539e7f5626f3c9d8e4a7e0e35fc1d2e85207cd64d99e37dc09",
+          "decoded": true,
+          "onset_ms": 2.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.Aid",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/npc/human/using/stimpak/npc_human_using_stimpak.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 135,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        84.0,
+        127.0
+      ],
+      "style": "resonant",
+      "mix": 0.24,
+      "sources": [
+        {
+          "path": "sound/fx/npc/human/using/stimpak/npc_human_using_stimpak.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 78610,
+          "sha256": "8124acd79377b6071c1cd734f59d028bdbecc292bd5383fd4e60595a07865637",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.Equip",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/pistol_10mm/wpn_pistol10mm_equip.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 90,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        76.0,
+        0.0
+      ],
+      "style": "blunt",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/pistol_10mm/wpn_pistol10mm_equip.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 49112,
+          "sha256": "f5d70b93033ce3298a443d031d6e5a5d44f9ec85c6e34413eb0a3d1bc472b4e0",
+          "decoded": true,
+          "onset_ms": 64.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.Repair",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/repairweapon/ui_repairweapon_*.wav"
+      ],
+      "selected_variants": 4,
+      "decoded_variants": 4,
+      "duration_ms": 100,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        87.0,
+        0.0
+      ],
+      "style": "single",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/ui/repairweapon/ui_repairweapon_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 69394,
+          "sha256": "86f0ad4674793da86e81272815b32d1eb2a875ba131ac38d7a74d305269d6ce2",
+          "decoded": true,
+          "onset_ms": 58.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/ui/repairweapon/ui_repairweapon_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 79176,
+          "sha256": "ea91dfe52eac8e97b7b9ebc77f36810105ba541f7edc27204f0e69684268f121",
+          "decoded": true,
+          "onset_ms": 84.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/ui/repairweapon/ui_repairweapon_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 102336,
+          "sha256": "b28268ff984a4f271146ce7d829c652de12caf26d27111dab0e4f6da5467b44b",
+          "decoded": true,
+          "onset_ms": 16.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/ui/repairweapon/ui_repairweapon_04.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 108500,
+          "sha256": "c27fddaf7c9dc1dd35746b0de7ebb57aab90812dbd6f50ede925036de9032bff",
+          "decoded": true,
+          "onset_ms": 10.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.PickLock",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/lockpicking/unlock/ui_lockpicking_unlock.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 110,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        94.0,
+        132.0
+      ],
+      "style": "impact",
+      "mix": 0.2,
+      "sources": [
+        {
+          "path": "sound/fx/ui/lockpicking/unlock/ui_lockpicking_unlock.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 33182,
+          "sha256": "8a2674ba6769526de23e43ac7c62b8b21f92e6d56aa766d48efc65cf5ac73758",
+          "decoded": true,
+          "onset_ms": 64.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.BreakLockpick",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/lockpicking/pickbreak/ui_lockpicking_pickbreak_*.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 80,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        118.0,
+        0.0
+      ],
+      "style": "single",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/ui/lockpicking/pickbreak/ui_lockpicking_pickbreak_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 37334,
+          "sha256": "6d3891a99f5fd950e740cfa51ee8e06f3e7d7b435fa5549fa4dd6365e230c845",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/ui/lockpicking/pickbreak/ui_lockpicking_pickbreak_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 45044,
+          "sha256": "39e09fa3e2c73a43e104efa1dee9ab3e978a90e4237de030ad6e4daeca6e3574",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/ui/lockpicking/pickbreak/ui_lockpicking_pickbreak_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 46014,
+          "sha256": "511bbad14ed5a948d58ff1a13ac50d146cd33427ff4a60fe5f7e2d328de7d78c",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.BlockImpact",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/wpn/block/melee/wpn_block_melee_*.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 100,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        76.0,
+        122.0
+      ],
+      "style": "impact",
+      "mix": 0.2,
+      "sources": [
+        {
+          "path": "sound/fx/wpn/block/melee/wpn_block_melee_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 17632,
+          "sha256": "18bc2158074656b4e1c359b97e4d9182ec70f41f6ce0485fa0863b1b9e6bb160",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/block/melee/wpn_block_melee_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 24512,
+          "sha256": "c7b083a5c5ae08670bb5ef304eadd4b613364eb1d1fc39bb04fc78dfc0ad146d",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/wpn/block/melee/wpn_block_melee_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 21504,
+          "sha256": "822639771f9db3862f6cccff8492caf4813f1b14845c59dadc866135ab705d90",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.ExplosionDealt",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_*.wav"
+      ],
+      "selected_variants": 3,
+      "decoded_variants": 3,
+      "duration_ms": 110,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        58.0,
+        92.0
+      ],
+      "style": "impact",
+      "mix": 0.24,
+      "sources": [
+        {
+          "path": "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_01.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 188808,
+          "sha256": "a276f56d24cd4575306606125f8d414cd149eafba6b82eae9d5c8f4d6b2c9801",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_02.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 225116,
+          "sha256": "3be6a054a8299e09c40cbd5bd680c4497a64cb778214c1da873335b2941d055a",
+          "decoded": true,
+          "onset_ms": 8.0,
+          "failure": null
+        },
+        {
+          "path": "sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_03.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 209968,
+          "sha256": "d30d65d912a4d98a625f4513b739afd9fce7c78bccfc4c5e2c9a562d82275a9d",
+          "decoded": true,
+          "onset_ms": 4.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.TerminalFailure",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/hacking/ui_hacking_passbad.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 112,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        68.0,
+        0.0
+      ],
+      "style": "blunt",
+      "mix": 0.0,
+      "sources": [
+        {
+          "path": "sound/fx/ui/hacking/ui_hacking_passbad.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 3352,
+          "sha256": "37145cce4de6c3a47d6e07294df05b20b2ec49ea9f9651a0af7037370295bd33",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "section": "Body.TerminalSuccess",
+      "status": "baked",
+      "requested_patterns": [
+        "sound/fx/ui/hacking/ui_hacking_passgood.wav"
+      ],
+      "selected_variants": 1,
+      "decoded_variants": 1,
+      "duration_ms": 92,
+      "onset_search_ms": 120,
+      "target_carriers_hz": [
+        104.0,
+        158.0
+      ],
+      "style": "resonant",
+      "mix": 0.2,
+      "sources": [
+        {
+          "path": "sound/fx/ui/hacking/ui_hacking_passgood.wav",
+          "origin": "Fallout - Sound.bsa",
+          "size_bytes": 2814,
+          "sha256": "34e4d6e9c28fe3bded98517a7214177399e1f803e49d109250edcf2701c35c36",
+          "decoded": true,
+          "onset_ms": 0.0,
+          "failure": null
+        }
+      ]
+    }
+  ],
+  "failures": [],
+  "source_archive": {
+    "name": "Fallout - Sound.bsa",
+    "version": 104,
+    "size_bytes": 850985572,
+    "sha256": "b134e1e2381473e9a803fd3631b3de51184294b912e6120bc53dd3cde1c3d561"
+  }
+}

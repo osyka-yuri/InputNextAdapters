@@ -1,7 +1,8 @@
 # Audio haptics source coverage
 
 The counts below cover body effects. Skyrim SE and LE use separate banks to match each edition's
-available sounds and native events. Oblivion uses its own effect catalogue.
+available sounds and native events. Fallout 4, Fallout New Vegas, and Oblivion use their own effect
+catalogues.
 
 ## Compiled banks
 
@@ -11,9 +12,10 @@ available sounds and native events. Oblivion uses its own effect catalogue.
 | Skyrim LE | 20 | 18 | 2 | `ec12dc53d26f55a36970e0e42a4cea838a7cfe6bfb99abb42ff66aba092fd374` |
 | Fallout 4 | 31 | 30 | 1 | `dcb12acecc775306c8039c1312ec1e278c3a729da63051b9b815d6c543055379` |
 | Oblivion | 60 | 38 | 22 | `918f4c991405a4084162c19034d77e5f99de00fe7f31cf6dc5ccff1b597f96ea` |
+| Fallout New Vegas | 35 | 25 | 10 | `a323b8dc9732b7cdc3b068a546dd6e8b3372fe6a18bf9e7459d9a251730884af` |
 
-The four embedded banks contain 135 profiles. Each manifest records source patterns, carriers,
-durations and styles. [Banks](../../resources/audio-haptics/) · [Skyrim SE](manifests/skyrim-se.json) · [Skyrim LE](manifests/skyrim-le.json) · [Fallout 4](manifests/fallout4.json) · [Oblivion](manifests/oblivion.json)
+The five embedded banks contain 160 profiles. Each manifest records source patterns, carriers,
+durations and styles. [Banks](../../resources/audio-haptics/) · [Skyrim SE](manifests/skyrim-se.json) · [Skyrim LE](manifests/skyrim-le.json) · [Fallout 4](manifests/fallout4.json) · [Fallout New Vegas](manifests/fallout-new-vegas.json) · [Oblivion](manifests/oblivion.json)
 
 ## What the mappings establish
 
@@ -30,9 +32,9 @@ allows a 2000 ms onset search for late-starting cues and keeps the 72 ms duratio
 
 ## Required source archives
 
-The baker opens `Skyrim - Sounds.bsa` for Skyrim, `Fallout4 - Sounds.ba2` for Fallout 4 and
-`Oblivion - Sounds.bsa` for Oblivion. Pass the following Skyrim archives with `--archive` for
-the full manifests.
+The baker opens `Skyrim - Sounds.bsa` for Skyrim, `Fallout4 - Sounds.ba2` for Fallout 4,
+`Fallout - Sound.bsa` for Fallout New Vegas, and `Oblivion - Sounds.bsa` for Oblivion. Pass the
+following Skyrim archives with `--archive` for the full manifests.
 
 - Skyrim SE uses `ccQDRSSE001-SurvivalMode.bsa` for Survival sources.
 - Skyrim LE uses `Dawnguard.bsa` for Vampire Lord sources.
@@ -50,7 +52,21 @@ Bow draw and casting average the envelope bands for sustained feedback. The adap
 step and hoofbeat cadence from grounded travel. The remaining 22 roles use synthesis,
 including the attached-arrow phase, recoil, heartbeat, water transitions, training and pickpocketing.
 
-## Skyrim and Fallout 4 synthetic fallbacks
+## Fallout New Vegas
+
+The Fallout New Vegas v104 archive supplies 25 of the 35 mapped profiles. Recorded sources cover
+weapon-family shots, reload cues, melee swings and impacts, grenade actions, V.A.T.S., stimpak use,
+weapon equip and repair, lockpicking, and terminal hacking outcomes. Terminal success and lockout
+use the `passgood` and `passbad` envelopes.
+`Body.BlockImpact` uses three melee-block recordings. `Body.ExplosionDealt` has a separate, shorter
+and lighter profile from the verified high grenade-impact recordings. Critical hits, sneak
+criticals, crippled hits, stagger, and knockdown use synthesis because the archive has no dedicated
+player-action recordings. The generic shot, incoming and outgoing hits, crafting, and landing
+profiles also use synthesis. The bake report
+records the selected variants, onset measurements, file hashes, bank hash, and source archive
+version and SHA-256. [Fallout New Vegas bake report](../../resources/audio-haptics/fallout-new-vegas.audiohaptics.json)
+
+## Skyrim, Fallout 4, and Fallout New Vegas synthetic fallbacks
 
 | Edition | Role | Mapping limitation |
 | --- | --- | --- |
@@ -58,6 +74,12 @@ including the attached-arrow phase, recoil, heartbeat, water transitions, traini
 | Skyrim SE and LE | `Body.World.StaminaDepleted` | No admitted stamina-depleted sound; unrelated UI cues are not substituted. |
 | Skyrim SE | `Body.World.Stagger` | No admitted player-specific stagger cue. |
 | Fallout 4 | `Body.CrippledHit` | No admitted player cripple-status cue; generic impacts and NPC pain/death sounds are not substituted. |
+| Fallout New Vegas | `Body.ShotGeneric` | The selected shot recordings correspond to specific weapon families. |
+| Fallout New Vegas | `Body.HitDealt`, `Body.HitTaken` | The inspected archive contains shared impact and pain cues. |
+| Fallout New Vegas | `Body.CriticalHit`, `Body.SneakCritical` | No dedicated player critical-hit recordings; shared impacts do not identify critical or stealth attacks. |
+| Fallout New Vegas | `Body.CrippledHit` | The archive has no player-specific cripple-status sound. |
+| Fallout New Vegas | `Body.Stagger`, `Body.Knockdown` | The archive has no player-specific stagger or knockdown recordings. |
+| Fallout New Vegas | `Body.Craft`, `Body.Landing` | The archive search found no matching crafting or player landing sounds. |
 
 LE has no native Survival integration. Survival profiles are excluded from its shipped reference and bank; their shared configuration keys remain accepted for compatibility with older INI files.
 

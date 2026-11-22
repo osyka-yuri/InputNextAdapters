@@ -15,6 +15,8 @@ AudioHapticBankResult builtin_audio_haptic_bank(AudioHapticGame game) {
         return parse_audio_haptic_bank(std::as_bytes(std::span{detail::fallout4_bank}));
     case AudioHapticGame::oblivion:
         return parse_audio_haptic_bank(std::as_bytes(std::span{detail::oblivion_bank}));
+    case AudioHapticGame::fallout_new_vegas:
+        return parse_audio_haptic_bank(std::as_bytes(std::span{detail::fallout_new_vegas_bank}));
     }
     return {.status = AudioHapticBankStatus::invalid, .bank = {}};
 }

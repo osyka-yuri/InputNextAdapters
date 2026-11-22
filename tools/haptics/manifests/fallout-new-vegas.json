@@ -1,0 +1,268 @@
+{
+  "version": 1,
+  "game": "fallout-new-vegas",
+  "profiles": [
+    {
+      "section": "Body.ShotPistol",
+      "duration_ms": 90,
+      "frequency": 82,
+      "second_frequency": 128,
+      "mix": 0.28,
+      "style": "recoil",
+      "sources": [
+        "sound/fx/wpn/10mm_pistol/fire_2d/wpn_10mmfire_2d_01.wav",
+        "sound/fx/wpn/pistol_9mm/fire_2d/wpn_9mm_fire_2d_01.wav",
+        "sound/fx/wpn/357revolver/fire_2d/wpn_fire_357revolver_2d_01.wav",
+        "sound/fx/wpn/pistol44magnum/fire_2d/wpn_44revolv_fire_2d_01.wav"
+      ]
+    },
+    {
+      "section": "Body.ShotRifle",
+      "duration_ms": 105,
+      "frequency": 61,
+      "second_frequency": 98,
+      "mix": 0.32,
+      "style": "recoil",
+      "sources": [
+        "sound/fx/wpn/rifleassaultcarbine/fire_2d/wpn_assaultcarb_fire_2d_01.wav",
+        "sound/fx/wpn/riflebrushgun/fire_2d/wpn_brushgun_fire_2d_01.wav",
+        "sound/fx/wpn/riflehunting/fire_2d/wpn_huntingrifle_fire_2d_01.wav",
+        "sound/fx/wpn/riflemarksmancarbine/fire_2d/wpn_marksmancarbine_fire_2d_01.wav"
+      ]
+    },
+    {
+      "section": "Body.ShotShotgun",
+      "duration_ms": 125,
+      "frequency": 52,
+      "second_frequency": 84,
+      "mix": 0.38,
+      "style": "impact",
+      "sources": [
+        "sound/fx/wpn/shotguncaravan/fire_2d/wpn_caravanshotgun_fire_2d_01.wav",
+        "sound/fx/wpn/shotguncombat/fire/wpn_shotguncombat_fire_2d.wav",
+        "sound/fx/wpn/shotgundoublebarrel/fire_2d/wpn_dblbarrelshotgun_fire_2d_01.wav",
+        "sound/fx/wpn/shotgunhunting/fire2d/wpn_huntingshotgun_fire_2d_01.wav"
+      ]
+    },
+    {
+      "section": "Body.ShotHeavy",
+      "duration_ms": 115,
+      "frequency": 55,
+      "second_frequency": 92,
+      "mix": 0.37,
+      "style": "recoil",
+      "sources": [
+        "sound/fx/wpn/gatlinglaser/wpn_gatlinglaser_fire_lpm.wav",
+        "sound/fx/wpn/grenademachinegun/fire_2d/wpn_grnde_mgun_fire_2d_01.wav",
+        "sound/fx/wpn/incinerator/fire_2d/wpn_incinerator_fire_2d_01.wav"
+      ]
+    },
+    {
+      "section": "Body.ShotEnergy",
+      "duration_ms": 98,
+      "frequency": 96,
+      "second_frequency": 152,
+      "mix": 0.34,
+      "style": "resonant",
+      "sources": [
+        "sound/fx/wpn/pistollaser/fire_2d/wpn_lasergun_fire_2d_01.wav",
+        "sound/fx/wpn/pistolplasma/fire_2d/wpn_plasmapistol_fire_2d_01.wav",
+        "sound/fx/wpn/riflelaser/fire_2d/wpn_laserrifle_fire_2d_01.wav",
+        "sound/fx/wpn/rifleplasma/fire_2d/wpn_plasmarifle_fire_2d_01.wav"
+      ]
+    },
+    {
+      "section": "Body.ShotLauncher",
+      "duration_ms": 145,
+      "frequency": 46,
+      "second_frequency": 74,
+      "mix": 0.43,
+      "style": "impact",
+      "sources": [
+        "sound/fx/wpn/fatman/wpn_fatman_fire_2d.wav",
+        "sound/fx/wpn/grenadelauncher/fire_2d/wpn_grenadelauncher_fire_2d_01.wav",
+        "sound/fx/wpn/grenadelauncher/fire_2d/wpn_grenadelauncher_fire_2d_02.wav",
+        "sound/fx/wpn/missilelauncher/fire/wpn_missilelauncher_fire_2d.wav"
+      ]
+    },
+    {
+      "section": "Body.ReloadStart",
+      "duration_ms": 90,
+      "frequency": 58,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "blunt",
+      "sources": ["sound/fx/wpn/pistol_10mm/reload/wpn_pistol10mm_reloadout.wav"]
+    },
+    {
+      "section": "Body.ReloadFinish",
+      "duration_ms": 90,
+      "frequency": 92,
+      "second_frequency": 138,
+      "mix": 0.27,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/pistol_10mm/reload/wpn_pistol10mm_reloadchamber.wav"]
+    },
+    {
+      "section": "Body.DryFire",
+      "duration_ms": 75,
+      "frequency": 150,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": ["sound/fx/wpn/pistol_10mm/wpn_pistol10mm_firedry.wav"]
+    },
+    {
+      "section": "Body.UnarmedSwing",
+      "duration_ms": 100,
+      "frequency": 88,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "whoosh",
+      "sources": ["sound/fx/wpn/hand/swing/wpn_hand_swing_*.wav"]
+    },
+    {
+      "section": "Body.MeleeSwing",
+      "duration_ms": 115,
+      "frequency": 79,
+      "second_frequency": 124,
+      "mix": 0.19,
+      "style": "resonant",
+      "sources": ["sound/fx/fx/swing/medium/fx_swing_medium_*.wav"]
+    },
+    {
+      "section": "Body.MeleeHit",
+      "duration_ms": 135,
+      "frequency": 104,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": [
+        "sound/fx/fx/melee/large/impact/flesh/fx_melee_large_impact_flesh_01.wav",
+        "sound/fx/fx/melee/large/impact/metal/fx_melee_large_impact_metal_01.wav"
+      ]
+    },
+    {
+      "section": "Body.Explosion",
+      "duration_ms": 160,
+      "frequency": 43,
+      "second_frequency": 68,
+      "mix": 0.44,
+      "style": "impact",
+      "sources": ["sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_*.wav"]
+    },
+    {
+      "section": "Body.Throw",
+      "duration_ms": 150,
+      "onset_search_ms": 500,
+      "frequency": 66,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "whoosh",
+      "sources": [
+        "sound/fx/wpn/grenade/wpn_grenade_throw_a.wav",
+        "sound/fx/wpn/grenade/wpn_grenade_throw_b.wav",
+        "sound/fx/wpn/dynamite/wpn_dynamite_throw.wav"
+      ]
+    },
+    {
+      "section": "Body.VatsSelect",
+      "duration_ms": 75,
+      "frequency": 101,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": ["sound/fx/ui/vats/ui_vats_selecttarget.wav"]
+    },
+    {
+      "section": "Body.VatsAccept",
+      "duration_ms": 100,
+      "frequency": 72,
+      "second_frequency": 114,
+      "mix": 0.19,
+      "style": "resonant",
+      "sources": ["sound/fx/ui/vats/ui_vats_ready.wav"]
+    },
+    {
+      "section": "Body.Aid",
+      "duration_ms": 135,
+      "frequency": 84,
+      "second_frequency": 127,
+      "mix": 0.24,
+      "style": "resonant",
+      "sources": ["sound/fx/npc/human/using/stimpak/npc_human_using_stimpak.wav"]
+    },
+    {
+      "section": "Body.Equip",
+      "duration_ms": 90,
+      "frequency": 76,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "blunt",
+      "sources": ["sound/fx/wpn/pistol_10mm/wpn_pistol10mm_equip.wav"]
+    },
+    {
+      "section": "Body.Repair",
+      "duration_ms": 100,
+      "frequency": 87,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": ["sound/fx/ui/repairweapon/ui_repairweapon_*.wav"]
+    },
+    {
+      "section": "Body.PickLock",
+      "duration_ms": 110,
+      "frequency": 94,
+      "second_frequency": 132,
+      "mix": 0.2,
+      "style": "impact",
+      "sources": ["sound/fx/ui/lockpicking/unlock/ui_lockpicking_unlock.wav"]
+    },
+    {
+      "section": "Body.BreakLockpick",
+      "duration_ms": 80,
+      "frequency": 118,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "single",
+      "sources": ["sound/fx/ui/lockpicking/pickbreak/ui_lockpicking_pickbreak_*.wav"]
+    },
+    {
+      "section": "Body.BlockImpact",
+      "duration_ms": 100,
+      "frequency": 76,
+      "second_frequency": 122,
+      "mix": 0.20,
+      "style": "impact",
+      "sources": ["sound/fx/wpn/block/melee/wpn_block_melee_*.wav"]
+    },
+    {
+      "section": "Body.ExplosionDealt",
+      "duration_ms": 110,
+      "frequency": 58,
+      "second_frequency": 92,
+      "mix": 0.24,
+      "style": "impact",
+      "sources": ["sound/fx/fx/explosion/grenade/frag/high/fx_explosion_grenade_frag_high_*.wav"]
+    },
+    {
+      "section": "Body.TerminalFailure",
+      "duration_ms": 112,
+      "frequency": 68,
+      "second_frequency": 0,
+      "mix": 0,
+      "style": "blunt",
+      "sources": ["sound/fx/ui/hacking/ui_hacking_passbad.wav"]
+    },
+    {
+      "section": "Body.TerminalSuccess",
+      "duration_ms": 92,
+      "frequency": 104,
+      "second_frequency": 158,
+      "mix": 0.20,
+      "style": "resonant",
+      "sources": ["sound/fx/ui/hacking/ui_hacking_passgood.wav"]
+    }
+  ]
+}

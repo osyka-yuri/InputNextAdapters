@@ -352,7 +352,9 @@ fn resolve_data_root(path: &Path, game: Game) -> Result<PathBuf> {
 fn is_audio_path(path: &str) -> bool {
     Path::new(path).extension().is_some_and(|extension| {
         let extension = extension.to_string_lossy();
-        extension.eq_ignore_ascii_case("wav") || extension.eq_ignore_ascii_case("xwm")
+        extension.eq_ignore_ascii_case("wav")
+            || extension.eq_ignore_ascii_case("xwm")
+            || extension.eq_ignore_ascii_case("ogg")
     })
 }
 
@@ -442,6 +444,14 @@ mod tests {
             entries: BTreeMap::new(),
             metadata_bytes: 0,
         }
+    }
+
+    #[test]
+    fn recognizes_ogg_as_audio_and_ignores_unrelated_files() {
+        assert!(is_audio_path("Sound/FX/WPN/Fire.OGG"));
+        assert!(is_audio_path("Sound/FX/WPN/Fire.wav"));
+        assert!(!is_audio_path("Sound/FX/WPN/Fire.mp3"));
+        assert!(!is_audio_path("Sound/FX/WPN/Fire.ogg.txt"));
     }
 
     #[test]
