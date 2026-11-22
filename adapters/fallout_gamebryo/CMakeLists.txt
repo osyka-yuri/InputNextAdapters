@@ -21,6 +21,10 @@ target_include_directories(fallout_gamebryo_policy PUBLIC include)
 target_link_libraries(fallout_gamebryo_policy PUBLIC InputNextAdapters::effects)
 inputnext_configure_target(fallout_gamebryo_policy PRODUCTION)
 
+add_library(fallout_gamebryo_session STATIC src/session.cpp src/worker.cpp)
+target_link_libraries(fallout_gamebryo_session PUBLIC fallout_gamebryo_policy)
+inputnext_configure_target(fallout_gamebryo_session PRODUCTION)
+
 if(INPUTNEXT_FALLOUT_GAMEBRYO_BUILD_TESTS)
     enable_testing()
     include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/InputNextCatch2.cmake")
