@@ -7,6 +7,7 @@ Each adapter selects one lightbar indication from current game state using the p
 | Skyrim SE/AE | Yes | When the optional source is available | — |
 | Skyrim Classic/LE | Yes | — | — |
 | Oblivion Classic | Yes | From the game's stealth eye while sneaking | — |
+| Fallout New Vegas | Yes | Four states while sneaking when the native source is available | — |
 | Fallout 4 | Yes | When the optional source is available | From real source-count events |
 
 ## Health
@@ -37,6 +38,8 @@ Health timers continue running under higher-priority indications. Any HP change 
 Skyrim SE/AE and Fallout 4 interpolate from blue through violet to magenta (`#FF00FF`) as the raw detection score rises from 0 to 100 by default. Values outside the configured range use the nearest endpoint.
 
 Oblivion Classic follows the stock stealth eye. The dim eye maps to blue, and the bright eye maps to magenta. [Oblivion GOTY manual, pp. 40–41](https://cdn.akamai.steamstatic.com/steam/apps/22330/manuals/obliv_goty_pc_man-v2.pdf)
+
+Fallout New Vegas uses blue for Hidden, shades of violet for Caution and Detected, and magenta for Danger. [New Vegas lightbar settings](../adapters/fallout_new_vegas/README.md)
 
 Stealth feedback ends when the player stops sneaking or detection becomes unavailable.
 

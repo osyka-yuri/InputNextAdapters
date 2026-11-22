@@ -9,11 +9,12 @@ Install InputNext beside the game executable before adding a plugin. Use the pac
 | Skyrim SE/AE | `SkyrimSE.exe` | x64 XInput |
 | Skyrim Classic/LE | `TESV.exe` | x86 XInput |
 | Oblivion Classic | `Oblivion.exe` | x86 DirectInput 8 |
+| Fallout New Vegas | `FalloutNV.exe` | x86 XInput |
 | Fallout 4 | `Fallout4.exe` | x64 XInput |
 
 Close the game and back up any existing input DLL you are replacing. Copy the files for your game beside its executable. Keep them from the same InputNext build and update them together.
 
-### Skyrim and Fallout 4
+### Skyrim, New Vegas, and Fallout 4
 
 Use these files from the matching XInput archive's `bin/` directory.
 

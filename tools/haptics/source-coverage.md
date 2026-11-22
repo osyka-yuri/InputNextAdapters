@@ -56,8 +56,10 @@ including the attached-arrow phase, recoil, heartbeat, water transitions, traini
 
 The Fallout New Vegas v104 archive supplies 25 of the 35 mapped profiles. Recorded sources cover
 weapon-family shots, reload cues, melee swings and impacts, grenade actions, V.A.T.S., stimpak use,
-weapon equip and repair, lockpicking, and terminal hacking outcomes. Terminal success and lockout
-use the `passgood` and `passbad` envelopes.
+weapon equip and repair, lockpicking, and terminal hacking outcomes. The broken-pin envelope plays
+on xNVSE's lockpick-break event. Terminal success and lockout use the `passgood` and `passbad`
+envelopes on confirmed terminal outcomes. An incorrect password guess alone does not produce a
+lockout cue. The dry-fire envelope plays on the player's confirmed empty-weapon attack.
 `Body.BlockImpact` uses three melee-block recordings. `Body.ExplosionDealt` has a separate, shorter
 and lighter profile from the verified high grenade-impact recordings. Critical hits, sneak
 criticals, crippled hits, stagger, and knockdown use synthesis because the archive has no dedicated

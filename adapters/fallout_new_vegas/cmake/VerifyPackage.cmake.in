@@ -1,0 +1,40 @@
+if(NOT CPACK_GENERATOR STREQUAL "ZIP")
+    message(FATAL_ERROR "Fallout New Vegas is released as a ZIP archive only.")
+endif()
+list(LENGTH CPACK_PACKAGE_FILES package_count)
+if(NOT package_count EQUAL 1 OR NOT CPACK_PACKAGE_DIRECTORY)
+    message(FATAL_ERROR "CPack did not provide one Fallout New Vegas ZIP and its output directory.")
+endif()
+
+set(configuration [==[@CMAKE_BUILD_TYPE@]==])
+if(NOT "@CMAKE_CONFIGURATION_TYPES@" STREQUAL "")
+    if(NOT CPACK_BUILD_CONFIG)
+        message(FATAL_ERROR "Select a build configuration with `cpack -C <configuration>`.")
+    endif()
+    set(configuration "${CPACK_BUILD_CONFIG}")
+endif()
+set(configured_image "${CMAKE_CURRENT_LIST_DIR}/NewVegasPackageImage-${configuration}.cmake")
+if(NOT EXISTS "${configured_image}")
+    message(FATAL_ERROR "No Fallout New Vegas DLL was configured for '${configuration}'.")
+endif()
+include("${configured_image}")
+
+set(verify_scripts [==[@PROJECT_SOURCE_DIR@/../../cmake]==])
+set(product_name "Fallout New Vegas plugin")
+set(dumpbin [==[@_fnv_dumpbin@]==])
+set(expected_exports "NVSEPlugin_Load;NVSEPlugin_Query")
+include("${verify_scripts}/VerifyPe32Image.cmake")
+include("${verify_scripts}/VerifyWindowsDll.cmake")
+
+list(GET CPACK_PACKAGE_FILES 0 package_archive)
+set(expected_dll "${image}")
+set(expected_dll_entry "Data/NVSE/Plugins/InputNextFalloutNewVegas.dll")
+set(expected_entries
+    "${expected_dll_entry}"
+    "Data/NVSE/Plugins/InputNextFalloutNewVegas.ini"
+    "Data/NVSE/Plugins/InputNextFalloutNewVegas.reference.ini"
+    "LICENSE"
+    "README.md"
+)
+set(verify_directory "${CPACK_PACKAGE_DIRECTORY}")
+include("${verify_scripts}/VerifyZipPackage.cmake")
