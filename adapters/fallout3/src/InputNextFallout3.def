@@ -1,0 +1,4 @@
+LIBRARY InputNextFallout3
+EXPORTS
+    FOSEPlugin_Query
+    FOSEPlugin_Load

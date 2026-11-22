@@ -1,0 +1,115 @@
+{
+  "version": 12,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 4,
+    "patch": 4
+  },
+  "configurePresets": [
+    {
+      "name": "windows-x86",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../../build/fallout3-${presetName}",
+      "environment": {
+        "VSLANG": "1033"
+      },
+      "warnings": {
+        "author": true
+      },
+      "errors": {
+        "author": true
+      },
+      "cacheVariables": {
+        "INPUTNEXTADAPTERS_EXPECTED_BITS": "32",
+        "INPUTNEXTADAPTERS_ENABLE_CLANG_TIDY": "OFF",
+        "INPUTNEXT_FALLOUT3_ENABLE_CLANG_TIDY": "OFF",
+        "INPUTNEXT_FALLOUT3_BUILD_TESTS": "OFF",
+        "INPUTNEXT_FALLOUT3_BUILD_PLUGIN": "OFF",
+        "INPUTNEXT_FALLOUT3_ENABLE_MSVC_ANALYZE": "OFF"
+      }
+    },
+    {
+      "name": "msvc-x86",
+      "inherits": "windows-x86",
+      "displayName": "Fallout 3 — MSVC x86",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "msvc-x86-quality",
+      "inherits": "msvc-x86",
+      "displayName": "Fallout 3 — MSVC x86 with clang-tidy",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT3_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native",
+      "inherits": "msvc-x86",
+      "displayName": "Fallout 3 — MSVC x86 FOSE plugin",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT3_BUILD_PLUGIN": "ON",
+        "INPUTNEXTADAPTERS_PRODUCTION": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "inherits": "msvc-x86-native",
+      "displayName": "Fallout 3 — MSVC x86 FOSE plugin and tests",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT3_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "inherits": "msvc-x86-native-tests",
+      "displayName": "Fallout 3 — MSVC x86 FOSE tests with clang-tidy",
+      "cacheVariables": {
+        "INPUTNEXT_FALLOUT3_ENABLE_CLANG_TIDY": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86"
+    },
+    {
+      "name": "msvc-x86-quality",
+      "configurePreset": "msvc-x86-quality"
+    },
+    {
+      "name": "msvc-x86-native",
+      "configurePreset": "msvc-x86-native"
+    },
+    {
+      "name": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-tests"
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "configurePreset": "msvc-x86-native-quality"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86-native-quality",
+      "inherits": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-quality"
+    }
+  ]
+}
