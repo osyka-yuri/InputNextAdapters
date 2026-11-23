@@ -4,6 +4,7 @@
 #include <barrier>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
@@ -165,6 +166,8 @@ TEST_CASE("skyrim.session.production_query_delay_drops_expired_frame_and_withdra
 
 TEST_CASE("skyrim.session.production_output_delay_expires_followup_intents",
     "[component][skyrim][session]") {
+    const auto return_delay = GENERATE(100ms, observation_max_age + 1ms);
+    CAPTURE(return_delay.count());
     const auto fixture_owner = std::make_unique<Fixture>();
     auto& fixture = *fixture_owner;
     advertise_hd(fixture.output, 926);
@@ -210,7 +213,7 @@ TEST_CASE("skyrim.session.production_output_delay_expires_followup_intents",
             if (bow_release_trigger != fixture.output.submissions.end()) {
                 bow_release_trigger_at_body_entry = *bow_release_trigger;
             }
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_until(release.event.observed_at + return_delay);
         }
     };
     fixture.coordinator.tick();
@@ -259,19 +262,24 @@ TEST_CASE("skyrim.session.production_output_delay_expires_followup_intents",
         REQUIRE((matching_stop->request.fallback_rumble.low_frequency == 0.0F &&
                  matching_stop->request.fallback_rumble.high_frequency == 0.0F));
     } else {
+        const auto& accepted_body = fixture.output.body_submissions.back().request;
         const bool exact_owner_clear = std::any_of(
             fixture.output.body_clears.begin() + static_cast<std::ptrdiff_t>(body_clears_before),
             fixture.output.body_clears.end(),
-            [&](const input_next_effects_body_clear_v1& clear) {
-                return clear.lease_id == fixture.output.last_accepted_body_lease;
+            [&](const BodyClear& clear) {
+                return clear.lease_id == fixture.output.last_accepted_body_lease &&
+                       clear.audio_instance_id == accepted_body.audio_instance_id &&
+                       same_effects_context(clear.context, accepted_body.context) &&
+                       same_device_target(clear.target, accepted_body.target);
             });
+        const bool exact_context_closed =
+            has_acked_close(fixture.output, accepted_body.context, accepted_body.target);
         const auto lease_deadline = fixture.output.last_body_accepted_at +
                                     std::chrono::milliseconds{fixture.output.last_body_ttl_ms};
         const bool accepted_lease_expired = std::chrono::steady_clock::now() >= lease_deadline;
-        INFO(
-            "stale sample neither withdrew its exact accepted body owner nor reached lease expiry");
-        REQUIRE((exact_owner_clear || accepted_lease_expired));
-        INFO("stale sample retained an expired body owner after delayed output");
+        INFO("delayed output did not clear, revoke, or expire the accepted body lease");
+        REQUIRE((exact_owner_clear || exact_context_closed || accepted_lease_expired));
+        INFO("delayed output retained an expired body owner");
         REQUIRE(!fixture.coordinator.diagnostics().body_owner_present);
     }
 }

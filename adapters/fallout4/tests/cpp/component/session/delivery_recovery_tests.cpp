@@ -208,19 +208,24 @@ TEST_CASE("fallout4.session.slow_target_poll_withdraws_expired_output",
     PolicyEvent shot{};
     shot.kind = EventKind::shot;
     shot.weapon_identity = 17;
-    shot.arrived_at = std::chrono::steady_clock::now();
-    require(session.enqueue(ticket, shot, shot.arrived_at),
+    shot.arrived_at = sampled_at - 5ms;
+    const auto pulses_before_shot = shot_pulse_count(output);
+    const auto bodies_before_shot = output.bodies.size();
+    require(session.enqueue(ticket, shot, sampled_at),
         "current shot is accepted before the slow poll");
-    session.tick(shot.arrived_at);
-    require(!output.triggers.empty() && !output.bodies.empty(),
+    session.tick(sampled_at);
+    require(shot_pulse_count(output) > pulses_before_shot &&
+                output.bodies.size() > bodies_before_shot,
         "the shot has accepted trigger and body output");
+    const auto& body = output.bodies.back().request;
+    require(body.fallback_rumble.low_frequency > 0.0F || body.fallback_rumble.high_frequency > 0.0F,
+        "the accepted body request contains the shot's nonzero vibration");
 
     const auto trigger_submissions = output.triggers.size();
     const auto body_submissions = output.bodies.size();
     const auto trigger_clears = output.trigger_clears;
     const auto body_clears = output.body_clears;
-    const auto body_retained_until =
-        shot.arrived_at + std::chrono::milliseconds{output.bodies.back().request.ttl_ms};
+    const auto body_retained_until = sampled_at + std::chrono::milliseconds{body.ttl_ms};
     output.next_get_target_delay = target_poll_delay;
 
     const auto slow_tick_started = std::chrono::steady_clock::now();
