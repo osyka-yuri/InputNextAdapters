@@ -259,7 +259,7 @@ pub(super) fn inspect_handoff_row(
             "artifact file escaped its handoff directory"
         );
         ensure!(
-            files.insert(name.clone(), path).is_none(),
+            files.insert(name, path).is_none(),
             "artifact handoff contains a duplicate file"
         );
     }

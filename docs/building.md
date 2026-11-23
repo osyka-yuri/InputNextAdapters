@@ -104,7 +104,7 @@ Release presets enable `INPUTNEXTADAPTERS_PRODUCTION`: owned targets use `/O2 /O
 
 Production optimization defaults off for source consumers and preserves their CRT and architecture. Sanitizer and `/analyze` profiles bypass it. These presets use LTCG without PGO training.
 
-The quality preset uses a separate MSVC x64 build directory and requires clang-tidy 23.1.5 on `PATH`. Ordinary presets do not enable tidy. See [Contributing](../CONTRIBUTING.md) for formatting and analysis commands.
+The quality preset uses a separate MSVC x64 build directory and requires clang-tidy 23.1.6 on `PATH`. Ordinary presets do not enable tidy. See [Contributing](../CONTRIBUTING.md) for formatting and analysis commands.
 
 The corresponding options are `INPUTNEXTADAPTERS_ENABLE_ASAN`, `INPUTNEXTADAPTERS_ENABLE_UBSAN` and `INPUTNEXTADAPTERS_ENABLE_MSVC_ANALYZE`, all off by default. ASan and UBSan cannot be enabled together. `/analyze` requires genuine MSVC; external compiler headers are excluded.
 
@@ -112,7 +112,7 @@ Instrumented libraries publish sanitizer compile and link requirements to consum
 
 clang-cl ASan requires a clang-cl consumer and an available ASan runtime DLL at launch. The package resolves the import library and runtime thunk through the consumer's compiler. The thunk follows the executable's CRT: an unset `MSVC_RUNTIME_LIBRARY` uses CMake's dynamic default; an explicitly empty value uses clang-cl's static default.
 
-LLVM 23.1.5 rejects `/MDd` and `/MTd` with ASan. A Debug ASan build must explicitly choose a release CRT, for example `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL`. Consumer checks preserve that choice. Registered project tests locate the runtime through their own environment; applications must deploy or otherwise locate it.
+LLVM 23.1.6 rejects `/MDd` and `/MTd` with ASan. A Debug ASan build must explicitly choose a release CRT, for example `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL`. Consumer checks preserve that choice. Registered project tests locate the runtime through their own environment; applications must deploy or otherwise locate it.
 
 UBSan requires x64 clang-cl and a working C++ runtime, checked during configure. The reference profile selects `RelWithDebInfo` and `MultiThreaded` (`/MT`) for the pinned LLVM runtime. The library preserves the host project's CRT choice; an incompatible choice fails the runtime link check. Undefined behavior stops at the first diagnostic.
 

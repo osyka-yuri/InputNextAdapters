@@ -7,7 +7,7 @@
         {
           "name": "commonlibsse",
           "repository": "https://github.com/alandtse/CommonLibSSE-NG.git",
-          "revision": "cd21580f7e7cab47df0a7e0fa5e26525527b36bf",
+          "revision": "5298302831d03a01b3b406f4b7b8128ee3bd7a44",
           "path": "dependencies/skyrim-se/commonlibsse",
           "fetchContent": "CommonLibSSE",
           "patches": [],
@@ -32,7 +32,7 @@
         {
           "name": "fmt",
           "repository": "https://github.com/fmtlib/fmt.git",
-          "revision": "1be298e1bd68957e4cd352e1f676f00e07dcfb57",
+          "revision": "208219daff58f2a7438f6931cc2ddc358acf33ef",
           "path": "dependencies/skyrim-se/fmt",
           "fetchContent": "fmt",
           "patches": [],
@@ -41,7 +41,7 @@
         {
           "name": "rapidcsv",
           "repository": "https://github.com/d99kris/rapidcsv.git",
-          "revision": "cbd8a0a937b249cc07e2db3bfa9cd2cc1689708f",
+          "revision": "2114a1aa0fc29c152717d4660d885a9dc42c10a3",
           "path": "dependencies/skyrim-se/rapidcsv",
           "fetchContent": "rapidcsv",
           "patches": [],
@@ -64,7 +64,7 @@
         {
           "name": "commonlibf4",
           "repository": "https://github.com/libxse/commonlibf4.git",
-          "revision": "7c8c6f8a349ac85abf6fc8a7e5a71732d9339954",
+          "revision": "5bf0ee911e9a4218638617271940cc4103a52e97",
           "path": "dependencies/fallout4/commonlibf4",
           "fetchContent": "fallout4_commonlibf4",
           "patches": [

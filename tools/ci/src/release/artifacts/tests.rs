@@ -196,7 +196,7 @@ fn load_test_toolset(directory: &Path) -> Result<crate::tooling::Toolset> {
         "platform": if cfg!(windows) { "windows-x64" } else { "linux-x64" },
         "lock_sha256": "0".repeat(64),
         "tools": {
-            "gh": { "version": "2.103.3", "path": executable, "kind": "executable", "archive": null, "sha256": "0".repeat(64) }
+            "gh": { "version": "2.105.0", "path": executable, "kind": "executable", "archive": null, "sha256": "0".repeat(64) }
         },
         "environment": {}
     });

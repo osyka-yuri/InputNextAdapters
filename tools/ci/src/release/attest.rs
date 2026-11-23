@@ -28,7 +28,7 @@ use crate::process::{CommandSpec, Runner, run_checked};
 use super::identity::ReleaseIdentity;
 use super::verify::handoff::read_bounded_regular_file;
 
-pub(super) const EXPECTED_GH_VERSION: &str = "2.103.3";
+pub(super) const EXPECTED_GH_VERSION: &str = "2.105.0";
 pub(super) const MAX_GH_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
 pub(super) const COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
 pub(super) const SLSA_PROVENANCE_PREDICATE: &str = "https://slsa.dev/provenance/v1";

@@ -764,20 +764,18 @@ fn rejects_release_assets(
 }
 
 fn write_toolset(path: &Path, gh: Option<&Path>) -> Result<()> {
-    let tools = gh
-        .map(|path| {
-            BTreeMap::from([(
-                "gh",
-                json!({
-                    "version": "2.0.0",
-                    "path": path,
-                    "kind": "executable",
-                    "archive": null,
-                    "sha256": "a".repeat(64)
-                }),
-            )])
-        })
-        .unwrap_or_default();
+    let tools = gh.map_or_else(BTreeMap::new, |path| {
+        BTreeMap::from([(
+            "gh",
+            json!({
+                "version": "2.0.0",
+                "path": path,
+                "kind": "executable",
+                "archive": null,
+                "sha256": "a".repeat(64)
+            }),
+        )])
+    });
     let report = json!({
         "schema_version": 1,
         "profile": "test",

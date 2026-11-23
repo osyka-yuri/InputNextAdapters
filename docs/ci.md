@@ -34,7 +34,7 @@ Each product keeps its own CMake version and changelog:
 
 The Release workflow is manually dispatched from `main` with an existing stable product tag. It checks tag ancestry, the selected product's version and curated changelog section. Checks and packages use the qualified tag source, while final release verification runs from the defining main workflow source.
 
-Supply a published InputNext runtime-pair manifest as JSON, or configure the [repository catalog](../.github/ci/runtime-pair.json). The catalog is currently unset, so a release needs an explicit manifest. Compatibility checks use archive identity, SHA-256, architecture and Core/Effects header bytes. A local development package can be tested but cannot replace an identified published release; no particular runtime source commit is required.
+Releases use the published InputNext runtime pair in the [repository catalog](../.github/ci/runtime-pair.json) by default. To qualify a different pair, supply its published runtime-pair manifest as JSON. Compatibility checks use archive identity, SHA-256, architecture and Core/Effects header bytes. A local development package can be tested but cannot replace an identified published release; no particular runtime source commit is required.
 
 Each release checks the real runtime client on x64 and x86 and the selected adapter's package cases. Foundation or complete pairing qualification covers all adapters. These cold-runtime tests establish ABI and request validation; live gameplay and physical feedback require separate checks.
 

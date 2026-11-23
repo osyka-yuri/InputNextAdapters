@@ -10,15 +10,15 @@ if(CMAKE_CXX_COMPILER_ARCHITECTURE_ID AND NOT CMAKE_CXX_COMPILER_ARCHITECTURE_ID
     message(FATAL_ERROR "The Fallout 3 FOSE SDK target requires an x86 compiler target.")
 endif()
 
-set(_fallout3_fose_archive_url "https://fose.silverlock.org/download/fose_v1_2_beta2.7z")
-set(_fallout3_fose_archive_sha256 "59483e4d2ae976da6c489fe6bbdd20c73e60f9ba204493b615509ed0c76e6970")
-set(_fallout3_fose_plugin_api_sha256 "88892551BA40CEB286B29CB69E6FA8BC0928C7E7BF48FDECC0D059D7C6A4DC65")
-set(_fallout3_fose_version_header_sha256 "3D8D371E62596AB8593E4F4BF3C267BA8C6038B0AE987F39D4BBEAC721869F36")
+set(_fallout3_fose_archive_url "https://fose.silverlock.org/beta/fose_v1_3_beta2.7z")
+set(_fallout3_fose_archive_sha256 "67be7d78fac301acac0491d34020ed2a0b98b9b06ce0b4f5ea26d9da21351e04")
+set(_fallout3_fose_plugin_api_sha256 "6A56D64AF42AAAD7A1630BD35B82BE1538E36A635E5E94A21392B7C3920176FE")
+set(_fallout3_fose_version_header_sha256 "759B91E18137FDA2475026C06E30CB42FDD92387E25C5DD07601DA1373659D9E")
 
 set(INPUTNEXT_FALLOUT3_FOSE_ARCHIVE "" CACHE FILEPATH
-    "Optional local official FOSE 1.2 beta2 source archive; its pinned SHA-256 is always checked")
+    "Optional local official FOSE 1.3 beta2 source archive; its pinned SHA-256 is always checked")
 
-set(_fallout3_fose_private_root "${CMAKE_CURRENT_BINARY_DIR}/_fallout3_fose_1_2_beta2_private")
+set(_fallout3_fose_private_root "${CMAKE_CURRENT_BINARY_DIR}/_fallout3_fose_1_3_beta2_private")
 set(_fallout3_fose_archive "${INPUTNEXT_FALLOUT3_FOSE_ARCHIVE}")
 
 if(_fallout3_fose_archive)
@@ -28,10 +28,10 @@ if(_fallout3_fose_archive)
     file(SHA256 "${_fallout3_fose_archive}" _fallout3_fose_actual_archive_sha256)
     if(NOT _fallout3_fose_actual_archive_sha256 STREQUAL _fallout3_fose_archive_sha256)
         message(FATAL_ERROR
-            "FOSE 1.2 beta2 archive SHA-256 mismatch: expected ${_fallout3_fose_archive_sha256}, got ${_fallout3_fose_actual_archive_sha256}.")
+            "FOSE 1.3 beta2 archive SHA-256 mismatch: expected ${_fallout3_fose_archive_sha256}, got ${_fallout3_fose_actual_archive_sha256}.")
     endif()
 else()
-    set(_fallout3_fose_archive "${_fallout3_fose_private_root}/fose_v1_2_beta2.7z")
+    set(_fallout3_fose_archive "${_fallout3_fose_private_root}/fose_v1_3_beta2.7z")
     file(MAKE_DIRECTORY "${_fallout3_fose_private_root}")
 
     if(EXISTS "${_fallout3_fose_archive}")
@@ -63,7 +63,7 @@ else()
         if(NOT _fallout3_fose_download_sha256 STREQUAL _fallout3_fose_archive_sha256)
             file(REMOVE "${_fallout3_fose_download_staging}")
             message(FATAL_ERROR
-                "FOSE 1.2 beta2 archive SHA-256 mismatch: expected ${_fallout3_fose_archive_sha256}, got ${_fallout3_fose_download_sha256}.")
+                "FOSE 1.3 beta2 archive SHA-256 mismatch: expected ${_fallout3_fose_archive_sha256}, got ${_fallout3_fose_download_sha256}.")
         endif()
 
         file(RENAME "${_fallout3_fose_download_staging}" "${_fallout3_fose_archive}" RESULT _fallout3_fose_cache_result)
@@ -75,7 +75,7 @@ else()
 endif()
 
 set(_fallout3_fose_extracted_root "${_fallout3_fose_private_root}/extracted")
-set(_fallout3_fose_source_root "${_fallout3_fose_extracted_root}/fose_v1_2_beta2/src")
+set(_fallout3_fose_source_root "${_fallout3_fose_extracted_root}/src")
 set(_fallout3_fose_extracted_stamp
     "${_fallout3_fose_extracted_root}/.fose_${_fallout3_fose_archive_sha256}.stamp")
 
@@ -93,7 +93,7 @@ endif()
 set(_fallout3_fose_plugin_api "${_fallout3_fose_source_root}/fose/fose/PluginAPI.h")
 set(_fallout3_fose_version_header "${_fallout3_fose_source_root}/fose/fose_common/fose_version.h")
 if(NOT EXISTS "${_fallout3_fose_plugin_api}" OR NOT EXISTS "${_fallout3_fose_version_header}")
-    message(FATAL_ERROR "The pinned FOSE 1.2 beta2 archive has an unexpected source layout.")
+    message(FATAL_ERROR "The pinned FOSE 1.3 beta2 archive has an unexpected source layout.")
 endif()
 
 file(SHA256 "${_fallout3_fose_plugin_api}" _fallout3_fose_actual_plugin_api_sha256)
@@ -111,10 +111,12 @@ if(NOT _fallout3_fose_actual_version_header_sha256 STREQUAL _fallout3_fose_expec
 endif()
 
 add_library(fallout3_fose_sdk INTERFACE)
-target_include_directories(fallout3_fose_sdk SYSTEM INTERFACE "${_fallout3_fose_source_root}")
+target_include_directories(fallout3_fose_sdk SYSTEM INTERFACE
+    "${_fallout3_fose_source_root}"
+    "${_fallout3_fose_source_root}/fose"
+)
 target_compile_features(fallout3_fose_sdk INTERFACE cxx_std_23)
 target_compile_definitions(fallout3_fose_sdk INTERFACE
-    INPUTNEXT_FALLOUT3_FOSE_SDK_VERSION=0x01020020
     INPUTNEXT_FALLOUT3_RUNTIME_VERSION=0x01070030
     INPUTNEXT_FALLOUT3_FOSE_VERSION=0x01030020
     NOMINMAX

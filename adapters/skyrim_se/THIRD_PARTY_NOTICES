@@ -6,19 +6,20 @@ InputNext effects SDK: MIT; upstream provenance is recorded in
 ../../third_party/inputnext/manifest.json.
 
 The linked native plugin uses the following upstream components. Exact license
-texts are included beside these notices. Source pinning is in cmake/Dependencies.cmake.
+texts are included beside these notices. Source pins are in
+cmake/NativeDependencies.json.
 
-CommonLibSSE-NG v15.7.0
+CommonLibSSE-NG v16.11.1
 https://github.com/alandtse/CommonLibSSE-NG
-Commit: cd21580f7e7cab47df0a7e0fa5e26525527b36bf
+Commit: 5298302831d03a01b3b406f4b7b8128ee3bd7a44
 GPL-3.0-or-later, with upstream Modding and Linking exceptions.
 licenses/CommonLibSSE-COPYING.txt
 licenses/CommonLibSSE-EXCEPTIONS.md
 Retained MIT attribution: licenses/CommonLibSSE-MIT.txt
 
-fmt 12.2.0
+fmt 12.2.1
 https://github.com/fmtlib/fmt
-Commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
+Commit: 208219daff58f2a7438f6931cc2ddc358acf33ef
 MIT: licenses/fmt-LICENSE
 
 spdlog 1.17.0
@@ -26,9 +27,9 @@ https://github.com/gabime/spdlog
 Commit: 79524ddd08a4ec981b7fea76afd08ee05f83755d
 MIT and bundled third-party notices: licenses/spdlog-LICENSE
 
-rapidcsv 9.07
+rapidcsv 9.09
 https://github.com/d99kris/rapidcsv
-Commit: cbd8a0a937b249cc07e2db3bfa9cd2cc1689708f
+Commit: 2114a1aa0fc29c152717d4660d885a9dc42c10a3
 BSD-3-Clause: licenses/rapidcsv-LICENSE
 
 DirectX Tool Kit, May 2026

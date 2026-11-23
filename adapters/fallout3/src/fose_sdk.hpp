@@ -2,8 +2,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <type_traits>
 
+using UInt8 = std::uint8_t;
 using UInt16 = std::uint16_t;
 using UInt32 = std::uint32_t;
 

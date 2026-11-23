@@ -7,7 +7,7 @@ This x86 plugin checks the Fallout 3 and FOSE versions and attempts to write a s
 - Windows x86 `Fallout3.exe` 1.7.0.3 and FOSE 1.3 beta 2.
 - Standalone DLL with the MSVC C++ runtime linked statically.
 
-The FOSE project's link to the 1.3 beta 2 source archive returns HTTP 404. The build pins the official FOSE 1.2 beta 2 SDK by SHA-256 and uses the Query and Load interface prefix shared with FOSE 1.3 beta 2. [FOSE downloads](https://www.fose.silverlock.org/)
+The build uses the official FOSE 1.3 beta 2 SDK and pins its archive and API headers by SHA-256. [FOSE downloads](https://fose.silverlock.org/)
 
 ## Installation and check
 

@@ -1,13 +1,13 @@
 CommonLibF4
-  Source: https://github.com/libxse/commonlibf4/tree/7c8c6f8a349ac85abf6fc8a7e5a71732d9339954
-  Revision: 7c8c6f8a349ac85abf6fc8a7e5a71732d9339954
+  Source: https://github.com/libxse/commonlibf4/tree/5bf0ee911e9a4218638617271940cc4103a52e97
+  Revision: 5bf0ee911e9a4218638617271940cc4103a52e97
   License: GPL-3.0-or-later with the Modding Exception and GPL-3.0 Linking Exception
   License texts: licenses/CommonLibF4-GPL-3.0.txt, licenses/CommonLibF4-EXCEPTIONS.txt
   The pinned CommonLibF4 revision contains commonlib-shared at the revision below.
   Local amendment: cmake/CommonLibF4Patches.cmake verifies and adds the existing
   virtual BSAnimationGraphManager destructor declaration to its SDK header.
   This avoids synthesizing member destruction from incomplete engine types.
-  No destructor implementation or dependency revision change is included.
+  The amendment adds only the SDK declaration and defines no implementation.
 
 commonlib-shared
   Source: https://github.com/libxse/commonlib-shared/tree/29fbdb0e2dc548c9ab22f6964981d75090dc9094

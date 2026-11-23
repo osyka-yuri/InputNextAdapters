@@ -234,5 +234,8 @@ target_compile_options(skyrim_le_sdk PRIVATE
     /permissive-
     $<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>
     /W3
-    /EHsc
+    /EHsc)
+
+# Keep the legacy SDK prefix out of generated standard library modules.
+set_property(SOURCE ${_skyrim_le_sdk_sources} APPEND PROPERTY COMPILE_OPTIONS
     "/FI${_skyrim_le_sdk_source_root}/src/common/IPrefix.h")

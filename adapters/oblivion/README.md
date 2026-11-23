@@ -98,7 +98,7 @@ cmake --build --preset msvc-x86-native-tests
 ctest --preset msvc-x86-native-tests
 ```
 
-Use `msvc-x86-native-quality` in all three commands to run the same suite with clang-tidy. Put LLVM 23.1.5 on `PATH` for that preset.
+Use `msvc-x86-native-quality` in all three commands to run the same suite with clang-tidy. Put LLVM 23.1.6 on `PATH` for that preset.
 
 Build the installable DLL with the production preset and stage it in a fresh package directory.
 

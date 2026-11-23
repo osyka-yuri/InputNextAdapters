@@ -19,7 +19,7 @@ Keep both vendored SDK headers byte-identical to their source. Updates follow [S
 
 ## Formatting and analysis
 
-The local checks require **PowerShell 7.6+**, **PSScriptAnalyzer 1.25+**, and **LLVM 23.1.5** on `PATH`.
+The local checks require **PowerShell 7.6+**, **PSScriptAnalyzer 1.25+**, and **LLVM 23.1.6** on `PATH`.
 Run from the repository root:
 
 ```powershell

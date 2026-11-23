@@ -8,7 +8,7 @@ The native layer targets **Fallout 4 1.11.240.0**, x64, with **F4SE 0.7.9**. Bin
 | Reference Steam PE timestamp / image size | `0x6a727fcc` / `0x0425a000` |
 | PDB identity / age | `90f7c238-fc83-4ce6-b480-28951cf1d740` / `1` |
 | Address Library SHA-256 | `65985cc2259384a13cffb538d74776e422e62b0cd3766485a000620242b72b06` |
-| CommonLibF4 pin | `7c8c6f8a349ac85abf6fc8a7e5a71732d9339954` |
+| CommonLibF4 pin | `5bf0ee911e9a4218638617271940cc4103a52e97` |
 
 ## Observation dispatch
 
