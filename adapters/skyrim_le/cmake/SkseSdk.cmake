@@ -45,28 +45,60 @@ else()
     file(MAKE_DIRECTORY "${_skyrim_le_sdk_archive_dir}")
 endif()
 
-if(NOT EXISTS "${_skyrim_le_sdk_archive}")
-    file(DOWNLOAD
-        "${_skyrim_le_skse_archive_url}"
-        "${_skyrim_le_sdk_archive}"
-        EXPECTED_HASH "SHA256=${_skyrim_le_skse_archive_sha256}"
-        TLS_VERIFY ON
-        STATUS _skyrim_le_download_status
-        LOG _skyrim_le_download_log
-        SHOW_PROGRESS
-    )
-    list(GET _skyrim_le_download_status 0 _skyrim_le_download_code)
-    if(NOT _skyrim_le_download_code EQUAL 0)
-        message(FATAL_ERROR
-            "Could not fetch the pinned SKSE 1.7.3 archive (${_skyrim_le_download_status}).\n${_skyrim_le_download_log}")
+string(TOLOWER "${_skyrim_le_skse_archive_sha256}" _skyrim_le_expected_archive_hash)
+if(EXISTS "${_skyrim_le_sdk_archive}")
+    file(SHA256 "${_skyrim_le_sdk_archive}" _skyrim_le_archive_hash)
+    if(NOT _skyrim_le_archive_hash STREQUAL _skyrim_le_expected_archive_hash)
+        if(INPUTNEXT_SKYRIM_LE_SKSE_ARCHIVE)
+            message(FATAL_ERROR
+                "SKSE 1.7.3 archive SHA-256 mismatch: expected ${_skyrim_le_expected_archive_hash}, got ${_skyrim_le_archive_hash}.")
+        endif()
+        file(REMOVE "${_skyrim_le_sdk_archive}")
+        if(EXISTS "${_skyrim_le_sdk_archive}")
+            message(FATAL_ERROR "Could not discard the invalid cached SKSE 1.7.3 archive: ${_skyrim_le_sdk_archive}.")
+        endif()
+        message(STATUS "Discarded an incomplete or invalid cached SKSE 1.7.3 archive.")
     endif()
 endif()
 
-file(SHA256 "${_skyrim_le_sdk_archive}" _skyrim_le_archive_hash)
-string(TOLOWER "${_skyrim_le_skse_archive_sha256}" _skyrim_le_expected_archive_hash)
-if(NOT _skyrim_le_archive_hash STREQUAL _skyrim_le_expected_archive_hash)
-    message(FATAL_ERROR
-        "SKSE 1.7.3 archive SHA-256 mismatch: expected ${_skyrim_le_expected_archive_hash}, got ${_skyrim_le_archive_hash}.")
+if(NOT EXISTS "${_skyrim_le_sdk_archive}")
+    set(_skyrim_le_download_staging "${_skyrim_le_sdk_archive}.download")
+    file(REMOVE "${_skyrim_le_download_staging}")
+    foreach(_skyrim_le_attempt RANGE 1 2)
+        file(DOWNLOAD
+            "${_skyrim_le_skse_archive_url}"
+            "${_skyrim_le_download_staging}"
+            TLS_VERIFY ON
+            TIMEOUT 120
+            INACTIVITY_TIMEOUT 30
+            STATUS _skyrim_le_download_status
+            LOG _skyrim_le_download_log
+        )
+        list(GET _skyrim_le_download_status 0 _skyrim_le_download_code)
+        if(_skyrim_le_download_code EQUAL 0)
+            break()
+        endif()
+        file(REMOVE "${_skyrim_le_download_staging}")
+        if(NOT _skyrim_le_download_code EQUAL 28 OR _skyrim_le_attempt EQUAL 2)
+            message(FATAL_ERROR
+                "Could not fetch the pinned SKSE 1.7.3 archive (${_skyrim_le_download_status}).\n${_skyrim_le_download_log}")
+        endif()
+        message(STATUS "Retrying the SKSE 1.7.3 download after a timeout.")
+    endforeach()
+
+    file(SHA256 "${_skyrim_le_download_staging}" _skyrim_le_archive_hash)
+    if(NOT _skyrim_le_archive_hash STREQUAL _skyrim_le_expected_archive_hash)
+        file(REMOVE "${_skyrim_le_download_staging}")
+        message(FATAL_ERROR
+            "SKSE 1.7.3 archive SHA-256 mismatch: expected ${_skyrim_le_expected_archive_hash}, got ${_skyrim_le_archive_hash}.")
+    endif()
+
+    file(RENAME "${_skyrim_le_download_staging}" "${_skyrim_le_sdk_archive}"
+        RESULT _skyrim_le_cache_result)
+    if(NOT _skyrim_le_cache_result STREQUAL "0")
+        file(REMOVE "${_skyrim_le_download_staging}")
+        message(FATAL_ERROR "Could not cache the verified SKSE 1.7.3 archive: ${_skyrim_le_cache_result}.")
+    endif()
 endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/SkseSdkState.cmake")
