@@ -319,7 +319,7 @@ fn canonical_member_path(raw_name: &str, kind: MemberKind) -> Result<String> {
     );
 
     let trimmed = if kind == MemberKind::Directory {
-        raw_name.strip_suffix('/').unwrap_or(raw_name)
+        raw_name.trim_suffix('/')
     } else {
         raw_name
     };
@@ -430,7 +430,7 @@ mod tests {
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
 
-    use super::{ArchiveFormat, Audit, MemberKind, extract, inspect};
+    use super::{ArchiveFormat, Audit, MemberKind, canonical_member_path, extract, inspect};
 
     #[test]
     fn member_audit_rejects_traversal_collisions_and_duplicates() {
@@ -496,6 +496,19 @@ mod tests {
                 "accepted {path}"
             );
         }
+    }
+
+    #[test]
+    fn directory_paths_accept_one_trailing_slash() -> Result<()> {
+        for path in ["folder", "folder/"] {
+            assert_eq!(
+                canonical_member_path(path, MemberKind::Directory)?,
+                "folder"
+            );
+        }
+        assert!(canonical_member_path("folder//", MemberKind::Directory).is_err());
+        assert!(canonical_member_path("folder/", MemberKind::File).is_err());
+        Ok(())
     }
 
     #[test]
