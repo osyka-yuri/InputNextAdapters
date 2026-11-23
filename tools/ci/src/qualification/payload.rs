@@ -5,15 +5,82 @@ use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use serde::Deserialize;
+use zip::ZipArchive;
 
-use crate::model::Architecture;
-use crate::tooling::{ArchiveFormat, extract_archive, hash_file, inspect_archive, validate_sha256};
+use crate::model::{Architecture, Product};
+use crate::package::pe;
+use crate::tooling::{
+    ArchiveFormat, extract_archive, hash_file, hash_reader, inspect_archive, validate_sha256,
+};
 
 use super::input::{RuntimeArchiveInput, RuntimePairInput};
 use super::{RuntimePairOrigin, VerifiedRuntimeArchive, VerifiedRuntimePair};
 
 const MAX_RUNTIME_METADATA_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_PE_BYTES: u64 = 1024 * 1024 * 1024;
+const MAX_DIRECTINPUT_FACADE_BYTES: u64 = 32 * 1024 * 1024;
+const DIRECTINPUT_FACADE: &str = "bin/dinput8.dll";
+
+pub(crate) fn validate_runtime_for_product(
+    pair: &VerifiedRuntimePair,
+    product: Product,
+) -> Result<()> {
+    if product != Product::Oblivion {
+        return Ok(());
+    }
+    let manifest = read_qualified_archive_manifest(&pair.x86)?;
+    let expected_hash = manifest
+        .files
+        .get(DIRECTINPUT_FACADE)
+        .context("Oblivion requires bin/dinput8.dll in the qualified x86 runtime manifest")?;
+    let path = pair.x86.bin_directory.join("dinput8.dll");
+    regular_file_metadata(&path, "Oblivion DirectInput facade")?;
+    let bytes = read_bounded(
+        File::open(&path)?,
+        MAX_DIRECTINPUT_FACADE_BYTES,
+        "Oblivion DirectInput facade",
+    )?;
+    ensure!(
+        hash_reader(bytes.as_slice())?.eq_ignore_ascii_case(expected_hash),
+        "Oblivion DirectInput facade hash differs from the qualified runtime ZIP manifest"
+    );
+    let image = pe::inspect_bytes(&bytes, Architecture::X86)
+        .context("invalid Oblivion DirectInput facade PE image")?;
+    ensure!(image.is_dll, "Oblivion DirectInput facade is not a DLL");
+    ensure!(
+        image
+            .exports
+            .iter()
+            .any(|name| name == "DirectInput8Create"),
+        "Oblivion DirectInput facade does not export DirectInput8Create"
+    );
+    Ok(())
+}
+
+fn read_qualified_archive_manifest(
+    archive: &VerifiedRuntimeArchive,
+) -> Result<RuntimePackageManifest> {
+    let path = require_regular_file(&archive.path, "qualified x86 runtime ZIP")?;
+    let mut file = File::open(path)?;
+    ensure!(
+        file.metadata()?.len() == archive.size_bytes,
+        "qualified x86 runtime ZIP size changed"
+    );
+    let manifest = {
+        let mut zip =
+            ZipArchive::new(&mut file).context("could not reopen qualified x86 runtime ZIP")?;
+        let entry = zip
+            .by_name("manifest.json")
+            .context("qualified x86 runtime ZIP has no content manifest")?;
+        parse_runtime_package_manifest(entry)?
+    };
+    file.rewind()?;
+    ensure!(
+        hash_reader(file)? == archive.sha256,
+        "qualified x86 runtime ZIP hash changed"
+    );
+    Ok(manifest)
+}
 
 pub(super) fn finish_runtime_pair(
     input: RuntimePairInput,
@@ -324,18 +391,33 @@ fn validate_runtime_contents(
 
 fn read_runtime_package_manifest(root: &Path) -> Result<RuntimePackageManifest> {
     let manifest_path = root.join("manifest.json");
-    let metadata = regular_file_metadata(&manifest_path, "runtime content manifest")?;
-    ensure!(
-        metadata.len() <= MAX_RUNTIME_METADATA_BYTES,
-        "runtime manifest exceeds the size limit"
-    );
-    let manifest: RuntimePackageManifest = crate::json::parse(&fs::read(&manifest_path)?)
-        .context("runtime package manifest is malformed")?;
+    regular_file_metadata(&manifest_path, "runtime content manifest")?;
+    parse_runtime_package_manifest(File::open(manifest_path)?)
+}
+
+fn parse_runtime_package_manifest(reader: impl Read) -> Result<RuntimePackageManifest> {
+    let bytes = read_bounded(
+        reader,
+        MAX_RUNTIME_METADATA_BYTES,
+        "runtime content manifest",
+    )?;
+    let manifest: RuntimePackageManifest =
+        crate::json::parse(&bytes).context("runtime package manifest is malformed")?;
     ensure!(
         manifest.schema == 1,
         "unsupported runtime package manifest schema"
     );
     Ok(manifest)
+}
+
+fn read_bounded(reader: impl Read, limit: u64, label: &str) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    reader.take(limit + 1).read_to_end(&mut bytes)?;
+    ensure!(
+        u64::try_from(bytes.len())? <= limit,
+        "{label} exceeds the size limit"
+    );
+    Ok(bytes)
 }
 
 fn validate_runtime_inventory(

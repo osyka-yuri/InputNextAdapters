@@ -363,6 +363,10 @@ fn install_component(
         (Product::SkyrimLe, PackageKind::Symbols) => "SkyrimLESymbols",
         (Product::Fallout4, PackageKind::Binary) => "Fallout4Adapter",
         (Product::Fallout4, PackageKind::Symbols) => "Fallout4Symbols",
+        (Product::Oblivion, PackageKind::Binary) => "OblivionAdapter",
+        (Product::Oblivion, PackageKind::Symbols) => "OblivionSymbols",
+        (Product::FalloutNewVegas, PackageKind::Binary) => "FalloutNewVegasAdapter",
+        (Product::FalloutNewVegas, PackageKind::Symbols) => "FalloutNewVegasSymbols",
         (_, PackageKind::Source) => {
             anyhow::bail!("source packages are not CMake install components")
         }

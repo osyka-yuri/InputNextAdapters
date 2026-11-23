@@ -145,17 +145,22 @@ pub(super) fn verify_source_package_consumer(
             "INPUTNEXT_FALLOUT4_BUILD_PLUGIN:BOOL=ON",
             "INPUTNEXT_FALLOUT4_BUILD_TESTS:BOOL=OFF",
         ),
+        Product::Oblivion => adapter_source_arguments(
+            "INPUTNEXT_OBLIVION_BUILD_PLUGIN:BOOL=ON",
+            "INPUTNEXT_OBLIVION_BUILD_TESTS:BOOL=OFF",
+        ),
+        Product::FalloutNewVegas => vec![
+            "-DINPUTNEXT_FALLOUT_NEW_VEGAS_BUILD_TESTS:BOOL=OFF".to_owned(),
+            "-DINPUTNEXTADAPTERS_PRODUCTION:BOOL=ON".to_owned(),
+            "-DCMAKE_CXX_COMPILER:FILEPATH=cl".to_owned(),
+            "-DCMAKE_BUILD_TYPE:STRING=Release".to_owned(),
+        ],
         Product::SkyrimLe => adapter_source_arguments(
             "INPUTNEXT_SKYRIM_LE_BUILD_PLUGIN:BOOL=ON",
             "INPUTNEXT_SKYRIM_LE_BUILD_TESTS:BOOL=OFF",
         ),
     };
-    let source = match expectation.product {
-        Product::Foundation => extracted.clone(),
-        Product::SkyrimSe => extracted.join("adapters/skyrim_se"),
-        Product::SkyrimLe => extracted.join("adapters/skyrim_le"),
-        Product::Fallout4 => extracted.join("adapters/fallout4"),
-    };
+    let source = expectation.product.source_directory(&extracted);
     if matches!(expectation.product, Product::SkyrimSe | Product::Fallout4) {
         let manifest = dunce::canonicalize(extracted.join("inputnext-adapters-source.json"))?;
         let mut args = configure_arguments;

@@ -11,12 +11,7 @@ use crate::release::identity::{
 use crate::tooling::write_json_report;
 
 fn identity(product: Product) -> ReleaseIdentity {
-    let tag_prefix = match product {
-        Product::Foundation => "foundation",
-        Product::SkyrimSe => "skyrim-se",
-        Product::SkyrimLe => "skyrim-le",
-        Product::Fallout4 => "fallout4",
-    };
+    let tag_prefix = product.as_str();
     ReleaseIdentity {
         schema_version: 1,
         repository: "example/adapters".into(),

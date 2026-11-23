@@ -173,7 +173,12 @@ pub(super) fn qualify(
         ],
         runner,
     )?;
-    let project = relative_project(product);
+    let directory = product.project_relative_directory();
+    let project = if directory.is_empty() {
+        String::new()
+    } else {
+        format!("{directory}/")
+    };
     let cmake = git_text(
         &git,
         &root,
@@ -210,13 +215,7 @@ pub(super) fn parse_tag(tag: &str) -> Result<(Product, String)> {
     let (name, version) = tag
         .split_once("/v")
         .context("expected a product/vX.Y.Z tag")?;
-    let product = match name {
-        "foundation" => Product::Foundation,
-        "skyrim-se" => Product::SkyrimSe,
-        "skyrim-le" => Product::SkyrimLe,
-        "fallout4" => Product::Fallout4,
-        _ => anyhow::bail!("unknown release product {name}"),
-    };
+    let product = parse_product(name)?;
     let parsed = semver::Version::parse(version).context("invalid release version")?;
     ensure!(
         parsed.pre.is_empty() && parsed.build.is_empty() && parsed.to_string() == version,
@@ -250,15 +249,6 @@ fn validate_commit(value: &str) -> Result<()> {
         "expected a full lowercase Git commit SHA"
     );
     Ok(())
-}
-
-fn relative_project(product: Product) -> &'static str {
-    match product {
-        Product::Foundation => "",
-        Product::SkyrimSe => "adapters/skyrim_se/",
-        Product::SkyrimLe => "adapters/skyrim_le/",
-        Product::Fallout4 => "adapters/fallout4/",
-    }
 }
 
 fn version_notes(changelog: &str, version: &str) -> Result<String> {
@@ -302,6 +292,10 @@ pub(super) fn append_github_output(path: &Path, identity: &ReleaseIdentity) -> R
     let matrix = serde_json::to_string(&matrix).context("encode release matrix")?;
     let values = [
         ("product", identity.product.as_str().to_owned()),
+        (
+            "architecture",
+            identity.product.architectures()[0].as_str().to_owned(),
+        ),
         ("version", identity.version.clone()),
         ("source_commit", identity.source_commit.clone()),
         ("matrix", matrix),
@@ -337,27 +331,26 @@ pub(super) fn append_github_output(path: &Path, identity: &ReleaseIdentity) -> R
 }
 
 pub(super) fn required_rows(product: Product) -> Vec<(&'static str, &'static str)> {
-    let mut rows = vec![("foundation", "x64"), ("foundation", "x86")];
-    match product {
-        Product::Foundation => rows.extend([
-            ("skyrim-se", "x64"),
-            ("skyrim-le", "x86"),
-            ("fallout4", "x64"),
-        ]),
-        Product::SkyrimSe => rows.push(("skyrim-se", "x64")),
-        Product::SkyrimLe => rows.push(("skyrim-le", "x86")),
-        Product::Fallout4 => rows.push(("fallout4", "x64")),
+    let mut rows = package_rows(Product::Foundation);
+    if product == Product::Foundation {
+        for adapter in Product::ALL
+            .into_iter()
+            .filter(|item| *item != Product::Foundation)
+        {
+            rows.extend(package_rows(adapter));
+        }
+    } else {
+        rows.extend(package_rows(product));
     }
     rows
 }
 
 pub(super) fn package_rows(product: Product) -> Vec<(&'static str, &'static str)> {
-    match product {
-        Product::Foundation => vec![("foundation", "x64"), ("foundation", "x86")],
-        Product::SkyrimSe => vec![("skyrim-se", "x64")],
-        Product::SkyrimLe => vec![("skyrim-le", "x86")],
-        Product::Fallout4 => vec![("fallout4", "x64")],
-    }
+    product
+        .architectures()
+        .iter()
+        .map(|architecture| (product.as_str(), architecture.as_str()))
+        .collect()
 }
 
 pub(super) fn package_filename(
@@ -381,13 +374,10 @@ pub(super) fn package_filename(
 }
 
 pub(super) fn parse_product(value: &str) -> Result<Product> {
-    match value {
-        "foundation" => Ok(Product::Foundation),
-        "skyrim-se" => Ok(Product::SkyrimSe),
-        "skyrim-le" => Ok(Product::SkyrimLe),
-        "fallout4" => Ok(Product::Fallout4),
-        _ => anyhow::bail!("unknown product artifact row '{value}'"),
-    }
+    Product::ALL
+        .into_iter()
+        .find(|product| product.as_str() == value)
+        .with_context(|| format!("unknown release product '{value}'"))
 }
 
 pub(super) fn parse_architecture(value: &str) -> Result<Architecture> {

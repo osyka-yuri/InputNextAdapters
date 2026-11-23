@@ -65,15 +65,14 @@ jobs:
           TOOLSET: ${{ steps.setup.outputs.toolset }}
           RUNTIME_MANIFEST: ${{ inputs.runtime_manifest }}
           PRODUCT: ${{ steps.source.outputs.product }}
+          ARCHITECTURE: ${{ steps.source.outputs.architecture }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           manifest="$RUNNER_TEMP/runtime-manifest.json"
           if [[ -n "$RUNTIME_MANIFEST" ]]; then printf '%s' "$RUNTIME_MANIFEST" > "$manifest"; else cp .github/ci/runtime-pair.json "$manifest"; fi
-          arch=x64
-          if [[ "$PRODUCT" == skyrim-le ]]; then arch=x86; fi
           "$CI_CLI" qualify --validate-input --mode release --root "$RUNNER_TEMP/tag-data" --toolset "$TOOLSET" \
-            --product "$PRODUCT" --architecture "$arch" --manifest "$manifest" --output "$RUNNER_TEMP/runtime-input" --report "$RUNNER_TEMP/runtime-input/qualification-report.json"
+            --product "$PRODUCT" --architecture "$ARCHITECTURE" --manifest "$manifest" --output "$RUNNER_TEMP/runtime-input" --report "$RUNNER_TEMP/runtime-input/qualification-report.json"
       - name: Select the required product checks
         id: plan
         shell: bash

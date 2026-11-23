@@ -18,6 +18,16 @@ if(INPUTNEXT_FALLOUT_NEW_VEGAS_BUILD_TESTS)
     enable_testing()
 endif()
 
+if(INPUTNEXTADAPTERS_RUNTIME_DIRECTORY)
+    set(INPUTNEXTADAPTERS_BUILD_TESTS OFF)
+    if(NOT TARGET InputNextAdapters::runtime_client)
+        add_subdirectory(../.. inputnext_adapters EXCLUDE_FROM_ALL)
+    endif()
+    enable_testing()
+    add_subdirectory("../../tests/cpp/integration/runtime_package" runtime_package)
+    return()
+endif()
+
 if(NOT TARGET fallout_gamebryo_policy)
     set(INPUTNEXT_FALLOUT_GAMEBRYO_BUILD_TESTS "${INPUTNEXT_FALLOUT_NEW_VEGAS_BUILD_TESTS}")
     add_subdirectory(../fallout_gamebryo fallout_gamebryo)
@@ -118,6 +128,18 @@ if(INPUTNEXT_FALLOUT_NEW_VEGAS_BUILD_TESTS)
             TIMEOUT 15 LABELS "fallout-new-vegas;load")
     endforeach()
 
+    set(INPUTNEXTADAPTERS_PACKAGE_PLUGIN "" CACHE FILEPATH "Extracted plugin DLL to probe")
+    set(_fnv_package_plugin "$<TARGET_FILE:InputNextFalloutNewVegas>")
+    if(INPUTNEXTADAPTERS_PACKAGE_PLUGIN)
+        set(_fnv_package_plugin "${INPUTNEXTADAPTERS_PACKAGE_PLUGIN}")
+    endif()
+    add_test(NAME fallout_new_vegas_plugin_package COMMAND fallout_new_vegas_load_tests
+        "${_fnv_package_plugin}" "$<TARGET_FILE:fallout_new_vegas_test_runtime>"
+        "${fallout_new_vegas_fixture}/extracted-package" valid-runtime
+        "${InputNextAdapters_SOURCE_DIR}/resources/audio-haptics/skyrim-le.audiohaptics")
+    set_tests_properties(fallout_new_vegas_plugin_package PROPERTIES
+        TIMEOUT 15 LABELS "fallout-new-vegas;load;package")
+
     add_test(NAME fallout_new_vegas.verify_x86_image
         COMMAND "${CMAKE_COMMAND}"
             "-Dimage=$<TARGET_FILE:InputNextFalloutNewVegas>"
@@ -149,6 +171,11 @@ if(INPUTNEXT_FALLOUT_NEW_VEGAS_BUILD_TESTS)
     )
     set_tests_properties(fallout_new_vegas.verify_package PROPERTIES
         TIMEOUT 60 LABELS "fallout-new-vegas;native;package")
+endif()
+
+if(INPUTNEXTADAPTERS_PRODUCTION)
+    install(FILES "$<TARGET_PDB_FILE:InputNextFalloutNewVegas>"
+        DESTINATION symbols COMPONENT FalloutNewVegasSymbols)
 endif()
 
 install(TARGETS InputNextFalloutNewVegas RUNTIME DESTINATION Data/NVSE/Plugins COMPONENT FalloutNewVegasAdapter)

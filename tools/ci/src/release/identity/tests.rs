@@ -1,4 +1,5 @@
-use super::{WorkflowContext, parse_tag, qualify, version_notes};
+use super::{WorkflowContext, package_rows, parse_tag, qualify, required_rows, version_notes};
+use crate::model::Product;
 use crate::process::SystemRunner;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -41,6 +42,7 @@ fn tags_require_a_known_product_and_stable_version() {
     for tag in [
         "v1.0.0",
         "skyrim/v1.0.0",
+        "fallout3/v0.1.0",
         "skyrim-se/v01.0.0",
         "fallout4/v1.0.0-rc.1",
         "foundation/v1.0.0+build",
@@ -50,6 +52,26 @@ fn tags_require_a_known_product_and_stable_version() {
     }
     assert!(parse_tag("skyrim-se/v1.2.3").is_ok());
     assert!(parse_tag("skyrim-le/v1.2.3").is_ok());
+}
+
+#[test]
+fn new_x86_releases_package_only_the_selected_adapter() -> anyhow::Result<()> {
+    for (name, product) in [
+        ("oblivion", Product::Oblivion),
+        ("fallout-new-vegas", Product::FalloutNewVegas),
+    ] {
+        assert_eq!(
+            parse_tag(&format!("{name}/v0.1.0"))?,
+            (product, "0.1.0".into())
+        );
+        assert_eq!(package_rows(product), [(name, "x86")]);
+        assert_eq!(
+            required_rows(product),
+            [("foundation", "x64"), ("foundation", "x86"), (name, "x86")]
+        );
+        assert!(required_rows(Product::Foundation).contains(&(name, "x86")));
+    }
+    Ok(())
 }
 
 #[test]
@@ -110,7 +132,7 @@ fn qualifies_exact_ancestor_tag_in_an_isolated_git_repository() -> anyhow::Resul
         &mut runner,
     )?;
 
-    assert_eq!(identity.product, crate::model::Product::Foundation);
+    assert_eq!(identity.product, Product::Foundation);
     assert_eq!(identity.version, "1.2.3");
     assert_eq!(identity.source_commit, context.workflow_commit);
     assert_eq!(identity.notes, "- Release notes.");

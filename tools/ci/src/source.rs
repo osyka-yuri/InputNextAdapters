@@ -245,6 +245,8 @@ fn product_project_name(product: Product) -> &'static str {
         Product::SkyrimSe => "InputNextSkyrim",
         Product::SkyrimLe => "InputNextSkyrimLE",
         Product::Fallout4 => "InputNextFallout4",
+        Product::Oblivion => "InputNextOblivion",
+        Product::FalloutNewVegas => "InputNextFalloutNewVegas",
     }
 }
 

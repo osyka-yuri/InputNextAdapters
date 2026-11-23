@@ -12,8 +12,9 @@ const MAX_EXPORTS: usize = 65_536;
 const MAX_EXPORT_NAME_BYTES: usize = 4096;
 
 #[derive(Debug)]
-pub(super) struct PeInspection {
+pub(crate) struct PeInspection {
     pub machine: String,
+    pub is_dll: bool,
     pub exports: Vec<String>,
 }
 
@@ -25,7 +26,7 @@ struct Section {
     raw_offset: u32,
 }
 
-pub(super) fn inspect(path: &Path, expected_architecture: Architecture) -> Result<PeInspection> {
+pub(crate) fn inspect(path: &Path, expected_architecture: Architecture) -> Result<PeInspection> {
     let metadata = fs::symlink_metadata(path)
         .with_context(|| format!("could not inspect plugin PE {}", path.display()))?;
     ensure!(
@@ -34,21 +35,29 @@ pub(super) fn inspect(path: &Path, expected_architecture: Architecture) -> Resul
     );
     let bytes =
         fs::read(path).with_context(|| format!("could not read plugin PE {}", path.display()))?;
+    inspect_bytes(&bytes, expected_architecture)
+}
+
+pub(crate) fn inspect_bytes(
+    bytes: &[u8],
+    expected_architecture: Architecture,
+) -> Result<PeInspection> {
     ensure!(
         bytes.len() >= 64 && bytes.get(..2) == Some(b"MZ"),
         "plugin payload is not a DOS/PE image"
     );
-    let pe_offset = usize::try_from(read_u32(&bytes, 0x3c)?)?;
+    let pe_offset = usize::try_from(read_u32(bytes, 0x3c)?)?;
     ensure!(
-        read_slice(&bytes, pe_offset, 4)? == b"PE\0\0",
+        read_slice(bytes, pe_offset, 4)? == b"PE\0\0",
         "plugin payload has no PE signature"
     );
     let coff = pe_offset
         .checked_add(4)
         .context("PE header offset overflow")?;
-    let machine_id = read_u16(&bytes, coff)?;
-    let section_count = usize::from(read_u16(&bytes, coff + 2)?);
-    let optional_size = usize::from(read_u16(&bytes, coff + 16)?);
+    let machine_id = read_u16(bytes, coff)?;
+    let characteristics = read_u16(bytes, coff + 18)?;
+    let section_count = usize::from(read_u16(bytes, coff + 2)?);
+    let optional_size = usize::from(read_u16(bytes, coff + 16)?);
     ensure!(
         section_count > 0 && section_count <= 96,
         "plugin PE has an invalid section count"
@@ -56,8 +65,8 @@ pub(super) fn inspect(path: &Path, expected_architecture: Architecture) -> Resul
     let optional = coff
         .checked_add(20)
         .context("PE optional header offset overflow")?;
-    let optional_bytes = read_slice(&bytes, optional, optional_size)?;
-    let magic = read_u16(&bytes, optional)?;
+    let optional_bytes = read_slice(bytes, optional, optional_size)?;
+    let magic = read_u16(bytes, optional)?;
     let (directories_offset, directory_count_offset, expected_machine, machine) =
         match (magic, expected_architecture) {
             (0x10b, Architecture::X86) => (96_usize, 92_usize, 0x014c_u16, "x86"),
@@ -74,20 +83,22 @@ pub(super) fn inspect(path: &Path, expected_architecture: Architecture) -> Resul
         optional_bytes.len() >= directories_offset + 8,
         "plugin PE optional header is too short for its export directory"
     );
+    let directory_count = read_u32(bytes, optional + directory_count_offset)?;
     ensure!(
-        read_u32(&bytes, optional + directory_count_offset)? > 0,
+        directory_count > 0,
         "plugin PE does not declare a data directory"
     );
-    let export_rva = read_u32(&bytes, optional + directories_offset)?;
-    let export_size = read_u32(&bytes, optional + directories_offset + 4)?;
+    let export_rva = read_u32(bytes, optional + directories_offset)?;
+    let export_size = read_u32(bytes, optional + directories_offset + 4)?;
     ensure!(
         export_rva != 0 && export_size >= 40,
         "plugin PE has no valid export directory"
     );
-    let sections = read_sections(&bytes, optional, optional_size, section_count)?;
-    let exports = read_exports(&bytes, export_rva, &sections)?;
+    let sections = read_sections(bytes, optional, optional_size, section_count)?;
+    let exports = read_exports(bytes, export_rva, &sections)?;
     Ok(PeInspection {
         machine: machine.to_owned(),
+        is_dll: characteristics & 0x2000 != 0,
         exports,
     })
 }
@@ -123,11 +134,23 @@ fn read_sections(
 
 fn read_exports(bytes: &[u8], export_rva: u32, sections: &[Section]) -> Result<Vec<String>> {
     let export_offset = map_rva(bytes, export_rva, 40, sections)?;
+    let function_count = usize::try_from(read_u32(bytes, export_offset + 20)?)?;
     let name_count = usize::try_from(read_u32(bytes, export_offset + 24)?)?;
     ensure!(
-        name_count > 0 && name_count <= MAX_EXPORTS,
+        function_count > 0
+            && function_count <= MAX_EXPORTS
+            && name_count > 0
+            && name_count <= MAX_EXPORTS,
         "plugin PE export count is invalid"
     );
+    let functions_offset = map_rva(
+        bytes,
+        read_u32(bytes, export_offset + 28)?,
+        function_count
+            .checked_mul(4)
+            .context("PE export functions size overflow")?,
+        sections,
+    )?;
     let names_rva = read_u32(bytes, export_offset + 32)?;
     let names_offset = map_rva(
         bytes,
@@ -137,8 +160,27 @@ fn read_exports(bytes: &[u8], export_rva: u32, sections: &[Section]) -> Result<V
             .context("PE export names size overflow")?,
         sections,
     )?;
+    let ordinals_offset = map_rva(
+        bytes,
+        read_u32(bytes, export_offset + 36)?,
+        name_count
+            .checked_mul(2)
+            .context("PE export ordinals size overflow")?,
+        sections,
+    )?;
     let mut exports = Vec::with_capacity(name_count);
     for index in 0..name_count {
+        let ordinal_index = usize::from(read_u16(bytes, ordinals_offset + index * 2)?);
+        ensure!(
+            ordinal_index < function_count,
+            "PE export ordinal exceeds its function table"
+        );
+        let function_rva = read_u32(bytes, functions_offset + ordinal_index * 4)?;
+        ensure!(
+            function_rva != 0,
+            "PE named export has a null function address"
+        );
+        map_rva(bytes, function_rva, 1, sections)?;
         let export_name_rva = read_u32(bytes, names_offset + index * 4)?;
         let name_offset = map_rva(bytes, export_name_rva, 1, sections)?;
         let export_name = read_c_string(bytes, name_offset)?;
@@ -178,7 +220,7 @@ fn map_rva(bytes: &[u8], rva: u32, size: usize, sections: &[Section]) -> Result<
             return Ok(offset);
         }
     }
-    anyhow::bail!("plugin PE export address is outside its sections")
+    anyhow::bail!("PE RVA is outside its sections")
 }
 
 fn read_c_string(bytes: &[u8], offset: usize) -> Result<String> {
@@ -229,6 +271,7 @@ mod tests {
         bytes[0x84..0x86].copy_from_slice(&machine.to_le_bytes());
         bytes[0x86..0x88].copy_from_slice(&1_u16.to_le_bytes());
         bytes[0x94..0x96].copy_from_slice(&0xf0_u16.to_le_bytes());
+        bytes[0x96..0x98].copy_from_slice(&0x2000_u16.to_le_bytes());
         let optional = 0x98;
         bytes[optional..optional + 2].copy_from_slice(&magic.to_le_bytes());
         let directory = if magic == 0x10b { 96 } else { 112 };
@@ -246,12 +289,20 @@ mod tests {
         bytes[section + 16..section + 20].copy_from_slice(&0x200_u32.to_le_bytes());
         bytes[section + 20..section + 24].copy_from_slice(&0x200_u32.to_le_bytes());
         let export_directory = 0x200;
+        bytes[export_directory + 20..export_directory + 24].copy_from_slice(&1_u32.to_le_bytes());
         bytes[export_directory + 24..export_directory + 28].copy_from_slice(&1_u32.to_le_bytes());
         bytes[export_directory + 32..export_directory + 36]
+            .copy_from_slice(&0x1044_u32.to_le_bytes());
+        bytes[export_directory + 28..export_directory + 32]
             .copy_from_slice(&0x1040_u32.to_le_bytes());
-        bytes[0x240..0x244].copy_from_slice(&0x1050_u32.to_le_bytes());
+        bytes[export_directory + 36..export_directory + 40]
+            .copy_from_slice(&0x1048_u32.to_le_bytes());
+        bytes[0x240..0x244].copy_from_slice(&0x1060_u32.to_le_bytes());
+        bytes[0x244..0x248].copy_from_slice(&0x1050_u32.to_le_bytes());
+        bytes[0x248..0x24a].copy_from_slice(&0_u16.to_le_bytes());
         bytes[0x250..0x250 + export.len()].copy_from_slice(export.as_bytes());
         bytes[0x250 + export.len()] = 0;
+        bytes[0x260] = 0xc3;
         bytes
     }
 
@@ -262,6 +313,7 @@ mod tests {
         fs::write(&path, fixture(0x8664, 0x20b, "SKSEPlugin_Load"))?;
         let inspection = inspect(&path, Architecture::X64)?;
         assert_eq!(inspection.machine, "x64");
+        assert!(inspection.is_dll);
         assert_eq!(inspection.exports, ["SKSEPlugin_Load"]);
         Ok(())
     }

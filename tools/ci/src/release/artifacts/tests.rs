@@ -78,12 +78,7 @@ fn context() -> WorkflowContext {
 }
 
 fn identity(product: Product) -> ReleaseIdentity {
-    let tag_prefix = match product {
-        Product::Foundation => "foundation",
-        Product::SkyrimSe => "skyrim-se",
-        Product::SkyrimLe => "skyrim-le",
-        Product::Fallout4 => "fallout4",
-    };
+    let tag_prefix = product.as_str();
     ReleaseIdentity {
         schema_version: 1,
         repository: "example/adapters".into(),
@@ -730,7 +725,7 @@ fn rejects_future_wrong_run_and_unknown_quality_diagnostic_names() -> Result<()>
 
 #[test]
 fn matrix_rows_cover_full_foundation_and_required_adapter_pairings() {
-    assert_eq!(required_rows(Product::Foundation).len(), 5);
+    assert_eq!(required_rows(Product::Foundation).len(), 7);
     assert_eq!(required_rows(Product::SkyrimSe).len(), 3);
     assert_eq!(required_rows(Product::SkyrimLe).len(), 3);
     assert_eq!(required_rows(Product::Fallout4).len(), 3);

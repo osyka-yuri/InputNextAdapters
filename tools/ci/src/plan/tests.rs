@@ -409,9 +409,8 @@ fn matrix_for_product_skyrim_le_selects_exact_closure() {
 
 #[test]
 fn matrix_for_product_foundation_selects_exact_closure() {
-    // Foundation deep matrix must cover the full affected closure: Foundation + Skyrim SE + Skyrim LE + Fallout 4 (27 checks)
     let foundation_deep = matrix_for_product(Product::Foundation, true);
-    assert_eq!(foundation_deep.include.len(), 27);
+    assert_eq!(foundation_deep.include.len(), 35);
     let full = matrix_for_changes(None, true);
     assert_eq!(
         foundation_deep
@@ -424,6 +423,18 @@ fn matrix_for_product_foundation_selects_exact_closure() {
 
     let foundation_shallow = matrix_for_product(Product::Foundation, false);
     let expected_foundation_shallow = vec![
+        (
+            Product::FalloutNewVegas,
+            Architecture::X86,
+            Check::NativeQuality,
+            "quality",
+        ),
+        (
+            Product::FalloutNewVegas,
+            Architecture::X86,
+            Check::Tests,
+            "build",
+        ),
         (
             Product::Fallout4,
             Architecture::X64,
@@ -449,6 +460,13 @@ fn matrix_for_product_foundation_selects_exact_closure() {
             Check::Tests,
             "build",
         ),
+        (
+            Product::Oblivion,
+            Architecture::X86,
+            Check::NativeQuality,
+            "quality",
+        ),
+        (Product::Oblivion, Architecture::X86, Check::Tests, "build"),
         (
             Product::SkyrimLe,
             Architecture::X86,
@@ -498,5 +516,94 @@ fn matrix_args_cli_parsing_supports_product_and_preserves_backward_compatibility
     );
 
     assert!(TestMatrixCli::try_parse_from(["test", "--product", "invalid_game"]).is_err());
+    Ok(())
+}
+
+#[test]
+fn release_adapters_use_x86_and_route_shared_fallout_changes() -> Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let root = temporary.path();
+    let options = NativeOptions::default();
+    for (product, source, package_test) in [
+        (
+            Product::Oblivion,
+            "adapters/oblivion/src/plugin.cpp",
+            "oblivion_plugin_package",
+        ),
+        (
+            Product::FalloutNewVegas,
+            "adapters/fallout_gamebryo/src/policy.cpp",
+            "fallout_new_vegas_plugin_package",
+        ),
+    ] {
+        let qualification = create_plan(
+            root,
+            Path::new("build/ci"),
+            product,
+            Architecture::X86,
+            Check::Tests,
+            &NativeOptions {
+                runtime_directory: Some(root.join("runtime/bin")),
+                ..NativeOptions::default()
+            },
+        )?;
+        assert_eq!(
+            qualification.required_tests,
+            ["runtime_client.production_package"]
+        );
+        let package = create_plan(
+            root,
+            Path::new("build/ci"),
+            product,
+            Architecture::X86,
+            Check::Package,
+            &options,
+        )?;
+        assert_eq!(package.required_tests, [package_test]);
+        let matrix = matrix_for_changes(Some(&[source.to_owned()]), true);
+        assert_eq!(matrix.include.len(), 4);
+        assert!(
+            matrix
+                .include
+                .iter()
+                .all(|row| { row.product == product && row.architecture == Architecture::X86 })
+        );
+        for (check, preset) in [
+            (Check::Tests, "msvc-x86"),
+            (Check::NativeTests, "msvc-x86-native-tests"),
+            (Check::NativeQuality, "msvc-x86-native-quality"),
+            (Check::NativeAnalyze, "msvc-x86-native-analysis"),
+            (Check::Package, "msvc-x86-native-package"),
+        ] {
+            assert_eq!(
+                create_plan(
+                    root,
+                    Path::new("build/ci"),
+                    product,
+                    Architecture::X86,
+                    check,
+                    &options
+                )?
+                .preset,
+                preset
+            );
+            assert!(
+                create_plan(
+                    root,
+                    Path::new("build/ci"),
+                    product,
+                    Architecture::X64,
+                    check,
+                    &options
+                )
+                .is_err()
+            );
+        }
+    }
+    assert!(
+        matrix_for_changes(Some(&["adapters/fallout3/src/plugin.cpp".to_owned()]), true)
+            .include
+            .is_empty()
+    );
     Ok(())
 }

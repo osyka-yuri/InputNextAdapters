@@ -18,9 +18,31 @@ pub enum Product {
     SkyrimSe,
     SkyrimLe,
     Fallout4,
+    Oblivion,
+    FalloutNewVegas,
 }
 
 impl Product {
+    /// Products covered by the release and CI matrices.
+    pub const ALL: [Self; 6] = [
+        Self::Foundation,
+        Self::SkyrimSe,
+        Self::SkyrimLe,
+        Self::Fallout4,
+        Self::Oblivion,
+        Self::FalloutNewVegas,
+    ];
+
+    /// Architectures supported by the product's native targets.
+    #[must_use]
+    pub const fn architectures(self) -> &'static [Architecture] {
+        match self {
+            Self::Foundation => &[Architecture::X64, Architecture::X86],
+            Self::SkyrimSe | Self::Fallout4 => &[Architecture::X64],
+            Self::SkyrimLe | Self::Oblivion | Self::FalloutNewVegas => &[Architecture::X86],
+        }
+    }
+
     /// Returns the product target built by the extracted-source consumer.
     #[must_use]
     pub const fn source_consumer_target(self) -> &'static str {
@@ -29,6 +51,8 @@ impl Product {
             Self::SkyrimSe => "InputNextSkyrim",
             Self::SkyrimLe => "InputNextSkyrimLE",
             Self::Fallout4 => "InputNextFallout4",
+            Self::Oblivion => "InputNextOblivion",
+            Self::FalloutNewVegas => "InputNextFalloutNewVegas",
         }
     }
 
@@ -40,18 +64,28 @@ impl Product {
             Self::SkyrimSe => "skyrim-se",
             Self::SkyrimLe => "skyrim-le",
             Self::Fallout4 => "fallout4",
+            Self::Oblivion => "oblivion",
+            Self::FalloutNewVegas => "fallout-new-vegas",
+        }
+    }
+
+    /// Returns the repository-relative directory of the product's `CMake` project.
+    #[must_use]
+    pub const fn project_relative_directory(self) -> &'static str {
+        match self {
+            Self::Foundation => "",
+            Self::SkyrimSe => "adapters/skyrim_se",
+            Self::SkyrimLe => "adapters/skyrim_le",
+            Self::Fallout4 => "adapters/fallout4",
+            Self::Oblivion => "adapters/oblivion",
+            Self::FalloutNewVegas => "adapters/fallout_new_vegas",
         }
     }
 
     /// Returns the source root used by the product's standalone `CMake` project.
     #[must_use]
     pub fn source_directory(self, repository: &std::path::Path) -> PathBuf {
-        match self {
-            Self::Foundation => repository.to_path_buf(),
-            Self::SkyrimSe => repository.join("adapters/skyrim_se"),
-            Self::SkyrimLe => repository.join("adapters/skyrim_le"),
-            Self::Fallout4 => repository.join("adapters/fallout4"),
-        }
+        repository.join(self.project_relative_directory())
     }
 }
 
@@ -231,6 +265,7 @@ pub fn required_runtime_tests(product: Product) -> &'static [&'static str] {
             "fallout4.package.hd_and_vats_requests_validate_cold",
             "fallout4.package.focus_cleanup_validates_cold",
         ],
+        Product::Oblivion | Product::FalloutNewVegas => &["runtime_client.production_package"],
     }
 }
 
@@ -242,5 +277,7 @@ pub fn required_plugin_package_tests(product: Product) -> &'static [&'static str
         Product::SkyrimSe => &["skyrim_plugin_package"],
         Product::SkyrimLe => &["skyrim_le_load", "skyrim_le_query"],
         Product::Fallout4 => &["fallout4_plugin_package"],
+        Product::Oblivion => &["oblivion_plugin_package"],
+        Product::FalloutNewVegas => &["fallout_new_vegas_plugin_package"],
     }
 }

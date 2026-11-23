@@ -154,7 +154,14 @@ fn validate_release_build_cache(product: Product, build_directory: &Path) -> Res
         "release package build must enable production optimization"
     );
     match product {
-        Product::Foundation => {}
+        Product::Foundation | Product::FalloutNewVegas => {}
+        Product::Oblivion => ensure!(
+            values
+                .get("INPUTNEXT_OBLIVION_BUILD_PLUGIN")
+                .map(|(_, value)| *value)
+                == Some("ON"),
+            "Oblivion release build must enable the native plugin"
+        ),
         Product::SkyrimSe => ensure!(
             values
                 .get("INPUTNEXT_SKYRIM_BUILD_PLUGIN")

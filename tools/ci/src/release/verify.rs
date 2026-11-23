@@ -349,6 +349,7 @@ fn verify_matrix_handoffs(
     for (product_name, architecture_name) in super::identity::required_rows(identity.product) {
         let product = parse_product(product_name)?;
         let architecture = parse_architecture(architecture_name)?;
+        crate::qualification::validate_runtime_for_product(runtime_pair, product)?;
         let artifact_name = format!(
             "release-{product_name}-{architecture_name}-{}-{}",
             identity.run_id, identity.run_attempt

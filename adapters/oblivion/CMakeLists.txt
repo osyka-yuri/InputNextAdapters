@@ -4,6 +4,8 @@ project(InputNextOblivion VERSION 0.1.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 
 option(INPUTNEXT_OBLIVION_BUILD_TESTS "Build isolated Oblivion adapter tests" "${PROJECT_IS_TOP_LEVEL}")
+option(INPUTNEXT_OBLIVION_ENABLE_TEST_EXPORTS "Expose test-only entry points on the local test DLL" ON)
+
 option(INPUTNEXT_OBLIVION_BUILD_PLUGIN "Build the native Oblivion xOBSE plugin" OFF)
 option(INPUTNEXT_OBLIVION_ENABLE_ASAN "Enable AddressSanitizer for owned targets" OFF)
 option(INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE "Enable MSVC /analyze for owned targets" OFF)
@@ -26,6 +28,16 @@ inputnext_prepare_production_configuration()
 
 if(INPUTNEXT_OBLIVION_BUILD_TESTS)
     set(CMAKE_TEST_BUILD_DEPENDS ON)
+endif()
+
+if(INPUTNEXTADAPTERS_RUNTIME_DIRECTORY)
+    set(INPUTNEXTADAPTERS_BUILD_TESTS OFF)
+    if(NOT TARGET InputNextAdapters::runtime_client)
+        add_subdirectory(../.. inputnext_adapters EXCLUDE_FROM_ALL)
+    endif()
+    enable_testing()
+    add_subdirectory("../../tests/cpp/integration/runtime_package" runtime_package)
+    return()
 endif()
 
 if(NOT TARGET InputNextAdapters::effects)

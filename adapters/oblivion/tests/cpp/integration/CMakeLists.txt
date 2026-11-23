@@ -1,3 +1,5 @@
 add_subdirectory(query)
-add_subdirectory(load)
+if(INPUTNEXT_OBLIVION_ENABLE_TEST_EXPORTS)
+    add_subdirectory(load)
+endif()
 add_subdirectory(image)

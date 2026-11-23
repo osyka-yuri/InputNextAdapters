@@ -29,7 +29,10 @@ set_target_properties(InputNextOblivion PROPERTIES
 
 oblivion_enable_checks(InputNextOblivion PRODUCTION)
 
-if(INPUTNEXT_OBLIVION_BUILD_TESTS)
+if(INPUTNEXT_OBLIVION_BUILD_TESTS AND INPUTNEXT_OBLIVION_ENABLE_TEST_EXPORTS)
+    if(INPUTNEXTADAPTERS_RELEASE_BUILD)
+        message(FATAL_ERROR "Release builds must disable the Oblivion test exports.")
+    endif()
     target_compile_definitions(InputNextOblivion PRIVATE INPUTNEXT_OBLIVION_ENABLE_TEST_EXPORTS)
 endif()
 

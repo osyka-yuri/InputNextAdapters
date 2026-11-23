@@ -23,11 +23,13 @@ The output names are:
 
 Each ZIP includes `manifest.json` with the product version, architecture where applicable, source identity and a sorted path/size/SHA-256 inventory for every other file. The command verifies the ZIP before moving it to the output directory. Foundation binaries use `InputNextAdaptersBinary`; their two compile PDBs use `InputNextAdaptersSymbols`. Native adapters use their own binary and symbol components.
 
-Build the local Oblivion x86 install ZIP using its dedicated CMake preset. [Oblivion packaging](../adapters/oblivion/README.md#build-and-package)
+Oblivion and New Vegas use the x86 package profile. For a local install ZIP, see [Oblivion packaging](../adapters/oblivion/README.md#build-and-package) and [New Vegas packaging](../adapters/fallout_new_vegas/README.md#build-and-package).
 
 ## Source packages
 
 Skyrim SE and Fallout 4 source ZIPs contain the pinned dependency and submodule files used by the Windows build. These include OpenVR's headers and Windows library and CommonLibF4's shared submodule. The OpenVR macOS framework is excluded. Authored files retain their repository-relative paths. Git metadata, generated build files, DLLs and GameInput redistributables are excluded. Skyrim LE includes SKSE acquisition and preparation instructions. Its official SKSE archive stays outside the ZIP.
+
+Oblivion and New Vegas source ZIPs use their SHA-256 pins to fetch xOBSE and xNVSE at configure time. The New Vegas source check builds the plugin with the production options enabled.
 
 Native source pins and approved amendments live in [NativeDependencies.json](../cmake/NativeDependencies.json). CMake reads this catalog, and the Rust verifier embeds it from its trusted source tree. Build receipts and packaged manifests must match those identities and the actual source inventories.
 

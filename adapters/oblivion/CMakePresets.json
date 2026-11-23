@@ -75,6 +75,21 @@
       "cacheVariables": {
         "INPUTNEXT_OBLIVION_ENABLE_CLANG_TIDY": "ON"
       }
+    },
+    {
+      "name": "msvc-x86-native-analysis",
+      "inherits": "msvc-x86-native-tests",
+      "cacheVariables": {
+        "INPUTNEXTADAPTERS_PRODUCTION": "OFF",
+        "INPUTNEXT_OBLIVION_ENABLE_MSVC_ANALYZE": "ON"
+      }
+    },
+    {
+      "name": "msvc-x86-native-package",
+      "inherits": "msvc-x86-native-tests",
+      "cacheVariables": {
+        "INPUTNEXT_OBLIVION_ENABLE_TEST_EXPORTS": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -97,6 +112,14 @@
     {
       "name": "msvc-x86-native-quality",
       "configurePreset": "msvc-x86-native-quality"
+    },
+    {
+      "name": "msvc-x86-native-analysis",
+      "configurePreset": "msvc-x86-native-analysis"
+    },
+    {
+      "name": "msvc-x86-native-package",
+      "configurePreset": "msvc-x86-native-package"
     }
   ],
   "testPresets": [
@@ -131,6 +154,16 @@
       "name": "msvc-x86-native-quality",
       "inherits": "msvc-x86-native-tests",
       "configurePreset": "msvc-x86-native-quality"
+    },
+    {
+      "name": "msvc-x86-native-analysis",
+      "inherits": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-analysis"
+    },
+    {
+      "name": "msvc-x86-native-package",
+      "inherits": "msvc-x86-native-tests",
+      "configurePreset": "msvc-x86-native-package"
     }
   ]
 }

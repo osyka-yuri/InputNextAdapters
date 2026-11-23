@@ -5,7 +5,7 @@ mod builder;
 mod consumers;
 mod dependencies;
 mod inspect;
-mod pe;
+pub(crate) mod pe;
 mod types;
 
 pub use builder::{PackageArgs, build_package};

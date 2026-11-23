@@ -205,18 +205,8 @@ pub fn create_plan(
 #[must_use]
 pub fn supported_keys() -> Vec<BuildKey> {
     let mut keys = Vec::new();
-    for product in [
-        Product::Foundation,
-        Product::SkyrimSe,
-        Product::SkyrimLe,
-        Product::Fallout4,
-    ] {
-        let architectures = match product {
-            Product::Foundation => vec![Architecture::X64, Architecture::X86],
-            Product::SkyrimSe | Product::Fallout4 => vec![Architecture::X64],
-            Product::SkyrimLe => vec![Architecture::X86],
-        };
-        for architecture in architectures {
+    for product in Product::ALL {
+        for &architecture in product.architectures() {
             for check in [
                 Check::Tests,
                 Check::Quality,
@@ -245,20 +235,13 @@ pub fn supported_keys() -> Vec<BuildKey> {
 /// Returns the full affected product closure for a product release or qualification.
 ///
 /// Foundation is the root shared library consumed by all game adapters, so qualifying Foundation
-/// requires qualifying Foundation and every dependent adapter (Skyrim SE, Skyrim LE, Fallout 4).
+/// requires qualifying Foundation and every released adapter that depends on it.
 /// Individual game adapters affect only themselves.
 #[must_use]
 pub fn product_closure(product: Product) -> Vec<Product> {
     match product {
-        Product::Foundation => vec![
-            Product::Foundation,
-            Product::SkyrimSe,
-            Product::SkyrimLe,
-            Product::Fallout4,
-        ],
-        Product::SkyrimSe => vec![Product::SkyrimSe],
-        Product::SkyrimLe => vec![Product::SkyrimLe],
-        Product::Fallout4 => vec![Product::Fallout4],
+        Product::Foundation => Product::ALL.to_vec(),
+        product => vec![product],
     }
 }
 
@@ -316,7 +299,11 @@ pub fn matrix_for_products(products: &[Product], deep: bool) -> MatrixOutput {
                     "quality",
                 );
             }
-            Product::SkyrimSe | Product::SkyrimLe | Product::Fallout4 => {
+            Product::SkyrimSe
+            | Product::SkyrimLe
+            | Product::Fallout4
+            | Product::Oblivion
+            | Product::FalloutNewVegas => {
                 let architecture = product_architecture(*product);
                 push_row(&mut rows, *product, architecture, Check::Tests, "build");
                 push_row(
@@ -396,7 +383,11 @@ fn preset_for(product: Product, architecture: Architecture, check: Check) -> Res
             Architecture::X64,
             Check::Tests,
         ) => "msvc-x64",
-        (Product::Foundation | Product::SkyrimLe, Architecture::X86, Check::Tests) => "msvc-x86",
+        (
+            Product::Foundation | Product::SkyrimLe | Product::Oblivion | Product::FalloutNewVegas,
+            Architecture::X86,
+            Check::Tests,
+        ) => "msvc-x86",
         (Product::Foundation, Architecture::X64, Check::Quality) => "msvc-x64-quality",
         (
             Product::Foundation | Product::SkyrimSe | Product::Fallout4,
@@ -425,10 +416,24 @@ fn preset_for(product: Product, architecture: Architecture, check: Check) -> Res
         }
         (Product::SkyrimLe, Architecture::X86, Check::ClangTests) => "clang-cl-x86",
         (Product::SkyrimLe, Architecture::X86, Check::Analyze) => "msvc-x86-analysis",
-        (Product::SkyrimLe, Architecture::X86, Check::NativeQuality) => "msvc-x86-native-quality",
-        (Product::SkyrimLe, Architecture::X86, Check::NativeAnalyze) => "msvc-x86-native-analysis",
-        (Product::SkyrimLe, Architecture::X86, Check::NativeTests | Check::Package) => {
-            "msvc-x86-native-tests"
+        (
+            Product::SkyrimLe | Product::Oblivion | Product::FalloutNewVegas,
+            Architecture::X86,
+            Check::NativeQuality,
+        ) => "msvc-x86-native-quality",
+        (
+            Product::SkyrimLe | Product::Oblivion | Product::FalloutNewVegas,
+            Architecture::X86,
+            Check::NativeAnalyze,
+        ) => "msvc-x86-native-analysis",
+        (Product::SkyrimLe, Architecture::X86, Check::Package)
+        | (
+            Product::SkyrimLe | Product::Oblivion | Product::FalloutNewVegas,
+            Architecture::X86,
+            Check::NativeTests,
+        ) => "msvc-x86-native-tests",
+        (Product::Oblivion | Product::FalloutNewVegas, Architecture::X86, Check::Package) => {
+            "msvc-x86-native-package"
         }
         (Product::Fallout4, Architecture::X64, Check::NativeAnalyze) => "msvc-x64-native-analysis",
         _ => bail!(
@@ -537,6 +542,17 @@ fn classify_path(path: &str) -> Option<PathScope> {
     if path.starts_with("adapters/fallout4/") {
         return Some(PathScope::Product(Product::Fallout4));
     }
+    if path.starts_with("adapters/oblivion/") {
+        return Some(PathScope::Product(Product::Oblivion));
+    }
+    if path.starts_with("adapters/fallout_new_vegas/")
+        || path.starts_with("adapters/fallout_gamebryo/")
+    {
+        return Some(PathScope::Product(Product::FalloutNewVegas));
+    }
+    if path.starts_with("adapters/fallout3/") {
+        return Some(PathScope::None);
+    }
     if path.starts_with("adapters/skyrim/") {
         return Some(PathScope::Skyrim);
     }
@@ -594,7 +610,7 @@ fn push_product(products: &mut Vec<Product>, product: Product) {
 fn product_architecture(product: Product) -> Architecture {
     match product {
         Product::Foundation | Product::SkyrimSe | Product::Fallout4 => Architecture::X64,
-        Product::SkyrimLe => Architecture::X86,
+        Product::SkyrimLe | Product::Oblivion | Product::FalloutNewVegas => Architecture::X86,
     }
 }
 

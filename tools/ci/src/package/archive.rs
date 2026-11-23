@@ -310,6 +310,7 @@ fn validate_payload_shape(
         .iter()
         .map(|(path, size, _)| (path.as_str(), *size))
         .collect::<BTreeMap<_, _>>();
+    validate_x86_adapter_inventory(expectation, &file_map)?;
     match expectation.kind {
         PackageKind::Binary => match expectation.product {
             Product::Foundation => {
@@ -388,12 +389,44 @@ fn validate_payload_shape(
     Ok(())
 }
 
+fn validate_x86_adapter_inventory(
+    expectation: &PackageExpectation,
+    file_map: &BTreeMap<&str, u64>,
+) -> Result<()> {
+    if let Some(symbol) = match expectation.product {
+        Product::Oblivion => Some("symbols/InputNextOblivion.pdb"),
+        Product::FalloutNewVegas => Some("symbols/InputNextFalloutNewVegas.pdb"),
+        _ => None,
+    } {
+        if expectation.kind != PackageKind::Source {
+            ensure!(
+                expectation.architecture == Some(Architecture::X86),
+                "adapter package requires x86"
+            );
+        }
+        match expectation.kind {
+            PackageKind::Binary => ensure!(
+                file_map.len() == required_adapter_payload(expectation.product).len(),
+                "adapter package contains unexpected payload files"
+            ),
+            PackageKind::Symbols => ensure!(
+                file_map.len() == 1 && file_map.get(symbol).is_some_and(|size| *size > 0),
+                "adapter symbol package must contain only {symbol}"
+            ),
+            PackageKind::Source => {}
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn plugin_relative_path(product: Product) -> Option<&'static str> {
     match product {
         Product::Foundation => None,
         Product::SkyrimSe => Some("Data/SKSE/Plugins/InputNextSkyrim.dll"),
         Product::SkyrimLe => Some("Data/SKSE/Plugins/InputNextSkyrimLE.dll"),
         Product::Fallout4 => Some("Data/F4SE/Plugins/InputNextFallout4.dll"),
+        Product::Oblivion => Some("Data/OBSE/Plugins/InputNextOblivion.dll"),
+        Product::FalloutNewVegas => Some("Data/NVSE/Plugins/InputNextFalloutNewVegas.dll"),
     }
 }
 
@@ -449,7 +482,9 @@ fn is_source_bundle_extra(path: &str, product: Product) -> bool {
     match product {
         Product::SkyrimSe => path.starts_with("dependencies/skyrim-se/"),
         Product::Fallout4 => path.starts_with("dependencies/fallout4/"),
-        Product::Foundation | Product::SkyrimLe => false,
+        Product::Foundation | Product::SkyrimLe | Product::Oblivion | Product::FalloutNewVegas => {
+            false
+        }
     }
 }
 
@@ -506,6 +541,20 @@ fn excluded_authored_source(path: &Path) -> bool {
 fn required_adapter_payload(product: Product) -> &'static [&'static str] {
     match product {
         Product::Foundation => &[],
+        Product::Oblivion => &[
+            "Data/OBSE/Plugins/InputNextOblivion.dll",
+            "Data/OBSE/Plugins/InputNextOblivion.ini",
+            "Data/OBSE/Plugins/InputNextOblivion.reference.ini",
+            "README.md",
+            "LICENSE",
+        ],
+        Product::FalloutNewVegas => &[
+            "Data/NVSE/Plugins/InputNextFalloutNewVegas.dll",
+            "Data/NVSE/Plugins/InputNextFalloutNewVegas.ini",
+            "Data/NVSE/Plugins/InputNextFalloutNewVegas.reference.ini",
+            "README.md",
+            "LICENSE",
+        ],
         Product::Fallout4 => &[
             "Data/F4SE/Plugins/InputNextFallout4.dll",
             "Data/F4SE/Plugins/InputNextFallout4.ini",
@@ -552,6 +601,8 @@ fn required_exports(product: Product) -> &'static [&'static str] {
         Product::SkyrimSe => &["SKSEPlugin_Load", "SKSEPlugin_Query", "SKSEPlugin_Version"],
         Product::SkyrimLe => &["SKSEPlugin_Load", "SKSEPlugin_Query"],
         Product::Fallout4 => &["F4SEPlugin_Load", "F4SEPlugin_Version"],
+        Product::Oblivion => &["OBSEPlugin_Load", "OBSEPlugin_Query"],
+        Product::FalloutNewVegas => &["NVSEPlugin_Load", "NVSEPlugin_Query"],
     }
 }
 

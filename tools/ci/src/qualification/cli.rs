@@ -74,6 +74,7 @@ fn validate_input(
         },
     };
     let pair = input::inspect_runtime_pair(&args.manifest, root, &context, args.mode, runner)?;
+    super::validate_runtime_for_product(&pair, args.product)?;
     let report = RuntimeInputValidationReport {
         schema_version: 1,
         status: "input-validated".to_owned(),

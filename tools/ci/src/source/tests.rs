@@ -9,12 +9,7 @@ use std::process::Command;
 
 #[test]
 fn product_project_names_map_to_stable_versions() -> Result<()> {
-    for product in [
-        Product::Foundation,
-        Product::SkyrimSe,
-        Product::SkyrimLe,
-        Product::Fallout4,
-    ] {
+    for product in Product::ALL {
         let source = format!(
             "project({} VERSION 1.2.3 LANGUAGES CXX)",
             product_project_name(product)

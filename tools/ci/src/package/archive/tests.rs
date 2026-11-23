@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::path::Path;
 
 use anyhow::Result;
 
@@ -133,6 +134,7 @@ fn test_pe(machine: u16, magic: u16, exports: &[&str]) -> Vec<u8> {
     bytes[0x84..0x86].copy_from_slice(&machine.to_le_bytes());
     bytes[0x86..0x88].copy_from_slice(&1_u16.to_le_bytes());
     bytes[0x94..0x96].copy_from_slice(&0xf0_u16.to_le_bytes());
+    bytes[0x96..0x98].copy_from_slice(&0x2000_u16.to_le_bytes());
     let optional = 0x98;
     bytes[optional..optional + 2].copy_from_slice(&magic.to_le_bytes());
     let directory = if magic == 0x10b { 96 } else { 112 };
@@ -150,14 +152,30 @@ fn test_pe(machine: u16, magic: u16, exports: &[&str]) -> Vec<u8> {
     bytes[section + 16..section + 20].copy_from_slice(&0x800_u32.to_le_bytes());
     bytes[section + 20..section + 24].copy_from_slice(&0x200_u32.to_le_bytes());
     let export_directory = 0x200;
+    bytes[export_directory + 20..export_directory + 24]
+        .copy_from_slice(&(exports.len() as u32).to_le_bytes());
     bytes[export_directory + 24..export_directory + 28]
         .copy_from_slice(&(exports.len() as u32).to_le_bytes());
-    bytes[export_directory + 32..export_directory + 36].copy_from_slice(&0x1040_u32.to_le_bytes());
-    let mut string_rva = 0x1040_u32 + (exports.len() as u32) * 4;
-    let mut string_offset = 0x240_usize + exports.len() * 4;
+    let functions_rva = 0x1040_u32;
+    let names_rva = functions_rva + (exports.len() as u32) * 4;
+    let ordinals_rva = names_rva + (exports.len() as u32) * 4;
+    bytes[export_directory + 28..export_directory + 32]
+        .copy_from_slice(&functions_rva.to_le_bytes());
+    bytes[export_directory + 32..export_directory + 36].copy_from_slice(&names_rva.to_le_bytes());
+    bytes[export_directory + 36..export_directory + 40]
+        .copy_from_slice(&ordinals_rva.to_le_bytes());
+    let mut string_rva = ordinals_rva + (exports.len() as u32) * 2;
+    let mut string_offset = 0x240_usize + exports.len() * 10;
     for (i, name) in exports.iter().enumerate() {
-        let entry_offset = 0x240 + i * 4;
-        bytes[entry_offset..entry_offset + 4].copy_from_slice(&string_rva.to_le_bytes());
+        let function_entry_offset = 0x240 + i * 4;
+        let code_rva = 0x1700_u32 + i as u32;
+        bytes[function_entry_offset..function_entry_offset + 4]
+            .copy_from_slice(&code_rva.to_le_bytes());
+        bytes[0x900 + i] = 0xc3;
+        let name_entry_offset = 0x240 + exports.len() * 4 + i * 4;
+        bytes[name_entry_offset..name_entry_offset + 4].copy_from_slice(&string_rva.to_le_bytes());
+        let ordinal_offset = 0x240 + exports.len() * 8 + i * 2;
+        bytes[ordinal_offset..ordinal_offset + 2].copy_from_slice(&(i as u16).to_le_bytes());
         bytes[string_offset..string_offset + name.len()].copy_from_slice(name.as_bytes());
         bytes[string_offset + name.len()] = 0;
         string_rva += name.len() as u32 + 1;
@@ -323,6 +341,34 @@ fn game_adapter_package_round_trip_verifies_required_payload() -> Result<()> {
             0x014c_u16,
             0x10b_u16,
         ),
+        (
+            Product::Oblivion,
+            Architecture::X86,
+            &[
+                "Data/OBSE/Plugins/InputNextOblivion.dll",
+                "Data/OBSE/Plugins/InputNextOblivion.ini",
+                "Data/OBSE/Plugins/InputNextOblivion.reference.ini",
+                "README.md",
+                "LICENSE",
+            ][..],
+            &["OBSEPlugin_Load", "OBSEPlugin_Query"][..],
+            0x014c_u16,
+            0x10b_u16,
+        ),
+        (
+            Product::FalloutNewVegas,
+            Architecture::X86,
+            &[
+                "Data/NVSE/Plugins/InputNextFalloutNewVegas.dll",
+                "Data/NVSE/Plugins/InputNextFalloutNewVegas.ini",
+                "Data/NVSE/Plugins/InputNextFalloutNewVegas.reference.ini",
+                "README.md",
+                "LICENSE",
+            ][..],
+            &["NVSEPlugin_Load", "NVSEPlugin_Query"][..],
+            0x014c_u16,
+            0x10b_u16,
+        ),
     ] {
         let stage = temporary.path().join(format!("{}-stage", product.as_str()));
         fs::create_dir_all(&stage)?;
@@ -331,7 +377,7 @@ fn game_adapter_package_round_trip_verifies_required_payload() -> Result<()> {
             if let Some(parent) = full.parent() {
                 fs::create_dir_all(parent)?;
             }
-            let path = std::path::Path::new(relative);
+            let path = Path::new(relative);
             if path
                 .extension()
                 .is_some_and(|ext| ext.eq_ignore_ascii_case("dll"))
@@ -361,7 +407,44 @@ fn game_adapter_package_round_trip_verifies_required_payload() -> Result<()> {
         let inspected = inspect_extracted_package(&extracted, &expectation)?;
         assert_eq!(inspected.entry_count, expected.len() + 1);
         assert_eq!(inspected.exports, exports);
+        verify_x86_adapter_rejections(product, temporary.path(), &stage, &archive, &extracted)?;
     }
+    Ok(())
+}
+
+fn verify_x86_adapter_rejections(
+    product: Product,
+    temporary: &Path,
+    stage: &Path,
+    archive: &Path,
+    extracted: &Path,
+) -> Result<()> {
+    let plugin = match product {
+        Product::Oblivion => "InputNextOblivion",
+        Product::FalloutNewVegas => "InputNextFalloutNewVegas",
+        _ => return Ok(()),
+    };
+    let wrong_architecture = test_expectation(product, Architecture::X64);
+    assert!(inspect_extracted_package(extracted, &wrong_architecture).is_err());
+    assert!(write_package_archive(stage, archive, &wrong_architecture).is_err());
+
+    let expectation = test_expectation(product, Architecture::X86);
+    fs::write(stage.join("dinput8.dll"), b"unexpected payload")?;
+    assert!(write_package_archive(stage, archive, &expectation).is_err());
+
+    let symbols = temporary.join(format!("{}-symbols", product.as_str()));
+    fs::create_dir_all(symbols.join("symbols"))?;
+    let symbols_expectation = PackageExpectation {
+        kind: PackageKind::Symbols,
+        ..expectation
+    };
+    let symbol_archive = temporary.join(package_filename(&symbols_expectation));
+    let arbitrary = symbols.join("symbols/arbitrary.pdb");
+    fs::write(&arbitrary, b"wrong name")?;
+    assert!(write_package_archive(&symbols, &symbol_archive, &symbols_expectation).is_err());
+
+    fs::rename(arbitrary, symbols.join(format!("symbols/{plugin}.pdb")))?;
+    write_package_archive(&symbols, &symbol_archive, &symbols_expectation)?;
     Ok(())
 }
 

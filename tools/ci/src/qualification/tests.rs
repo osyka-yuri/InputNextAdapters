@@ -14,6 +14,7 @@ use zip::write::SimpleFileOptions;
 use super::{
     Architecture, ExecutionContext, NativeOptions, Product, QualificationMode, QualifyArgs,
     RuntimeInputValidationReport, RuntimePairOrigin, inspect_runtime_pair,
+    validate_runtime_for_product,
 };
 use crate::model::Check;
 use crate::process::{CommandOutput, CommandSpec, Runner};
@@ -50,6 +51,28 @@ impl Fixture {
         x86_version: &str,
         x86_machine: Architecture,
     ) -> Result<Self> {
+        Self::make(
+            x64_pgo,
+            x86_pgo,
+            x64_version,
+            x86_version,
+            x86_machine,
+            None,
+        )
+    }
+
+    fn with_directinput(dll: &[u8]) -> Result<Self> {
+        Self::make("Off", "Off", "0.1.0", "0.1.0", Architecture::X86, Some(dll))
+    }
+
+    fn make(
+        x64_pgo: &str,
+        x86_pgo: &str,
+        x64_version: &str,
+        x86_version: &str,
+        x86_machine: Architecture,
+        directinput: Option<&[u8]>,
+    ) -> Result<Self> {
         let directory = tempfile::tempdir()?;
         let root = directory.path().join("source-data");
         fs::create_dir_all(root.join("third_party/inputnext/include"))?;
@@ -69,8 +92,8 @@ impl Fixture {
             Architecture::X64,
             x64_version,
             x64_pgo,
-            &core,
-            &effects,
+            [&core, &effects],
+            None,
         )?;
         let (x86_path, x86_sha256) = make_runtime_archive(
             &root,
@@ -78,8 +101,8 @@ impl Fixture {
             x86_machine,
             x86_version,
             x86_pgo,
-            &core,
-            &effects,
+            [&core, &effects],
+            directinput,
         )?;
         let manifest = root.join("runtime-pair.json");
         write_local_manifest(
@@ -124,6 +147,21 @@ impl Fixture {
         })
     }
 
+    fn validate_input_args(&self, product: Product) -> QualifyArgs {
+        QualifyArgs {
+            root: self.root.clone(),
+            toolset: self.toolset.clone(),
+            product,
+            architecture: product.architectures()[0],
+            manifest: self.manifest.clone(),
+            output: self.output.clone(),
+            report: self.output.join("qualification-report.json"),
+            mode: QualificationMode::Development,
+            validate_input: true,
+            jobs: None,
+        }
+    }
+
     fn install_gh(&mut self) -> Result<()> {
         let gh = self.root.join("fake-gh.exe");
         fs::write(&gh, b"fake gh executable")?;
@@ -156,18 +194,7 @@ impl Runner for NoCommands {
 fn validate_input_stays_static_and_reports_input_only() -> Result<()> {
     let fixture = Fixture::new()?;
     let mut runner = NoCommands::default();
-    let args = QualifyArgs {
-        root: fixture.root.clone(),
-        toolset: fixture.toolset.clone(),
-        product: Product::Foundation,
-        architecture: Architecture::X64,
-        manifest: fixture.manifest.clone(),
-        output: fixture.output.clone(),
-        report: fixture.output.join("qualification-report.json"),
-        mode: QualificationMode::Development,
-        validate_input: true,
-        jobs: None,
-    };
+    let args = fixture.validate_input_args(Product::Foundation);
 
     args.run(&mut runner)?;
 
@@ -190,6 +217,92 @@ fn validate_input_stays_static_and_reports_input_only() -> Result<()> {
             .context("report is not an object")?
             .contains_key("releaseEligible")
     );
+    Ok(())
+}
+
+#[test]
+fn oblivion_rejects_a_facade_added_only_to_the_extraction() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let mut runner = NoCommands::default();
+    let pair = inspect_runtime_pair(
+        &fixture.manifest,
+        &fixture.root,
+        &fixture.context()?,
+        QualificationMode::Development,
+        &mut runner,
+    )?;
+    validate_runtime_for_product(&pair, Product::FalloutNewVegas)?;
+    let facade = pair.x86.bin_directory.join("dinput8.dll");
+    let image = facade_fixture(Architecture::X86, "DirectInput8Create");
+    fs::write(&facade, &image)?;
+    let manifest = pair.x86.bin_directory.join("../manifest.json");
+    let mut content: Value = serde_json::from_slice(&fs::read(&manifest)?)?;
+    content["files"]["bin/dinput8.dll"] = json!(hash_bytes(&image));
+    fs::write(&manifest, serde_json::to_vec(&content)?)?;
+    let error = rejected(
+        validate_runtime_for_product(&pair, Product::Oblivion),
+        "an extracted DLL and manifest cannot add a facade to the qualified ZIP",
+    )?;
+    assert!(format!("{error:#}").contains("bin/dinput8.dll in the qualified x86 runtime manifest"));
+    Ok(())
+}
+
+#[test]
+fn oblivion_qualifies_the_packaged_directinput_export_and_rejects_replacements() -> Result<()> {
+    let image = facade_fixture(Architecture::X86, "DirectInput8Create");
+    let fixture = Fixture::with_directinput(&image)?;
+    let args = fixture.validate_input_args(Product::Oblivion);
+    let report_path = args.report.clone();
+    let mut runner = NoCommands::default();
+    args.run(&mut runner)?;
+    assert_eq!(runner.calls, 0);
+    let report: RuntimeInputValidationReport = crate::json::parse(&fs::read(report_path)?)?;
+    let pair = report.runtime_pair;
+    let mut replacement = image.clone();
+    replacement.push(0);
+    let facade = pair.x86.bin_directory.join("dinput8.dll");
+    fs::write(&facade, &replacement)?;
+    let error = rejected(
+        validate_runtime_for_product(&pair, Product::Oblivion),
+        "the facade bytes differ from the qualified ZIP",
+    )?;
+    assert!(format!("{error:#}").contains("facade hash differs"));
+
+    fs::write(facade, image)?;
+    let mut zip = fs::read(&pair.x86.path)?;
+    // Change the first local header's DOS modification time without altering any payload.
+    zip[10] ^= 1;
+    fs::write(&pair.x86.path, zip)?;
+    let error = rejected(
+        validate_runtime_for_product(&pair, Product::Oblivion),
+        "the ZIP itself changed after qualification",
+    )?;
+    assert!(format!("{error:#}").contains("runtime ZIP hash changed"));
+    Ok(())
+}
+
+#[test]
+fn oblivion_rejects_packaged_facades_with_the_wrong_architecture_or_api() -> Result<()> {
+    let mut executable = facade_fixture(Architecture::X86, "DirectInput8Create");
+    executable[0x56..0x58].copy_from_slice(&2_u16.to_le_bytes());
+    for (image, error_text) in [
+        (
+            facade_fixture(Architecture::X64, "DirectInput8Create"),
+            "x64 PE",
+        ),
+        (
+            facade_fixture(Architecture::X86, "DllCanUnloadNow"),
+            "does not export DirectInput8Create",
+        ),
+        (executable, "facade is not a DLL"),
+    ] {
+        let fixture = Fixture::with_directinput(&image)?;
+        let args = fixture.validate_input_args(Product::Oblivion);
+        let report_path = args.report.clone();
+        let error = rejected(args.run(&mut NoCommands::default()), error_text)?;
+        assert!(format!("{error:#}").contains(error_text));
+        assert!(!report_path.exists());
+    }
     Ok(())
 }
 
@@ -245,8 +358,8 @@ fn rejects_runtime_sdk_headers_that_do_not_match_the_source_tag() -> Result<()> 
         Architecture::X64,
         "0.1.0",
         "Off",
-        b"different packaged Core SDK header",
-        &fixture.effects,
+        [b"different packaged Core SDK header", &fixture.effects],
+        None,
     )?;
     let mut manifest: Value = serde_json::from_slice(&fs::read(&fixture.manifest)?)?;
     manifest["archives"]["x64"]["path"] = Value::String(
@@ -566,8 +679,8 @@ fn make_runtime_archive(
     pe_architecture: Architecture,
     version: &str,
     pgo: &str,
-    core: &[u8],
-    effects: &[u8],
+    [core, effects]: [&[u8]; 2],
+    directinput: Option<&[u8]>,
 ) -> Result<(PathBuf, String)> {
     let mut files = BTreeMap::new();
     for name in [
@@ -579,6 +692,9 @@ fn make_runtime_archive(
         "xinput9_1_0.dll",
     ] {
         files.insert(format!("bin/{name}"), pe_fixture(pe_architecture));
+    }
+    if let Some(dll) = directinput {
+        files.insert("bin/dinput8.dll".to_owned(), dll.to_vec());
     }
     files.insert("sdk/input_next_core.h".to_owned(), core.to_vec());
     files.insert("sdk/input_next_effects.h".to_owned(), effects.to_vec());
@@ -629,6 +745,43 @@ fn pe_fixture(architecture: Architecture) -> Vec<u8> {
     bytes[0x44..0x46].copy_from_slice(&machine.to_le_bytes());
     bytes[0x54..0x56].copy_from_slice(&0x20_u16.to_le_bytes());
     bytes[0x58..0x5a].copy_from_slice(&magic.to_le_bytes());
+    bytes
+}
+
+fn facade_fixture(architecture: Architecture, export: &str) -> Vec<u8> {
+    const OPTIONAL: usize = 0x58;
+    let mut bytes = pe_fixture(architecture);
+    bytes.resize(0x400, 0);
+    let directory = OPTIONAL
+        + match architecture {
+            Architecture::X86 => 96,
+            Architecture::X64 => 112,
+        };
+    let section = OPTIONAL + 0xf0;
+    bytes[0x46..0x48].copy_from_slice(&1_u16.to_le_bytes());
+    bytes[0x54..0x56].copy_from_slice(&0xf0_u16.to_le_bytes());
+    bytes[0x56..0x58].copy_from_slice(&0x2002_u16.to_le_bytes());
+    for (offset, value) in [
+        (directory - 4, 16_u32),
+        (directory, 0x1000),
+        (directory + 4, 0x100),
+        (section + 8, 0x200),
+        (section + 12, 0x1000),
+        (section + 16, 0x200),
+        (section + 20, 0x200),
+        (0x200 + 16, 1),
+        (0x200 + 20, 1),
+        (0x200 + 24, 1),
+        (0x200 + 28, 0x1030),
+        (0x200 + 32, 0x1034),
+        (0x200 + 36, 0x1038),
+        (0x230, 0x1100),
+        (0x234, 0x1050),
+    ] {
+        bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+    }
+    bytes[0x250..0x250 + export.len()].copy_from_slice(export.as_bytes());
+    bytes[0x300] = 0xc3;
     bytes
 }
 

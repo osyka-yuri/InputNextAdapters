@@ -31,10 +31,14 @@ Each product keeps its own CMake version and changelog:
 | Skyrim SE/AE | `skyrim-se/vX.Y.Z` | [Skyrim SE](../adapters/skyrim_se/CHANGELOG.md) |
 | Skyrim Classic/LE | `skyrim-le/vX.Y.Z` | [Skyrim LE](../adapters/skyrim_le/CHANGELOG.md) |
 | Fallout 4 | `fallout4/vX.Y.Z` | [Fallout 4](../adapters/fallout4/CHANGELOG.md) |
+| Fallout New Vegas | `fallout-new-vegas/vX.Y.Z` | [New Vegas](../adapters/fallout_new_vegas/CHANGELOG.md) |
+| Oblivion Classic | `oblivion/vX.Y.Z` | [Oblivion](../adapters/oblivion/CHANGELOG.md) |
 
 The Release workflow is manually dispatched from `main` with an existing stable product tag. It checks tag ancestry, the selected product's version and curated changelog section. Checks and packages use the qualified tag source, while final release verification runs from the defining main workflow source.
 
 Releases use the published InputNext runtime pair in the [repository catalog](../.github/ci/runtime-pair.json) by default. To qualify a different pair, supply its published runtime-pair manifest as JSON. Compatibility checks use archive identity, SHA-256, architecture and Core/Effects header bytes. A local development package can be tested but cannot replace an identified published release; no particular runtime source commit is required.
+
+Oblivion requires a published InputNext pair with an x86 `bin/dinput8.dll` that exports `DirectInput8Create`. The release check matches the DLL's SHA-256 with the content manifest inside the qualified ZIP. Foundation releases qualify all adapters and share that requirement. The catalog's InputNext 1.1.0 pair supports New Vegas through XInput.
 
 Each release checks the real runtime client on x64 and x86 and the selected adapter's package cases. Foundation or complete pairing qualification covers all adapters. These cold-runtime tests establish ABI and request validation; live gameplay and physical feedback require separate checks.
 

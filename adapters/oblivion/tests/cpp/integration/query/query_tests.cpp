@@ -66,6 +66,8 @@ int main(int argc, const char* const* argv) {
 
         auto query_fn =
             reinterpret_cast<QueryFunction>(GetProcAddress(module.handle, "OBSEPlugin_Query"));
+        require(GetProcAddress(module.handle, "OBSEPlugin_Load") != nullptr,
+            "The OBSEPlugin_Load export must be available");
         if (query_fn == nullptr) {
             throw std::runtime_error{"OBSEPlugin_Query export not found in DLL"};
         }

@@ -5,6 +5,8 @@ mod execute;
 mod input;
 mod payload;
 
+pub(crate) use payload::validate_runtime_for_product;
+
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 

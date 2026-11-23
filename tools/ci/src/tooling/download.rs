@@ -110,7 +110,10 @@ pub(crate) fn verified_archive(
 
 pub(crate) fn hash_file(path: &Path) -> Result<String> {
     let file = File::open(path).with_context(|| format!("could not open {}", path.display()))?;
-    let mut reader = BufReader::new(file);
+    hash_reader(BufReader::new(file))
+}
+
+pub(crate) fn hash_reader(mut reader: impl Read) -> Result<String> {
     let mut hasher = Sha256::new();
     let mut buffer = vec![0_u8; 64 * 1024];
     loop {

@@ -51,6 +51,7 @@ pub(super) fn qualify_runtime_pair(
         "native runtime directory does not match the verified architecture-specific archive"
     );
     super::payload::verify_pair(pair, &context.output)?;
+    super::validate_runtime_for_product(pair, plan.key.product)?;
     super::input::verify_published_pair(pair, context, runner)?;
 
     let expected_plan = create_plan(
