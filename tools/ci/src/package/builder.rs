@@ -187,6 +187,7 @@ pub fn build_package(
         }
         packages.push(package);
     }
+    verify_staged_symbol_pair(product, &packages)?;
     let report = PackageReport {
         schema_version: 1,
         product,
@@ -227,6 +228,7 @@ struct StagedPackage {
     final_path: PathBuf,
     report: PackageReportEntry,
     consumer_check: Option<ConsumerEvidence>,
+    codeview_identity: Option<super::symbols::CodeViewIdentity>,
 }
 
 impl PackageBuilder<'_> {
@@ -282,6 +284,7 @@ impl PackageBuilder<'_> {
         Ok(StagedPackage {
             staged_archive,
             final_path,
+            codeview_identity: verified.codeview_identity,
             report: PackageReportEntry {
                 kind,
                 name,
@@ -344,6 +347,21 @@ impl PackageBuilder<'_> {
         };
         Ok((plugin_probe, consumer_check))
     }
+}
+
+fn verify_staged_symbol_pair(product: Product, packages: &[StagedPackage]) -> Result<()> {
+    if !super::symbols::has_paired_symbols(product) {
+        return Ok(());
+    }
+    let plugin = packages
+        .iter()
+        .find(|package| package.report.kind == PackageKind::Binary)
+        .context("adapter release is missing its binary package")?;
+    let symbols = packages
+        .iter()
+        .find(|package| package.report.kind == PackageKind::Symbols)
+        .context("adapter release is missing its symbol package")?;
+    crate::package::verify_match(plugin.codeview_identity, symbols.codeview_identity)
 }
 
 fn install_component(

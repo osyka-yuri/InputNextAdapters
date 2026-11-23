@@ -82,6 +82,7 @@ pub fn inspect_package_archive(
         entry_count: extracted.entry_count,
         pe_machine: extracted.pe_machine,
         exports: extracted.exports,
+        codeview_identity: extracted.codeview_identity,
     })
 }
 

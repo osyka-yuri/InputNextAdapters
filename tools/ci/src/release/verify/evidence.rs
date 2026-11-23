@@ -464,6 +464,17 @@ pub(super) fn validate_packages(
         );
         verified.push(package);
     }
+    if crate::package::has_paired_symbols(product) {
+        let plugin = verified
+            .iter()
+            .find(|package| package.kind == PackageKind::Binary)
+            .context("adapter artifact is missing its binary package")?;
+        let symbols = verified
+            .iter()
+            .find(|package| package.kind == PackageKind::Symbols)
+            .context("adapter artifact is missing its symbol package")?;
+        crate::package::verify_match(plugin.codeview_identity, symbols.codeview_identity)?;
+    }
     Ok(verified)
 }
 

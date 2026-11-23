@@ -41,6 +41,8 @@ The source ZIP's `inputnext-adapters-source.json` uses schema 1. It records the 
 
 The package command checks native PE architecture and the exact named exports, then tests the extracted DLL with the already-built native probes. Required product test identities must be present. The CMake package path is restored to its build-tree default afterward.
 
+For Oblivion and New Vegas, packaging and final release verification check the PDB structure and match its GUID and age against the DLL's CodeView record.
+
 Foundation binaries are tested from a relocated install prefix. Every source ZIP is extracted and built without Git metadata. SE/F4 consumers supply `INPUTNEXTADAPTERS_SOURCE_BUNDLE` for dependency verification.
 
 ## Build an extracted source package

@@ -13,6 +13,7 @@ use zip::{CompressionMethod, ZipWriter};
 
 use super::{PackageExpectation, PackageKind, pe};
 use crate::model::{Architecture, Product};
+use crate::package::symbols::CodeViewIdentity;
 use crate::process::Runner;
 use crate::tooling::hash_file;
 
@@ -52,6 +53,14 @@ pub(super) struct ExtractedPackage {
     pub entry_count: usize,
     pub pe_machine: Option<String>,
     pub exports: Vec<String>,
+    pub codeview_identity: Option<CodeViewIdentity>,
+}
+
+#[derive(Default)]
+struct PayloadInspection {
+    pe_machine: Option<String>,
+    exports: Vec<String>,
+    codeview_identity: Option<CodeViewIdentity>,
 }
 
 pub(super) fn package_filename(expectation: &PackageExpectation) -> String {
@@ -93,7 +102,7 @@ pub(super) fn write_package_archive(
             .all(|(path, _, _)| !path.eq_ignore_ascii_case("manifest.json")),
         "package staging payload cannot supply its own manifest"
     );
-    validate_payload_shape(stage, expectation, &files)?;
+    let _ = validate_payload_shape(stage, expectation, &files)?;
     let manifest = PackageManifest {
         schema_version: 1,
         product: expectation.product,
@@ -205,30 +214,12 @@ pub(super) fn inspect_extracted_package(
             "package inventory mismatch for '{actual_path}'"
         );
     }
-    validate_payload_shape(root, expectation, &actual)?;
-    let (pe_machine, exports) = match expectation.kind {
-        PackageKind::Binary => match plugin_relative_path(expectation.product) {
-            Some(relative) => {
-                let path = root.join(relative);
-                let inspected = pe::inspect(
-                    &path,
-                    expectation
-                        .architecture
-                        .context("plugin package requires an architecture")?,
-                )?;
-                (
-                    Some(inspected.machine),
-                    inspected.exports.into_iter().collect(),
-                )
-            }
-            None => (None, Vec::new()),
-        },
-        PackageKind::Symbols | PackageKind::Source => (None, Vec::new()),
-    };
+    let payload = validate_payload_shape(root, expectation, &actual)?;
     Ok(ExtractedPackage {
         entry_count: manifest.files.len() + 1,
-        pe_machine,
-        exports,
+        pe_machine: payload.pe_machine,
+        exports: payload.exports,
+        codeview_identity: payload.codeview_identity,
     })
 }
 
@@ -305,7 +296,8 @@ fn validate_payload_shape(
     root: &Path,
     expectation: &PackageExpectation,
     files: &[(String, u64, String)],
-) -> Result<()> {
+) -> Result<PayloadInspection> {
+    let mut inspection = PayloadInspection::default();
     let file_map = files
         .iter()
         .map(|(path, size, _)| (path.as_str(), *size))
@@ -350,13 +342,24 @@ fn validate_payload_shape(
                 );
                 let plugin = plugin_relative_path(product)
                     .context("adapter binary package has no known plugin path")?;
-                let pe = pe::inspect(
-                    &root.join(plugin),
-                    expectation
-                        .architecture
-                        .context("plugin package requires an architecture")?,
-                )?;
+                let architecture = expectation
+                    .architecture
+                    .context("plugin package requires an architecture")?;
+                let pe = if super::symbols::has_paired_symbols(expectation.product) {
+                    pe::inspect_with_codeview(&root.join(plugin), architecture)?
+                } else {
+                    pe::inspect(&root.join(plugin), architecture)?
+                };
                 validate_plugin_exports(product, &pe.exports)?;
+                if super::symbols::has_paired_symbols(product) {
+                    ensure!(
+                        pe.codeview_identity.is_some(),
+                        "plugin PE has no CodeView identity for its symbol package"
+                    );
+                }
+                inspection.pe_machine = Some(pe.machine);
+                inspection.exports = pe.exports;
+                inspection.codeview_identity = pe.codeview_identity;
             }
         },
         PackageKind::Symbols => {
@@ -372,6 +375,10 @@ fn validate_payload_shape(
                     .all(|(path, _, _)| !path.to_ascii_lowercase().ends_with(".dll")),
                 "symbol package must not contain DLL payloads"
             );
+            if let Some(symbol) = symbol_relative_path(expectation.product) {
+                inspection.codeview_identity =
+                    Some(super::symbols::inspect_pdb(&root.join(symbol))?);
+            }
         }
         PackageKind::Source => {
             ensure!(
@@ -386,7 +393,7 @@ fn validate_payload_shape(
             }
         }
     }
-    Ok(())
+    Ok(inspection)
 }
 
 fn validate_x86_adapter_inventory(
@@ -427,6 +434,14 @@ pub(super) fn plugin_relative_path(product: Product) -> Option<&'static str> {
         Product::Fallout4 => Some("Data/F4SE/Plugins/InputNextFallout4.dll"),
         Product::Oblivion => Some("Data/OBSE/Plugins/InputNextOblivion.dll"),
         Product::FalloutNewVegas => Some("Data/NVSE/Plugins/InputNextFalloutNewVegas.dll"),
+    }
+}
+
+pub(super) fn symbol_relative_path(product: Product) -> Option<&'static str> {
+    match product {
+        Product::Oblivion => Some("symbols/InputNextOblivion.pdb"),
+        Product::FalloutNewVegas => Some("symbols/InputNextFalloutNewVegas.pdb"),
+        _ => None,
     }
 }
 

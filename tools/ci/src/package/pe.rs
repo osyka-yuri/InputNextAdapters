@@ -6,6 +6,7 @@ use std::path::Path;
 use anyhow::{Context, Result, ensure};
 
 use crate::model::Architecture;
+use crate::package::symbols::CodeViewIdentity;
 
 const MAX_PE_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_EXPORTS: usize = 65_536;
@@ -16,6 +17,7 @@ pub(crate) struct PeInspection {
     pub machine: String,
     pub is_dll: bool,
     pub exports: Vec<String>,
+    pub codeview_identity: Option<CodeViewIdentity>,
 }
 
 #[derive(Clone, Copy)]
@@ -27,6 +29,21 @@ struct Section {
 }
 
 pub(crate) fn inspect(path: &Path, expected_architecture: Architecture) -> Result<PeInspection> {
+    inspect_path(path, expected_architecture, false)
+}
+
+pub(crate) fn inspect_with_codeview(
+    path: &Path,
+    expected_architecture: Architecture,
+) -> Result<PeInspection> {
+    inspect_path(path, expected_architecture, true)
+}
+
+fn inspect_path(
+    path: &Path,
+    expected_architecture: Architecture,
+    include_codeview: bool,
+) -> Result<PeInspection> {
     let metadata = fs::symlink_metadata(path)
         .with_context(|| format!("could not inspect plugin PE {}", path.display()))?;
     ensure!(
@@ -35,12 +52,20 @@ pub(crate) fn inspect(path: &Path, expected_architecture: Architecture) -> Resul
     );
     let bytes =
         fs::read(path).with_context(|| format!("could not read plugin PE {}", path.display()))?;
-    inspect_bytes(&bytes, expected_architecture)
+    inspect_bytes_inner(&bytes, expected_architecture, include_codeview)
 }
 
 pub(crate) fn inspect_bytes(
     bytes: &[u8],
     expected_architecture: Architecture,
+) -> Result<PeInspection> {
+    inspect_bytes_inner(bytes, expected_architecture, false)
+}
+
+fn inspect_bytes_inner(
+    bytes: &[u8],
+    expected_architecture: Architecture,
+    include_codeview: bool,
 ) -> Result<PeInspection> {
     ensure!(
         bytes.len() >= 64 && bytes.get(..2) == Some(b"MZ"),
@@ -96,10 +121,23 @@ pub(crate) fn inspect_bytes(
     );
     let sections = read_sections(bytes, optional, optional_size, section_count)?;
     let exports = read_exports(bytes, export_rva, &sections)?;
+    let codeview_identity = if include_codeview {
+        read_codeview_identity(
+            bytes,
+            optional,
+            optional_size,
+            directories_offset,
+            directory_count,
+            &sections,
+        )?
+    } else {
+        None
+    };
     Ok(PeInspection {
         machine: machine.to_owned(),
         is_dll: characteristics & 0x2000 != 0,
         exports,
+        codeview_identity,
     })
 }
 
@@ -196,6 +234,95 @@ fn read_exports(bytes: &[u8], export_rva: u32, sections: &[Section]) -> Result<V
         "plugin PE contains duplicate exported names"
     );
     Ok(exports)
+}
+
+const IMAGE_DEBUG_DIRECTORY_BYTES: usize = 28;
+const IMAGE_DEBUG_TYPE_CODEVIEW: u32 = 2;
+const MAX_DEBUG_DIRECTORY_BYTES: usize = IMAGE_DEBUG_DIRECTORY_BYTES * 4096;
+const MAX_CODEVIEW_BYTES: usize = 4096;
+
+fn read_codeview_identity(
+    bytes: &[u8],
+    optional: usize,
+    optional_size: usize,
+    directories_offset: usize,
+    directory_count: u32,
+    sections: &[Section],
+) -> Result<Option<CodeViewIdentity>> {
+    if directory_count <= 6 {
+        return Ok(None);
+    }
+    ensure!(
+        optional_size >= directories_offset,
+        "PE optional header does not contain its data directories"
+    );
+    let available_directories = (optional_size - directories_offset) / 8;
+    ensure!(
+        usize::try_from(directory_count)? <= available_directories,
+        "PE data directory count exceeds its optional header"
+    );
+    let debug_directory = optional
+        .checked_add(directories_offset + 6 * 8)
+        .context("PE debug directory offset overflow")?;
+    let debug_rva = read_u32(bytes, debug_directory)?;
+    let debug_size = usize::try_from(read_u32(bytes, debug_directory + 4)?)?;
+    if debug_rva == 0 && debug_size == 0 {
+        return Ok(None);
+    }
+    ensure!(
+        debug_rva != 0
+            && debug_size > 0
+            && debug_size <= MAX_DEBUG_DIRECTORY_BYTES
+            && debug_size.is_multiple_of(IMAGE_DEBUG_DIRECTORY_BYTES),
+        "PE debug directory has an invalid size or address"
+    );
+    let debug_offset = map_rva(bytes, debug_rva, debug_size, sections)?;
+    let mut identity = None;
+    for index in 0..(debug_size / IMAGE_DEBUG_DIRECTORY_BYTES) {
+        let entry = debug_offset + index * IMAGE_DEBUG_DIRECTORY_BYTES;
+        if read_u32(bytes, entry + 12)? != IMAGE_DEBUG_TYPE_CODEVIEW {
+            continue;
+        }
+        let data_size = usize::try_from(read_u32(bytes, entry + 16)?)?;
+        ensure!(
+            (24..=MAX_CODEVIEW_BYTES).contains(&data_size),
+            "PE CodeView record has an invalid size"
+        );
+        let data_rva = read_u32(bytes, entry + 20)?;
+        let data_pointer = usize::try_from(read_u32(bytes, entry + 24)?)?;
+        let data_offset = if data_rva != 0 {
+            let mapped = map_rva(bytes, data_rva, data_size, sections)?;
+            ensure!(
+                data_pointer == 0 || data_pointer == mapped,
+                "PE CodeView file offset disagrees with its RVA"
+            );
+            mapped
+        } else {
+            read_slice(bytes, data_pointer, data_size)?;
+            data_pointer
+        };
+        ensure!(
+            read_slice(bytes, data_offset, 4)? == b"RSDS",
+            "PE CodeView record is not an RSDS record"
+        );
+        let guid: [u8; 16] = read_slice(bytes, data_offset + 4, 16)?
+            .try_into()
+            .context("PE CodeView GUID is truncated")?;
+        let age = read_u32(bytes, data_offset + 20)?;
+        let path = read_slice(bytes, data_offset + 24, data_size - 24)?;
+        ensure!(path.contains(&0), "PE CodeView PDB path is not terminated");
+        ensure!(
+            guid.iter().any(|byte| *byte != 0) && age > 0,
+            "PE CodeView identity is empty"
+        );
+        let current = CodeViewIdentity { guid, age };
+        ensure!(
+            identity.is_none_or(|previous| previous == current),
+            "PE has conflicting CodeView identities"
+        );
+        identity = Some(current);
+    }
+    Ok(identity)
 }
 
 fn map_rva(bytes: &[u8], rva: u32, size: usize, sections: &[Section]) -> Result<usize> {

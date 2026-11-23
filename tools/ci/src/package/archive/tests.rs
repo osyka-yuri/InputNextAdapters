@@ -181,6 +181,46 @@ fn test_pe(machine: u16, magic: u16, exports: &[&str]) -> Vec<u8> {
         string_rva += name.len() as u32 + 1;
         string_offset += name.len() + 1;
     }
+    let debug_directory = optional + directory + 6 * 8;
+    bytes[debug_directory..debug_directory + 4].copy_from_slice(&0x1400_u32.to_le_bytes());
+    bytes[debug_directory + 4..debug_directory + 8].copy_from_slice(&28_u32.to_le_bytes());
+    bytes[0x600 + 12..0x600 + 16].copy_from_slice(&2_u32.to_le_bytes());
+    let pdb_path = b"InputNext.pdb\0";
+    let codeview_size = 38_u32;
+    bytes[0x600 + 16..0x600 + 20].copy_from_slice(&codeview_size.to_le_bytes());
+    bytes[0x600 + 20..0x600 + 24].copy_from_slice(&0x1420_u32.to_le_bytes());
+    bytes[0x600 + 24..0x600 + 28].copy_from_slice(&0x620_u32.to_le_bytes());
+    bytes[0x620..0x624].copy_from_slice(b"RSDS");
+    bytes[0x624..0x634].copy_from_slice(&[0x45; 16]);
+    bytes[0x634..0x638].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[0x638..0x638 + pdb_path.len()].copy_from_slice(pdb_path);
+    bytes
+}
+
+fn test_pdb(guid: [u8; 16], age: u32) -> Vec<u8> {
+    let mut bytes = vec![0_u8; 7 * 512];
+    bytes[..32].copy_from_slice(b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0");
+    bytes[32..36].copy_from_slice(&512_u32.to_le_bytes());
+    bytes[36..40].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[40..44].copy_from_slice(&7_u32.to_le_bytes());
+    bytes[44..48].copy_from_slice(&28_u32.to_le_bytes());
+    bytes[52..56].copy_from_slice(&2_u32.to_le_bytes());
+    bytes[2 * 512..2 * 512 + 4].copy_from_slice(&4_u32.to_le_bytes());
+    bytes[4 * 512..4 * 512 + 4].copy_from_slice(&4_u32.to_le_bytes());
+    bytes[4 * 512 + 4..4 * 512 + 8].copy_from_slice(&u32::MAX.to_le_bytes());
+    bytes[4 * 512 + 8..4 * 512 + 12].copy_from_slice(&28_u32.to_le_bytes());
+    bytes[4 * 512 + 12..4 * 512 + 16].copy_from_slice(&u32::MAX.to_le_bytes());
+    bytes[4 * 512 + 16..4 * 512 + 20].copy_from_slice(&64_u32.to_le_bytes());
+    bytes[4 * 512 + 20..4 * 512 + 24].copy_from_slice(&5_u32.to_le_bytes());
+    bytes[4 * 512 + 24..4 * 512 + 28].copy_from_slice(&6_u32.to_le_bytes());
+    let info = 5 * 512;
+    bytes[info..info + 4].copy_from_slice(&20_140_508_u32.to_le_bytes());
+    bytes[info + 8..info + 12].copy_from_slice(&age.to_le_bytes());
+    bytes[info + 12..info + 28].copy_from_slice(&guid);
+    let dbi = 6 * 512;
+    bytes[dbi..dbi + 4].copy_from_slice(&u32::MAX.to_le_bytes());
+    bytes[dbi + 4..dbi + 8].copy_from_slice(&19_990_903_u32.to_le_bytes());
+    bytes[dbi + 8..dbi + 12].copy_from_slice(&age.to_le_bytes());
     bytes
 }
 
@@ -252,7 +292,7 @@ fn validate_payload_shape_rejects_missing_each_required_file_individually() -> R
                 .map(|path| ((*path).to_owned(), 100_u64, "hash".to_owned()))
                 .collect::<Vec<_>>();
             let err = match validate_payload_shape(temporary.path(), &expectation, &files) {
-                Ok(()) => anyhow::bail!(
+                Ok(_) => anyhow::bail!(
                     "for product {product:?} missing {missing}, expected error but got Ok"
                 ),
                 Err(err) => err.to_string(),
@@ -298,7 +338,7 @@ fn validate_payload_shape_rejects_empty_license_or_payload_files() -> Result<()>
                 })
                 .collect::<Vec<_>>();
             let err = match validate_payload_shape(temporary.path(), &expectation, &files) {
-                Ok(()) => anyhow::bail!(
+                Ok(_) => anyhow::bail!(
                     "for product {product:?} empty {empty}, expected error but got Ok"
                 ),
                 Err(err) => err.to_string(),
@@ -436,15 +476,52 @@ fn verify_x86_adapter_rejections(
     fs::create_dir_all(symbols.join("symbols"))?;
     let symbols_expectation = PackageExpectation {
         kind: PackageKind::Symbols,
-        ..expectation
+        ..expectation.clone()
     };
     let symbol_archive = temporary.join(package_filename(&symbols_expectation));
     let arbitrary = symbols.join("symbols/arbitrary.pdb");
     fs::write(&arbitrary, b"wrong name")?;
     assert!(write_package_archive(&symbols, &symbol_archive, &symbols_expectation).is_err());
 
-    fs::rename(arbitrary, symbols.join(format!("symbols/{plugin}.pdb")))?;
+    let pdb = symbols.join(format!("symbols/{plugin}.pdb"));
+    fs::rename(arbitrary, &pdb)?;
+    assert!(write_package_archive(&symbols, &symbol_archive, &symbols_expectation).is_err());
+
+    fs::write(&pdb, test_pdb([0x45; 16], 1))?;
     write_package_archive(&symbols, &symbol_archive, &symbols_expectation)?;
+    let symbols_extracted = temporary.join(format!("{}-symbols-extracted", product.as_str()));
+    crate::tooling::inspect_archive(&symbol_archive, crate::tooling::ArchiveFormat::Zip)?;
+    crate::tooling::extract_archive(
+        &symbol_archive,
+        crate::tooling::ArchiveFormat::Zip,
+        &symbols_extracted,
+    )?;
+    let binary = inspect_extracted_package(extracted, &expectation)?;
+    let symbol_package = inspect_extracted_package(&symbols_extracted, &symbols_expectation)?;
+    assert!(
+        crate::package::verify_match(binary.codeview_identity, symbol_package.codeview_identity)
+            .is_ok()
+    );
+    assert!(
+        crate::package::verify_match(
+            binary.codeview_identity,
+            Some(crate::package::CodeViewIdentity {
+                guid: [0x46; 16],
+                age: 1,
+            })
+        )
+        .is_err()
+    );
+    assert!(
+        crate::package::verify_match(
+            binary.codeview_identity,
+            Some(crate::package::CodeViewIdentity {
+                guid: [0x45; 16],
+                age: 2,
+            })
+        )
+        .is_err()
+    );
     Ok(())
 }
 

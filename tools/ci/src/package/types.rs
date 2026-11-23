@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
+use super::symbols::CodeViewIdentity;
 use crate::model::{Architecture, NativeStatus, Product, SourceIdentity};
 
 /// The independently inventoried payload produced for a product.
@@ -53,6 +54,8 @@ pub struct VerifiedPackage {
     pub entry_count: usize,
     pub pe_machine: Option<String>,
     pub exports: Vec<String>,
+    #[serde(skip)]
+    pub(crate) codeview_identity: Option<CodeViewIdentity>,
 }
 
 /// Result of verifying an installed or extracted-source package consumer.
