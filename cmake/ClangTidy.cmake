@@ -115,8 +115,8 @@ function(_inputnext_finalize_clang_tidy target)
         "--extra-arg-before=-Qunused-arguments"
     )
     set_property(TARGET "${target}" PROPERTY C_CLANG_TIDY "${_inputnext_tidy_command}")
-    # Keep MSVC exception and textual forced-include semantics in Clang tooling.
-    list(APPEND _inputnext_tidy_command "--extra-arg=/EHsc")
+    # clang-cl does not recognize MSVC's /std:c++23 spelling.
+    list(APPEND _inputnext_tidy_command "--extra-arg=/EHsc" "--extra-arg=/clang:-std=c++23")
     get_target_property(_inputnext_pch_headers "${target}" PRECOMPILE_HEADERS)
     if(_inputnext_pch_headers)
         foreach(_inputnext_pch_header IN LISTS _inputnext_pch_headers)

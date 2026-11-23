@@ -123,15 +123,13 @@ void OutputSession::bind_new_target(const input_next_device_target_v1& target,
         return;
     }
 
-    binding_.emplace();
-    binding_->target = target;
-    binding_->context = context;
-    binding_->capabilities = capabilities;
-    binding_->started_at = now;
-    binding_->body_baseline_at = now;
-    binding_->observed_audio_instance_id = audio_instance;
-    binding_->body_lease_supported = body_supported;
-    binding_->context_state = INPUT_NEXT_EFFECTS_CONTEXT_OPEN;
+    binding_.emplace(Binding{.target = target,
+        .context = context,
+        .capabilities = capabilities,
+        .started_at = now,
+        .body_baseline_at = now,
+        .observed_audio_instance_id = audio_instance,
+        .body_lease_supported = body_supported});
     observer_.binding_changed(now);
     diagnostics_.last_status = INPUT_NEXT_STATUS_OK;
     observation_at_.reset();

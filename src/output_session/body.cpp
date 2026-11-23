@@ -459,8 +459,7 @@ bool OutputSession::submit_body(BodySubmissionPlan& plan,
     body_last_attempt_failed_ = false;
     const BodySubmissionTimes times{.started_at = now, .returned_at = clock.now()};
     if (plan.acquiring) {
-        body_owner_.emplace().target = target;
-        body_owner_->context = plan.request.context;
+        body_owner_.emplace(BodyOwner{.target = target, .context = plan.request.context});
     }
     if (!body_owner_) {
         return false;
