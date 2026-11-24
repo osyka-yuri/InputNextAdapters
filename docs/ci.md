@@ -38,7 +38,7 @@ The Release workflow is manually dispatched from `main` with an existing stable 
 
 Releases use the published InputNext runtime pair in the [repository catalog](../.github/ci/runtime-pair.json) by default. To qualify a different pair, supply its published runtime-pair manifest as JSON. Compatibility checks use archive identity, SHA-256, architecture and Core/Effects header bytes. A local development package can be tested but cannot replace an identified published release; no particular runtime source commit is required.
 
-Oblivion requires a published InputNext pair with an x86 `bin/dinput8.dll` that exports `DirectInput8Create`. The release check matches the DLL's SHA-256 with the content manifest inside the qualified ZIP. Foundation releases qualify all adapters and share that requirement. The catalog's InputNext 1.1.0 pair supports New Vegas through XInput.
+Oblivion requires a published InputNext pair with an x86 `bin/dinput8.dll` that exports `DirectInput8Create`. The release check matches the DLL's SHA-256 with the content manifest inside the qualified ZIP. Foundation releases qualify all adapters and share that requirement.
 
 Each release checks the real runtime client on x64 and x86 and the selected adapter's package cases. Foundation or complete pairing qualification covers all adapters. These cold-runtime tests establish ABI and request validation; live gameplay and physical feedback require separate checks.
 
