@@ -4,7 +4,7 @@
 [![Release](https://github.com/osyka-yuri/InputNextAdapters/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/osyka-yuri/InputNextAdapters/actions/workflows/release.yml)
 [![Attestations](https://img.shields.io/badge/attestations-Sigstore-blue)](https://github.com/osyka-yuri/InputNextAdapters/attestations)
 
-InputNextAdapters adds controller feedback to Skyrim, Oblivion Classic and Fallout 4 through [InputNext](https://github.com/osyka-yuri/InputNext). Weapon actions, hits and player state drive USB HD haptics with classic rumble fallback, plus adaptive triggers where supported. [Lightbar indications](docs/leds.md) show temporary health changes and supported stealth and radiation states.
+InputNextAdapters adds controller feedback to Skyrim, Oblivion Classic, Fallout New Vegas, and Fallout 4 through [InputNext](https://github.com/osyka-yuri/InputNext). Weapon actions, hits, and player state drive HD haptics with classic rumble fallback. Supported games also use adaptive triggers and [lightbar feedback](docs/leds.md) for health, stealth, or radiation.
 
 ## Game adapters
 
@@ -12,7 +12,8 @@ InputNextAdapters adds controller feedback to Skyrim, Oblivion Classic and Fallo
 | --- | --- | --- | --- |
 | Skyrim Special Edition / Anniversary Edition | [InputNextSkyrim](adapters/skyrim_se/README.md) | [![Skyrim SE release](https://img.shields.io/github/v/release/osyka-yuri/InputNextAdapters?filter=skyrim-se%2Fv%2A&display_name=tag&label=release)](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-se) | x64 |
 | Skyrim Classic / Legendary Edition | [InputNextSkyrimLE](adapters/skyrim_le/README.md) | [![Skyrim LE release](https://img.shields.io/github/v/release/osyka-yuri/InputNextAdapters?filter=skyrim-le%2Fv%2A&display_name=tag&label=release)](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-le) | x86 |
-| Oblivion Classic | [InputNextOblivion](adapters/oblivion/README.md) | [Local build](adapters/oblivion/README.md#build-and-package) | x86 |
+| Oblivion Classic | [InputNextOblivion](adapters/oblivion/README.md) | [![Oblivion release](https://img.shields.io/github/v/release/osyka-yuri/InputNextAdapters?filter=oblivion%2Fv%2A&display_name=tag&label=release)](https://github.com/osyka-yuri/InputNextAdapters/releases?q=oblivion) | x86 |
+| Fallout New Vegas | [InputNextFalloutNewVegas](adapters/fallout_new_vegas/README.md) | [![Fallout New Vegas release](https://img.shields.io/github/v/release/osyka-yuri/InputNextAdapters?filter=fallout-new-vegas%2Fv%2A&display_name=tag&label=release)](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout-new-vegas) | x86 |
 | Fallout 4 | [InputNextFallout4](adapters/fallout4/README.md) | [![Fallout 4 release](https://img.shields.io/github/v/release/osyka-yuri/InputNextAdapters?filter=fallout4%2Fv%2A&display_name=tag&label=release)](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout4) | x64 |
 
 Start with the guide for your game. It lists supported game versions, dependencies and installation steps. Skyrim LE provides body and health lightbar feedback; adaptive-trigger effects are unavailable. VR is unsupported.

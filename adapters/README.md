@@ -6,8 +6,8 @@ Each plugin translates game actions and player state into InputNext effects. Cho
 | --- | --- | --- | --- |
 | Skyrim Special Edition / Anniversary Edition | x64 | [InputNextSkyrim](skyrim_se/README.md) | [Skyrim SE](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-se) |
 | Skyrim Classic / Legendary Edition 1.9.32.0 | x86 | [InputNextSkyrimLE](skyrim_le/README.md) | [Skyrim LE](https://github.com/osyka-yuri/InputNextAdapters/releases?q=skyrim-le) |
-| Oblivion Classic 1.2.0.416 | x86 | [InputNextOblivion](oblivion/README.md) | [Local build](oblivion/README.md#build-and-package) |
-| Fallout New Vegas 1.4.0.525 | x86 | [InputNextFalloutNewVegas](fallout_new_vegas/README.md) | [Local build](fallout_new_vegas/README.md#build-and-package) |
+| Oblivion Classic 1.2.0.416 | x86 | [InputNextOblivion](oblivion/README.md) | [Oblivion releases](https://github.com/osyka-yuri/InputNextAdapters/releases?q=oblivion) |
+| Fallout New Vegas 1.4.0.525 | x86 | [InputNextFalloutNewVegas](fallout_new_vegas/README.md) | [New Vegas releases](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout-new-vegas) |
 | Fallout 3 1.7.0.3 | x86 | [FOSE load check](fallout3/README.md) | Test build |
 | Fallout 4 1.11.240.0 | x64 | [InputNextFallout4](fallout4/README.md) | [Fallout 4](https://github.com/osyka-yuri/InputNextAdapters/releases?q=fallout4) |
 
