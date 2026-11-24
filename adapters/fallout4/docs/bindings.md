@@ -70,9 +70,36 @@ A positive count alone does not establish a launch. Admission requires a nonnull
 
 Notify is synchronous with live borrowed payloads; callback threading is not established. The callback copies bounded player attribution and identity only. Ammo changes, held input, AP expenditure, and firing animation state are not substitutes for an actual shot.
 
+### Magazine state
+
+`Actor::UseAmmo` calls `Actor::OnMagazineEmpty` (RVA `0xcd2700`) on the engine's zero-round
+path. The adapter observes `EquippedWeaponData::ammoCount`, the field read by
+`Actor::GetCurrentAmmoCount`, during the existing locked equipment observation. It requires a
+firearm with an ammo form, a nonzero capacity, and the checked `EquippedWeaponData` vtable at
+`0x256aee0`. A missing or replaced vtable leaves the magazine state unknown.
+
+A confirmed shot and a fresh loaded-to-empty transition for the same weapon can arrive on
+different worker ticks. The ordinary fire path notifies at `0x47a22d` before calling
+`UseAmmo` at `0x47a491`. The tracker allows a shot up to 40 ms before the last loaded sample
+when the observed round count stayed the same, and up to 40 ms after the first empty sample.
+A new positive count sets a fresh lower bound. Each transition consumes the latest eligible shot
+and retains its original timestamp. Mode, equipment, and session resets clear pending evidence.
+
 ## Hits and weapon families
 
 Extended hit flags are read only with `usesHitData`; prediction flags are rejected. Only `kExplosion` (`0x100000`) selects explosive damage. `kExplodeLimb` (`0x80`), dismemberment, and crippling select limb damage.
+
+The projectile contact path at RVA `0xe501da` passes the material's name to the
+nonextended `TESHitEvent` sender at `0x52cf80`. The sender at `0x52d0b0`
+copies extended damage data and clears the outer target, cause, and material.
+The adapter attributes those hits using the embedded actor handles and the
+admitted player's cached handle. For nonextended player projectile contacts,
+it classifies exact `MATT` names from `Fallout4.esm`. The numeric
+`HitData::material` remains uninterpreted.
+
+On the inspected projectile path, an actor contact without a projectile spell bypasses
+the material sender. The two event layouts expose no shared per-impact identifier, so the
+adapter does not merge notifications by frame, actor pair, or projectile form.
 
 The equipped instance's keyword form replaces base keywords when present, including an empty instance form. Combining sets would restore keywords removed by modifications. Base keywords are fallback only when instance data is absent.
 

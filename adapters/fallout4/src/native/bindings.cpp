@@ -550,6 +550,38 @@ std::size_t checked_image_size() noexcept {
     return checked_image().size;
 }
 
+bool is_equipped_weapon_data(const RE::EquippedItemData& data) noexcept {
+    static const auto expected_vtable = [] noexcept -> std::uintptr_t {
+        // RE::VTABLE::EquippedWeaponData in the supported 1.11.240 executable.
+        constexpr std::uintptr_t rva = 0x256aee0;
+        constexpr std::array<std::uintptr_t, 5> method_rvas{0xd4a460,
+            0x16babf0,
+            0xd30b90,
+            0xd30c20,
+            0xd30d60};
+        const auto& image = checked_image();
+        if (image.base == 0 || !range_within_image(rva, sizeof(method_rvas), image.size)) {
+            return 0;
+        }
+        std::array<std::uintptr_t, method_rvas.size()> methods{};
+        std::memcpy(methods.data(),
+            reinterpret_cast<const void*>(image.base + rva),
+            sizeof(methods));
+        for (std::size_t index = 0; index < methods.size(); ++index) {
+            if (methods[index] != image.base + method_rvas[index]) {
+                return 0;
+            }
+        }
+        return image.base + rva;
+    }();
+    if (expected_vtable == 0) {
+        return false;
+    }
+    std::uintptr_t vtable{};
+    std::memcpy(&vtable, std::addressof(data), sizeof(vtable));
+    return vtable == expected_vtable;
+}
+
 RE::BSReadWriteLock* input_context_stack_lock() noexcept {
     const auto base = checked_image_base();
     return base ? reinterpret_cast<RE::BSReadWriteLock*>(base + input_context_stack_lock_rva)

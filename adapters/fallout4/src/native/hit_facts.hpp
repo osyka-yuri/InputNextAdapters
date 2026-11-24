@@ -1,8 +1,12 @@
 #pragma once
 
+#include "contact_surface.hpp"
+
 #include <fallout4_adapter/model.hpp>
 
+#include <RE/B/BSPointerHandle.h>
 #include <RE/H/HitData.h>
+#include <RE/T/TESHitEvent.h>
 
 #include <algorithm>
 #include <cmath>
@@ -12,22 +16,22 @@
 namespace fallout4_adapter::native {
 using HitFlags = REX::TEnumSet<RE::HitData::Flag, std::uint32_t>;
 
-struct HitAddresses {
+struct HitParticipants {
     std::uintptr_t player{};
     std::uintptr_t target{};
     std::uintptr_t cause{};
 };
 
-[[nodiscard]] inline std::optional<PolicyEvent> normalize_hit_event(HitAddresses addresses,
+[[nodiscard]] inline std::optional<PolicyEvent> normalize_hit_event(HitParticipants participants,
     std::optional<HitFlags> flags,
     std::uint64_t weapon_identity,
     std::optional<float> health_damage = std::nullopt) noexcept {
-    if (addresses.player == 0) {
+    if (participants.player == 0) {
         return std::nullopt;
     }
 
-    const bool received = addresses.target == addresses.player;
-    const bool dealt = !received && addresses.cause == addresses.player;
+    const bool received = participants.target == participants.player;
+    const bool dealt = !received && participants.cause == participants.player;
     if (!received && !dealt) {
         return std::nullopt;
     }
@@ -67,5 +71,41 @@ struct HitAddresses {
         event.melee = flags->any(RE::HitData::Flag::kMeleeAttack);
     }
     return event;
+}
+
+struct HitPlayer {
+    std::uintptr_t address{};
+    std::uint32_t handle{};
+    std::uint64_t weapon_identity{};
+};
+
+[[nodiscard]] inline HitParticipants actor_hit_participants(std::uint32_t player_handle,
+    RE::ActorHandle target,
+    RE::ActorHandle aggressor) noexcept {
+    return {.player = player_handle,
+        .target = target.get_handle(),
+        .cause = aggressor.get_handle()};
+}
+
+[[nodiscard]] inline std::optional<PolicyEvent> copy_hit_event(const RE::TESHitEvent& event,
+    const HitPlayer& player) noexcept {
+    if (event.usesHitData) {
+        // The extended sender leaves the outer target and cause empty.
+        return normalize_hit_event(
+            actor_hit_participants(player.handle, event.hitData.target, event.hitData.aggressor),
+            event.hitData.flags,
+            player.weapon_identity,
+            event.hitData.healthDamage);
+    }
+    auto copied =
+        normalize_hit_event({.player = player.address,
+                                .target = reinterpret_cast<std::uintptr_t>(event.target.get()),
+                                .cause = reinterpret_cast<std::uintptr_t>(event.cause.get())},
+            std::nullopt,
+            player.weapon_identity);
+    if (copied && copied->kind == EventKind::hit_dealt) {
+        copied->surface = projectile_surface(event.projectileFormID, event.material);
+    }
+    return copied;
 }
 } // namespace fallout4_adapter::native

@@ -2,6 +2,7 @@
 
 #include "fallout4_adapter/detail/body_voice_mixer.hpp"
 #include "fallout4_adapter/detail/landing_detector.hpp"
+#include "fallout4_adapter/detail/magazine_cue_tracker.hpp"
 #include "fallout4_adapter/detail/resource_cue_tracker.hpp"
 #include "model.hpp"
 
@@ -61,6 +62,7 @@ private:
     detail::BodyVoiceMixer body_voice_mixer_{};
     detail::ResourceCueTracker resource_cue_tracker_{};
     detail::LandingDetector landing_detector_{};
+    detail::MagazineCueTracker magazine_cue_tracker_{};
     std::optional<MechanicBaseline> previous_mechanics_;
     std::optional<Mode> previous_mode_;
     std::optional<std::uint64_t> previous_weapon_identity_;

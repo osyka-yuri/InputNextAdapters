@@ -13,6 +13,7 @@
 #include <input_next_effects.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -68,6 +69,28 @@ void sanitize_effect_settings(EffectSettings& settings) noexcept {
             (*adjustment.vibration_frequency_code == 0 ||
                 *adjustment.vibration_frequency_code > 255)) {
             adjustment.vibration_frequency_code.reset();
+        }
+    }
+}
+
+void apply_outgoing_hit_settings(EffectSettings& settings) noexcept {
+    constexpr std::array surfaces{BodyEffect::metal_impact,
+        BodyEffect::stone_impact,
+        BodyEffect::wood_impact,
+        BodyEffect::glass_impact};
+    const auto& outgoing = settings.body[static_cast<std::size_t>(BodyEffect::outgoing_hit)];
+    for (const auto effect : surfaces) {
+        auto& surface = settings.body[static_cast<std::size_t>(effect)];
+        surface.enabled = surface.enabled && outgoing.enabled;
+        surface.hd_scale = std::min(surface.hd_scale * outgoing.hd_scale, 2.0F);
+        surface.classic_scale = std::min(surface.classic_scale * outgoing.classic_scale, 2.0F);
+        surface.duration_scale =
+            std::clamp(surface.duration_scale * outgoing.duration_scale, 0.25F, 2.0F);
+        if (!surface.frequency_hz) {
+            surface.frequency_hz = outgoing.frequency_hz;
+        }
+        if (!surface.audio_haptic && outgoing.audio_haptic_is_external) {
+            surface.audio_haptic = outgoing.audio_haptic;
         }
     }
 }
@@ -199,7 +222,8 @@ void populate_held_trigger_profiles(OutputFrame& frame,
 
     const auto trigger = detail::trigger_recipe_for(family);
     const float automatic_scale = ranged_profile && observation.weapon.automatic ? 0.90F : 1.0F;
-    if (!observation.blocking && attack_side != TriggerSide::none) {
+    const bool magazine_empty = ranged_profile && observation.weapon.loaded_rounds == 0U;
+    if (!observation.blocking && !magazine_empty && attack_side != TriggerSide::none) {
         assign_trigger(frame,
             attack_side,
             make_feedback({
@@ -375,7 +399,24 @@ struct OutgoingHitCue {
     if (event.melee) {
         return {.effect = BodyEffect::melee_hit, .priority_override = std::nullopt};
     }
-    return {.effect = BodyEffect::outgoing_hit, .priority_override = std::nullopt};
+    auto effect = BodyEffect::outgoing_hit;
+    switch (event.surface) {
+    case ContactSurface::metal:
+        effect = BodyEffect::metal_impact;
+        break;
+    case ContactSurface::stone:
+        effect = BodyEffect::stone_impact;
+        break;
+    case ContactSurface::wood:
+        effect = BodyEffect::wood_impact;
+        break;
+    case ContactSurface::glass:
+        effect = BodyEffect::glass_impact;
+        break;
+    case ContactSurface::unknown:
+        break;
+    }
+    return {.effect = effect, .priority_override = std::nullopt};
 }
 
 [[nodiscard]] BodyEffect footstep_cue(const PolicyEvent& event) noexcept {
@@ -389,6 +430,7 @@ const inputnext::adapters::LedSettings& sanitize_and_get_leds(PolicyConfig& conf
     config.trigger_scale = bounded_scale(config.trigger_scale);
     config.body_scale = bounded_scale(config.body_scale);
     sanitize_effect_settings(config.effects);
+    apply_outgoing_hit_settings(config.effects);
     return config.effects.leds;
 }
 
@@ -413,6 +455,7 @@ void Policy::reset_resources() noexcept {
 
 void Policy::reset_mechanic_baseline() noexcept {
     previous_mechanics_.reset();
+    magazine_cue_tracker_.reset();
 }
 
 void Policy::reset_effects() noexcept {
@@ -507,6 +550,17 @@ void Policy::update_mechanic_cues(const Observation& observation, MonoTime now) 
         return;
     }
 
+    const auto loaded_rounds =
+        observation.weapon.drawn && has_ranged_profile(observation.weapon.family)
+            ? observation.weapon.loaded_rounds
+            : std::nullopt;
+    if (const auto last_round = magazine_cue_tracker_.update(loaded_rounds,
+            observation.sampled_at,
+            now,
+            observation_max_age)) {
+        add_cue(BodyEffect::magazine_empty, now, *last_round);
+    }
+
     if (previous_mechanics_) {
         const auto previous = *previous_mechanics_;
         if (previous.weapon_identity != 0 && observation.weapon.identity != 0 &&
@@ -540,6 +594,7 @@ void Policy::add_event(const PolicyEvent& event,
     switch (event.kind) {
     case EventKind::shot: {
         add_cue(shot_cue(observation.weapon.family), now, event.arrived_at, intensity);
+        magazine_cue_tracker_.record_shot(event.arrived_at);
         const auto* adjustment = trigger_adjustment_for(config_.effects, observation.weapon.family);
         if (config_.effects.triggers_enabled && config_.trigger_scale > 0.0F && adjustment &&
             adjustment->enabled && shot_trigger_context_available(observation) &&

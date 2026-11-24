@@ -43,6 +43,11 @@ enum class BodyEffect : std::uint8_t {
     launcher_shot,
     ordinary_step,
     sprint_step,
+    magazine_empty,
+    metal_impact,
+    stone_impact,
+    wood_impact,
+    glass_impact,
     count,
 };
 
@@ -84,6 +89,11 @@ inline constexpr std::array body_effect_descriptors{
     BodyEffectDescriptor{.effect = BodyEffect::launcher_shot, .section = "Body.LauncherShot"},
     BodyEffectDescriptor{.effect = BodyEffect::ordinary_step, .section = "Body.OrdinaryStep"},
     BodyEffectDescriptor{.effect = BodyEffect::sprint_step, .section = "Body.SprintStep"},
+    BodyEffectDescriptor{.effect = BodyEffect::magazine_empty, .section = "Body.MagazineEmpty"},
+    BodyEffectDescriptor{.effect = BodyEffect::metal_impact, .section = "Body.MetalImpact"},
+    BodyEffectDescriptor{.effect = BodyEffect::stone_impact, .section = "Body.StoneImpact"},
+    BodyEffectDescriptor{.effect = BodyEffect::wood_impact, .section = "Body.WoodImpact"},
+    BodyEffectDescriptor{.effect = BodyEffect::glass_impact, .section = "Body.GlassImpact"},
 };
 
 inline constexpr auto body_effect_count = static_cast<std::size_t>(BodyEffect::count);
@@ -95,6 +105,7 @@ struct BodyAdjustment {
     float duration_scale{1.0F};
     std::optional<float> frequency_hz;
     std::optional<inputnext::adapters::AudioHapticProfile> audio_haptic;
+    bool audio_haptic_is_external{};
 };
 
 enum class TriggerProfile : std::uint8_t {

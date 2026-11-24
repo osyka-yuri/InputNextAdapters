@@ -3,21 +3,31 @@
 #undef FAIL
 
 #include "fallout4_adapter/model.hpp"
+#include "native/contact_surface.hpp"
 #include "native/hit_facts.hpp"
 
+#include <RE/B/BSPointerHandle.h>
 #include <RE/H/HitData.h>
 
+#include <algorithm>
+#include <array>
+#include <bit>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace {
+using fallout4_adapter::ContactSurface;
 using fallout4_adapter::EventKind;
-using fallout4_adapter::native::HitAddresses;
+using fallout4_adapter::native::actor_hit_participants;
 using fallout4_adapter::native::HitFlags;
+using fallout4_adapter::native::HitParticipants;
 using fallout4_adapter::native::normalize_hit_event;
+using fallout4_adapter::native::projectile_surface;
 using HitFlag = RE::HitData::Flag;
 
 constexpr std::uintptr_t player_address = 0x1000U;
@@ -39,13 +49,64 @@ void check(bool condition, std::string_view message) {
     std::uintptr_t cause,
     std::optional<HitFlags> flags = std::nullopt,
     std::optional<float> health_damage = std::nullopt) noexcept {
-    return normalize_hit_event(HitAddresses{.player = player, .target = target, .cause = cause},
+    return normalize_hit_event(HitParticipants{.player = player, .target = target, .cause = cause},
         flags,
         weapon_identity,
         health_damage);
 }
 
+void set_handle(RE::ActorHandle& handle, std::uint32_t value) {
+    static_assert(sizeof(handle) == sizeof(value));
+    const auto bytes = std::bit_cast<std::array<std::byte, sizeof(value)>>(value);
+    std::ranges::copy(bytes, std::as_writable_bytes(std::span{&handle, 1U}).begin());
+}
+
 } // namespace
+
+TEST_CASE("fallout4.native_hit.projectile_surface_requires_a_known_reported_name",
+    "[unit][fallout4][native_hit]") {
+    CHECK(projectile_surface(42, "MetalSolid") == ContactSurface::metal);
+    CHECK(projectile_surface(42, "Concrete") == ContactSurface::stone);
+    CHECK(projectile_surface(42, "WoodBarrel") == ContactSurface::wood);
+    CHECK(projectile_surface(42, "BottleSmall") == ContactSurface::glass);
+    CHECK(projectile_surface(42, "UnknownMetal") == ContactSurface::unknown);
+    CHECK(projectile_surface(42, "") == ContactSurface::unknown);
+    CHECK(projectile_surface(0, "MetalSolid") == ContactSurface::unknown);
+}
+
+TEST_CASE("fallout4.native_hit.extended_sender_attributes_hits_with_actor_handles",
+    "[unit][fallout4][native_hit]") {
+    constexpr std::uint32_t player_handle = 0x0010'0011;
+    constexpr std::uint32_t other_handle = 0x0010'0022;
+    RE::ActorHandle target;
+    RE::ActorHandle aggressor;
+    const HitFlags flags{HitFlag::kCritical};
+    const auto decode = [&] {
+        return normalize_hit_event(actor_hit_participants(player_handle, target, aggressor),
+            flags,
+            weapon_identity,
+            50.0F);
+    };
+    CHECK_FALSE(decode());
+
+    set_handle(target, player_handle);
+    set_handle(aggressor, other_handle);
+    const auto received = decode();
+    REQUIRE(received);
+    CHECK((received && received->kind == EventKind::hit_received));
+    CHECK((received && received->confirmed_positive_health_damage));
+
+    set_handle(target, other_handle);
+    set_handle(aggressor, player_handle);
+    const auto dealt = decode();
+    REQUIRE(dealt);
+    CHECK((dealt && dealt->kind == EventKind::hit_dealt));
+    CHECK((dealt && dealt->critical));
+    CHECK((dealt && dealt->surface == ContactSurface::unknown));
+
+    set_handle(aggressor, 0);
+    CHECK_FALSE(decode());
+}
 
 TEST_CASE("fallout4.native_hit.explosion_and_limb_flag_masks", "[unit][fallout4][native_hit]") {
     const auto explode_limb =

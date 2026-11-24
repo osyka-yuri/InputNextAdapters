@@ -7,6 +7,10 @@
 #include <cstdint>
 #include <optional>
 
+namespace RE {
+class EquippedItemData;
+}
+
 namespace fallout4_adapter::native {
 struct WeaponFiredEvent;
 
@@ -22,6 +26,7 @@ struct ShotFacts {
 [[nodiscard]] bool bindings_available() noexcept;
 [[nodiscard]] std::uintptr_t checked_image_base() noexcept;
 [[nodiscard]] std::size_t checked_image_size() noexcept;
+[[nodiscard]] bool is_equipped_weapon_data(const RE::EquippedItemData& data) noexcept;
 // Borrowed engine lock; valid only while the validated executable remains loaded.
 [[nodiscard]] RE::BSReadWriteLock* input_context_stack_lock() noexcept;
 [[nodiscard]] bool register_weapon_fired(const RE::BSTEventSink<WeaponFiredEvent>* sink) noexcept;

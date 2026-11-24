@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0]
+
+- Add distinct synthesized HD haptics and classic rumble for projectile impacts on metal, stone, wood, and glass.
+- Add a grip cue for the last round. An empty magazine releases sustained fire-trigger resistance, while aiming resistance remains available.
+- Fix player attribution for extended hit events so outgoing hits and incoming damage trigger the appropriate feedback.
+
 ## [0.1.2]
 
 - Remove unnecessary executable checks to improve compatibility with modified Fallout 4 installations.

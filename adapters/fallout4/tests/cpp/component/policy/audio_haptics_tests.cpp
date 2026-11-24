@@ -159,6 +159,64 @@ TEST_CASE("fallout4.audio_haptics.binding_rejects_wrong_game_and_clears_disabled
     CHECK(bind_audio_haptics(bank, *settings) == 0);
 }
 
+TEST_CASE("fallout4.audio_haptics.surface_contacts_inherit_only_custom_outgoing_audio",
+    "[component][fallout4][policy][audio_haptics]") {
+    using inputnext::adapters::AudioHapticBankStatus;
+    using inputnext::adapters::AudioHapticGame;
+    const TemporaryAudioBank bank;
+    const auto config = std::make_unique<PolicyConfig>();
+    const auto profile = audio_profile();
+    auto expected_cue_frequency = detail::recipe_for(detail::Cue::stone_impact).wave.frequency;
+
+    SECTION("the embedded generic flesh waveform does not replace a stone texture") {
+    }
+    SECTION("an external ordinary-hit profile applies to new surface cues") {
+        bank.write(bank_bytes(AudioHapticGame::fallout4, "Body.OutgoingHit", profile));
+        expected_cue_frequency = profile.frequency;
+    }
+    SECTION("a surface can have its own external profile") {
+        bank.write(bank_bytes(AudioHapticGame::fallout4, "Body.StoneImpact", profile));
+        expected_cue_frequency = profile.frequency;
+    }
+
+    REQUIRE(load_audio_haptics(bank.config_path(), config->effects).status ==
+            AudioHapticBankStatus::loaded);
+    const auto policy = std::make_unique<Policy>(*config);
+    const auto observation = gameplay_at(1000);
+    auto hit = event(EventKind::hit_dealt, at(999), 1);
+    hit.surface = ContactSurface::stone;
+    const auto frame = update_on_heap(*policy, observation, std::array{hit}, at(1000));
+    const auto* voice = find_voice(*frame, detail::Cue::stone_impact);
+    REQUIRE(voice != nullptr);
+    CHECK(voice->wave.frequency == expected_cue_frequency);
+}
+
+TEST_CASE("fallout4.audio_haptics.surface_bank_entry_takes_precedence_over_ordinary_hit",
+    "[component][fallout4][policy][audio_haptics]") {
+    using inputnext::adapters::AudioHapticBank;
+    using inputnext::adapters::AudioHapticGame;
+    const auto ordinary_profile = audio_profile();
+    auto surface_profile = ordinary_profile;
+    surface_profile.frequency = 155.0F;
+    const AudioHapticBank bank{.game = AudioHapticGame::fallout4,
+        .entries = {{.section = "Body.StoneImpact", .profile = surface_profile},
+            {.section = "Body.OutgoingHit", .profile = ordinary_profile}}};
+    const auto config = std::make_unique<PolicyConfig>();
+    REQUIRE(bind_audio_haptics(bank, config->effects) == 2);
+    const auto policy = std::make_unique<Policy>(*config);
+    const auto observation = gameplay_at(1000);
+    auto stone = event(EventKind::hit_dealt, at(999), 1);
+    stone.surface = ContactSurface::stone;
+    const auto ordinary = event(EventKind::hit_dealt, at(999), 2);
+    const auto frame = update_on_heap(*policy, observation, std::array{stone, ordinary}, at(1000));
+    const auto* surface_voice = find_voice(*frame, detail::Cue::stone_impact);
+    const auto* ordinary_voice = find_voice(*frame, detail::Cue::outgoing_hit);
+    REQUIRE(surface_voice != nullptr);
+    REQUIRE(ordinary_voice != nullptr);
+    CHECK(surface_voice->wave.frequency == surface_profile.frequency);
+    CHECK(ordinary_voice->wave.frequency == ordinary_profile.frequency);
+}
+
 TEST_CASE("fallout4.audio_haptics.shot_uses_source_shape_and_preserves_classic_trigger_and_expiry",
     "[component][fallout4][policy][audio_haptics]") {
     const auto config = std::make_unique<PolicyConfig>();

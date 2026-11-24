@@ -4,6 +4,7 @@ add_executable(fallout4_policy_component_tests
     hit_feedback_tests.cpp
     led_integration_tests.cpp
     landing_tests.cpp
+    magazine_tests.cpp
     mechanics_tests.cpp
     support.cpp
     trigger_safety_tests.cpp

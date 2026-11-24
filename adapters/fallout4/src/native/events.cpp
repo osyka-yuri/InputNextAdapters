@@ -14,8 +14,6 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cstdint>
-#include <optional>
 #include <string_view>
 
 namespace fallout4_adapter::native {
@@ -77,20 +75,10 @@ RE::BSEventNotifyControl NativeOwner::ProcessEvent(const RE::TESHitEvent& event,
         return RE::BSEventNotifyControl::kContinue;
     }
 
-    const auto target_address = reinterpret_cast<std::uintptr_t>(event.target.get());
-    const auto cause_address = reinterpret_cast<std::uintptr_t>(event.cause.get());
-    std::optional<HitFlags> flags;
-    std::optional<float> health_damage;
-    if (event.usesHitData) {
-        flags.emplace(event.hitData.flags);
-        health_damage = event.hitData.healthDamage;
-    }
-
-    auto copied = normalize_hit_event(
-        HitAddresses{.player = player->address, .target = target_address, .cause = cause_address},
-        flags,
-        player->weapon_identity,
-        health_damage);
+    auto copied = copy_hit_event(event,
+        {.address = player->address,
+            .handle = player->handle,
+            .weapon_identity = player->weapon_identity});
     if (!copied) {
         return RE::BSEventNotifyControl::kContinue;
     }

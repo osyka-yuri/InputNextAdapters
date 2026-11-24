@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <optional>
 
 namespace fallout4_adapter::session_tests {
 
@@ -22,6 +23,7 @@ Observation observation(MonoTime now, Mode mode) {
         .automatic = false,
         .drawn = true,
         .ready = true,
+        .loaded_rounds = std::nullopt,
     };
     result.attack_trigger = TriggerSide::right;
     result.aim_trigger = TriggerSide::left;

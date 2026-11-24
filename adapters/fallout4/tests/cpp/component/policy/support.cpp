@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 
 namespace fallout4_adapter::policy_tests {
@@ -28,6 +29,7 @@ Observation gameplay_at(std::int64_t milliseconds) noexcept {
         .automatic = true,
         .drawn = true,
         .ready = true,
+        .loaded_rounds = std::nullopt,
     };
     observation.attack_trigger = TriggerSide::right;
     observation.aim_trigger = TriggerSide::left;

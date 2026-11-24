@@ -15,20 +15,18 @@ authored waveform choices, and digital verification. Carrier values are design p
 experimentally established ideal frequencies for each action. Firearm families use their complete
 carrier/component/envelope/trigger combinations; frequency alone does not guarantee recognition.
 
-The current policy does not retain contact material. The native CommonLibF4 event exposes material
-fields, but these are not yet copied or validated by this adapter. This is a current integration limit,
-not a claim that the engine or library cannot provide material information.
-
 | Source | Feedback |
 | --- | --- |
 | Player weapon-fired event | One recoil cue per shot, including misses; not one per pellet |
 | Incoming hit | Explosion, block, limb damage, or ordinary impact |
 | Outgoing player-attributed hit | Block, critical, bash, power attack, explosion, limb damage, melee, or ordinary contact |
+| Reported projectile surface | Distinct ordinary contact cues for known metal, stone, wood, and glass |
 | Equipped instance and mapped actions | Weapon-specific attack resistance, ranged aim resistance, melee block resistance, and an actual-shot trigger pulse |
 | VATS mode | Free triggers; optional entry and exit cues |
 | Current health and AP | Threshold warnings with hysteresis |
 | Validated critical count | Brief cue when availability changes from zero to positive |
 | Reload state | One mechanical accent at reload start for the same weapon |
+| Confirmed last round | One mechanical accent and release of held attack resistance after the recoil pulse |
 | Power-armor state | Entry and exit accents |
 | Active player animation graph | Power-armor and sprint foot-contact accents, optional ordinary foot-contact feedback |
 | Sampled physics controller and position | Height-scaled ordinary and power-armor landings |
@@ -43,6 +41,14 @@ Hit variants use this precedence:
 - Outgoing: block, critical, bash, power attack, explosion, limb damage, confirmed melee, ordinary contact.
 
 Incoming hits retain the highest mixer priority, including blocks; outgoing explosions keep ordinary outgoing priority. Limb destruction alone does not imply an explosion. Melee contact requires the hit's melee flag, independently of the equipped weapon. Missing extended data produces an ordinary impact; predicted hits are rejected.
+
+For ordinary outgoing projectile contacts, known surface names select a synthetic profile at the
+same mixer priority. Blank or unrecognized names use the ordinary hit profile. Each of the four
+surface profiles has its own settings in the reference INI. `Body.OutgoingHit` controls all
+ordinary outgoing contacts. Its scales multiply the per-surface scales, and its frequency and
+custom audio profile apply when a surface provides no override.
+The combined HD and classic scales are capped at 2.0. The combined duration scale stays
+within 0.25–2.0.
 
 Finite nonnegative health damage sets magnitude to `damage / (damage + 50)`; missing or invalid damage uses 0.5. The 50-point reference is independent of maximum health. Policy maps magnitude to contact intensity 0.62–1.0 before `BodyScale`, retaining feedback for a confirmed zero-damage block.
 
@@ -98,6 +104,11 @@ Profiles account for DualSense's discrete start zones and force levels. At the d
 These levels also hold for automatic firearms with reduced continuous resistance. Ranged aiming uses zone 8, level 1; melee blocking uses zone 3, level 2. Lower user scales can round to zero; scale zero disables effects.
 
 A confirmed shot adds an accent on the mapped attack trigger. Semi-automatic shots and automatic shots from unknown, unarmed, or melee families use the common pulse. Ordinary automatic firearms use the profiles below; the four special families use their profiles above. Pulses expire from the shot's original timestamp. Idle ticks and dry fire do not extend them. Body recoil remains independent.
+
+A known empty magazine releases sustained attack resistance. The last confirmed shot retains its
+recoil pulse while the weapon remains ready. Aim resistance follows the usual aiming rules. A
+loaded-to-empty observation with a matching shot adds the short `Body.MagazineEmpty` grip accent.
+An initially empty or unavailable ammo sample is silent.
 
 Strengths below precede `TriggerScale` (default 0.65), which gives encoded force level 2 for these automatic profiles.
 

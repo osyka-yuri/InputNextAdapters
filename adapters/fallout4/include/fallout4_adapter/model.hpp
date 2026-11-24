@@ -46,6 +46,7 @@ struct WeaponSnapshot {
     bool automatic{};
     bool drawn{};
     bool ready{};
+    std::optional<std::uint32_t> loaded_rounds;
 };
 
 // Value-only physics facts captured in the existing game-thread observation.
@@ -76,6 +77,7 @@ struct Observation {
 };
 
 enum class EventKind : std::uint8_t { shot, hit_received, hit_dealt, footstep };
+enum class ContactSurface : std::uint8_t { unknown, metal, stone, wood, glass };
 
 struct PolicyEvent {
     EventKind kind{EventKind::shot};
@@ -97,6 +99,7 @@ struct PolicyEvent {
     bool melee{};
     bool power_armor{};
     bool sprinting{};
+    ContactSurface surface{ContactSurface::unknown};
 };
 
 struct PolicyConfig {

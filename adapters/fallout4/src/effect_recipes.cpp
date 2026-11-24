@@ -12,6 +12,7 @@
 namespace fallout4_adapter::detail {
 namespace {
 using inputnext::adapters::WaveRecipe;
+constexpr int outgoing_impact_priority = 70;
 
 [[nodiscard]] constexpr WaveRecipe wave(float frequency,
     float second_frequency,
@@ -143,7 +144,7 @@ HapticRecipe recipe_for(Cue cue) noexcept {
         return make_recipe(
             wave(104.0F, 158.0F, 0.36F, 0.55F, 0.12F, 0.8F, 10.0F, 5.0F, 0.0F, 26, 8, 30),
             74,
-            70,
+            outgoing_impact_priority,
             0.32F,
             0.32F);
     case Cue::critical_hit:
@@ -216,6 +217,37 @@ HapticRecipe recipe_for(Cue cue) noexcept {
             28,
             0.16F,
             0.20F);
+    case Cue::magazine_empty:
+        return make_recipe(wave(184.0F, 236.0F, 0.35F, 0.35F, 0.04F, 1.0F, 24.0F, 9.0F),
+            64,
+            33,
+            0.08F,
+            0.24F);
+    case Cue::metal_impact:
+        return make_recipe(wave(148.0F, 218.0F, 0.38F, 0.38F, 0.06F, 0.9F, 32.0F, 6.0F),
+            64,
+            outgoing_impact_priority,
+            0.16F,
+            0.30F);
+    case Cue::stone_impact:
+        return make_recipe(wave(84.0F, 150.0F, 0.30F, 0.42F, 0.23F, 0.9F, 29.0F, 8.0F),
+            58,
+            outgoing_impact_priority,
+            0.26F,
+            0.22F);
+    case Cue::wood_impact:
+        return make_recipe(wave(72.0F, 112.0F, 0.25F, 0.36F, 0.10F, 1.4F, 27.0F, 7.5F),
+            56,
+            outgoing_impact_priority,
+            0.24F,
+            0.15F);
+    case Cue::glass_impact:
+        return make_recipe(
+            wave(184.0F, 264.0F, 0.36F, 0.34F, 0.24F, 0.7F, 24.0F, 9.0F, 0.0F, 16, 6, 18),
+            56,
+            outgoing_impact_priority,
+            0.10F,
+            0.30F);
     case Cue::power_armor_enter:
         return make_recipe(wave(54.0F, 88.0F, 0.38F, 0.42F, 0.10F, 2.0F, 32.0F, 4.8F),
             72,

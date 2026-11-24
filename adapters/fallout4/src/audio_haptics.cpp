@@ -13,11 +13,13 @@ namespace {
 void clear_audio_profiles(EffectSettings& settings) noexcept {
     for (auto& adjustment : settings.body) {
         adjustment.audio_haptic.reset();
+        adjustment.audio_haptic_is_external = false;
     }
 }
 
 std::size_t overlay_audio_haptics(const inputnext::adapters::AudioHapticBank& bank,
-    EffectSettings& settings) noexcept {
+    EffectSettings& settings,
+    bool external) noexcept {
     using inputnext::adapters::AudioHapticGame;
     if (!settings.audio_haptics_enabled || bank.game != AudioHapticGame::fallout4) {
         return 0;
@@ -31,7 +33,9 @@ std::size_t overlay_audio_haptics(const inputnext::adapters::AudioHapticBank& ba
             !inputnext::adapters::valid_audio_haptic_profile(entry.profile)) {
             continue;
         }
-        settings.body[static_cast<std::size_t>(descriptor->effect)].audio_haptic = entry.profile;
+        auto& adjustment = settings.body[static_cast<std::size_t>(descriptor->effect)];
+        adjustment.audio_haptic = entry.profile;
+        adjustment.audio_haptic_is_external = external;
         ++loaded;
     }
     return loaded;
@@ -47,7 +51,7 @@ std::size_t count_audio_profiles(const EffectSettings& settings) noexcept {
 std::size_t bind_audio_haptics(const inputnext::adapters::AudioHapticBank& bank,
     EffectSettings& settings) noexcept {
     clear_audio_profiles(settings);
-    return overlay_audio_haptics(bank, settings);
+    return overlay_audio_haptics(bank, settings, true);
 }
 
 AudioHapticLoadResult load_audio_haptics(const std::filesystem::path& config_path,
@@ -63,7 +67,7 @@ AudioHapticLoadResult load_audio_haptics(const std::filesystem::path& config_pat
             inputnext::adapters::AudioHapticGame::fallout4);
         if (builtins.status == AudioHapticBankStatus::loaded &&
             builtins.bank.game == inputnext::adapters::AudioHapticGame::fallout4) {
-            static_cast<void>(overlay_audio_haptics(builtins.bank, settings));
+            static_cast<void>(overlay_audio_haptics(builtins.bank, settings, false));
             status = AudioHapticBankStatus::loaded;
         }
 
@@ -81,7 +85,7 @@ AudioHapticLoadResult load_audio_haptics(const std::filesystem::path& config_pat
             return {.status = AudioHapticBankStatus::invalid,
                 .loaded_profiles = effective_profiles};
         }
-        static_cast<void>(overlay_audio_haptics(result.bank, settings));
+        static_cast<void>(overlay_audio_haptics(result.bank, settings, true));
         return {.status = AudioHapticBankStatus::loaded,
             .loaded_profiles = count_audio_profiles(settings)};
     } catch (...) {

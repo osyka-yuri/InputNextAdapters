@@ -4,6 +4,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <fallout4_adapter/effect_settings.hpp>
 #include <fallout4_adapter/model.hpp>
 #include <fallout4_adapter/policy.hpp>
 
@@ -12,9 +13,111 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <span>
 
 namespace fallout4_adapter::policy_tests {
+
+TEST_CASE("fallout4.policy.ordinary_outgoing_hits_use_the_projectile_surface",
+    "[component][fallout4][policy]") {
+    const auto policy = std::make_unique<Policy>();
+    const auto observation = gameplay_at(1000);
+    auto hit = event(EventKind::hit_dealt, at(999), 1);
+    auto cue = detail::Cue::outgoing_hit;
+    auto expected_priority = detail::recipe_for(detail::Cue::outgoing_hit).priority;
+    SECTION("metal") {
+        hit.surface = ContactSurface::metal;
+        cue = detail::Cue::metal_impact;
+    }
+    SECTION("stone") {
+        hit.surface = ContactSurface::stone;
+        cue = detail::Cue::stone_impact;
+    }
+    SECTION("wood") {
+        hit.surface = ContactSurface::wood;
+        cue = detail::Cue::wood_impact;
+    }
+    SECTION("glass") {
+        hit.surface = ContactSurface::glass;
+        cue = detail::Cue::glass_impact;
+    }
+    SECTION("unknown uses the ordinary cue") {
+    }
+    SECTION("critical takes precedence over the surface cue") {
+        hit.surface = ContactSurface::metal;
+        hit.critical = true;
+        cue = detail::Cue::critical_hit;
+        expected_priority = detail::recipe_for(cue).priority;
+    }
+    SECTION("incoming damage uses its existing cue") {
+        hit.kind = EventKind::hit_received;
+        hit.surface = ContactSurface::metal;
+        cue = detail::Cue::incoming_hit;
+        expected_priority = detail::recipe_for(cue).priority;
+    }
+    const auto frame = update_on_heap(*policy, observation, std::array{hit}, at(1000));
+    CHECK(voice_count(*frame) == 1);
+    const auto* voice = find_voice(*frame, cue);
+    REQUIRE(voice != nullptr);
+    CHECK(voice->started_at == hit.arrived_at);
+    CHECK(voice->priority == expected_priority);
+}
+
+TEST_CASE("fallout4.policy.surface_profiles_respect_outgoing_hit_settings",
+    "[component][fallout4][policy]") {
+    const auto config = std::make_unique<PolicyConfig>();
+    auto& outgoing = config->effects.body[static_cast<std::size_t>(BodyEffect::outgoing_hit)];
+    auto& metal = config->effects.body[static_cast<std::size_t>(BodyEffect::metal_impact)];
+    const auto observation = gameplay_at(1000);
+    auto hit = event(EventKind::hit_dealt, at(999), 1);
+    hit.surface = ContactSurface::metal;
+    const std::array hits{hit};
+
+    SECTION("disabled ordinary outgoing hits stay silent") {
+        outgoing.enabled = false;
+        const auto policy = std::make_unique<Policy>(*config);
+        const auto frame = update_on_heap(*policy, observation, hits, at(1000));
+        CHECK(voice_count(*frame) == 0);
+        CHECK_FALSE(frame->rumble.has_value());
+    }
+    SECTION("a disabled surface does not suppress ordinary contacts") {
+        metal.enabled = false;
+        const auto policy = std::make_unique<Policy>(*config);
+        const auto frame = update_on_heap(*policy, observation, hits, at(1000));
+        CHECK(voice_count(*frame) == 0);
+
+        hit.surface = ContactSurface::unknown;
+        const auto ordinary = update_on_heap(*policy, observation, std::array{hit}, at(1000));
+        CHECK(cue_voice_count(*ordinary, detail::Cue::outgoing_hit) == 1);
+    }
+    SECTION("group scales combine with per-surface scales and frequency defaults") {
+        outgoing.hd_scale = 0.5F;
+        outgoing.classic_scale = 0.0F;
+        outgoing.duration_scale = 0.5F;
+        outgoing.frequency_hz = 125.0F;
+        metal.hd_scale = 1.5F;
+        const auto policy = std::make_unique<Policy>(*config);
+        const auto frame = update_on_heap(*policy, observation, hits, at(1000));
+        const auto* voice = find_voice(*frame, detail::Cue::metal_impact);
+        REQUIRE(voice != nullptr);
+        CHECK(voice->hd_scale == 0.75F);
+        CHECK(voice->duration_ms == 32);
+        CHECK(voice->wave.frequency == 125.0F);
+        CHECK_FALSE(frame->rumble.has_value());
+    }
+    SECTION("combined gains stay within the authored limits") {
+        outgoing.hd_scale = 2.0F;
+        outgoing.duration_scale = 2.0F;
+        metal.hd_scale = 2.0F;
+        metal.duration_scale = 2.0F;
+        const auto policy = std::make_unique<Policy>(*config);
+        const auto frame = update_on_heap(*policy, observation, hits, at(1000));
+        const auto* voice = find_voice(*frame, detail::Cue::metal_impact);
+        REQUIRE(voice != nullptr);
+        CHECK(voice->hd_scale == 2.0F);
+        CHECK(voice->duration_scale == 2.0F);
+    }
+}
 
 namespace {
 void check_critical_hits_keep_authored_priority(Policy& policy,
@@ -77,12 +180,12 @@ void check_incoming_cripple_survives_critical_stacking(Policy& policy, Observati
 }
 
 void check_outgoing_cripple_keeps_authored_priority() {
-    Policy policy{};
+    const auto policy = std::make_unique<Policy>();
     const auto observation = gameplay_at(10'100);
     auto outgoing_cripple = event(EventKind::hit_dealt, at(10'100), 212);
     outgoing_cripple.crippled_limb = true;
     const std::array outgoing_event{outgoing_cripple};
-    const auto outgoing = policy.update(observation, outgoing_event, at(10'100));
+    const auto outgoing = policy->update(observation, outgoing_event, at(10'100));
     const auto* const outgoing_voice = find_voice(outgoing, detail::Cue::crippled_hit);
     INFO("outgoing cripple cues keep the existing authored priority");
     REQUIRE(outgoing_voice != nullptr);
@@ -195,7 +298,7 @@ constexpr std::array precedence_cases{
 
 void check_outgoing_precedence_case(const PrecedenceCase& test_case, std::size_t index) {
     const std::int64_t milliseconds = 10'000 + static_cast<std::int64_t>(index);
-    Policy policy{};
+    const auto policy = std::make_unique<Policy>();
     auto observation = gameplay_at(milliseconds);
     observation.weapon.family = WeaponFamily::pistol;
     auto outgoing = event(EventKind::hit_dealt, at(milliseconds), 300 + index);
@@ -207,7 +310,7 @@ void check_outgoing_precedence_case(const PrecedenceCase& test_case, std::size_t
     outgoing.crippled_limb = test_case.crippled;
     outgoing.melee = test_case.melee;
     const std::array events{outgoing};
-    const auto frame = policy.update(observation, events, at(milliseconds));
+    const auto frame = policy->update(observation, events, at(milliseconds));
     const auto* const voice = find_voice(frame, test_case.expected);
     INFO("outgoing hit uses the specified variant precedence and role priority");
     REQUIRE(voice != nullptr);
@@ -216,25 +319,25 @@ void check_outgoing_precedence_case(const PrecedenceCase& test_case, std::size_t
 }
 
 void check_flagged_melee_contact_uses_supplied_flag() {
-    Policy policy{};
+    const auto policy = std::make_unique<Policy>();
     auto observation = gameplay_at(10'100);
     observation.weapon.family = WeaponFamily::pistol;
     auto contact = event(EventKind::hit_dealt, at(10'100), 400);
     contact.melee = true;
     const std::array confirmed{contact};
-    const auto confirmed_frame = policy.update(observation, confirmed, at(10'100));
+    const auto confirmed_frame = policy->update(observation, confirmed, at(10'100));
     INFO("the supplied melee-contact flag selects the melee cue independently of the currently "
          "equipped family");
     CHECK(cue_voice_count(confirmed_frame, detail::Cue::melee_hit) == 1);
 }
 
 void check_equipped_family_does_not_infer_melee_contact() {
-    Policy policy{};
+    const auto policy = std::make_unique<Policy>();
     auto observation = gameplay_at(10'110);
     observation.weapon.family = WeaponFamily::two_handed_melee;
     const auto contact = event(EventKind::hit_dealt, at(10'110), 401);
     const std::array unconfirmed{contact};
-    const auto unconfirmed_frame = policy.update(observation, unconfirmed, at(10'110));
+    const auto unconfirmed_frame = policy->update(observation, unconfirmed, at(10'110));
     INFO("equipped melee family alone never infers confirmed melee contact");
     CHECK(cue_voice_count(unconfirmed_frame, detail::Cue::outgoing_hit) == 1);
     CHECK(cue_voice_count(unconfirmed_frame, detail::Cue::melee_hit) == 0);
@@ -244,7 +347,7 @@ void check_equipped_family_does_not_infer_melee_contact() {
 TEST_CASE("fallout4.policy.incoming_damage_role_priority_preserves_recipe_art",
     "[component][fallout4][policy]") {
     {
-        Policy policy{};
+        const auto policy = std::make_unique<Policy>();
         auto observation = gameplay_at(10'000);
         std::array<PolicyEvent, 5> critical_hits{};
         for (std::size_t index = 0; index < critical_hits.size(); ++index) {
@@ -252,9 +355,9 @@ TEST_CASE("fallout4.policy.incoming_damage_role_priority_preserves_recipe_art",
             critical_hits[index].critical = true;
         }
 
-        check_critical_hits_keep_authored_priority(policy, observation, critical_hits);
-        check_incoming_blocked_hit_keeps_soft_recipe(policy, observation);
-        check_incoming_cripple_survives_critical_stacking(policy, observation);
+        check_critical_hits_keep_authored_priority(*policy, observation, critical_hits);
+        check_incoming_blocked_hit_keeps_soft_recipe(*policy, observation);
+        check_incoming_cripple_survives_critical_stacking(*policy, observation);
     }
     check_outgoing_cripple_keeps_authored_priority();
 }
@@ -271,13 +374,13 @@ TEST_CASE("fallout4.policy.outgoing_hit_precedence_and_melee_flag",
 TEST_CASE("fallout4.policy.event_magnitude_scales_contact_and_invalid_values_are_rejected",
     "[component][fallout4][policy]") {
     const auto contact_scale = [](float magnitude, std::int64_t milliseconds) {
-        Policy policy{};
+        const auto policy = std::make_unique<Policy>();
         const auto observation = gameplay_at(milliseconds);
         auto hit =
             event(EventKind::hit_dealt, at(milliseconds), static_cast<std::uint64_t>(milliseconds));
         hit.magnitude = magnitude;
         const std::array events{hit};
-        const auto frame = policy.update(observation, events, at(milliseconds));
+        const auto frame = policy->update(observation, events, at(milliseconds));
         const auto* const voice = find_voice(frame, detail::Cue::outgoing_hit);
         return voice ? voice->scale : -1.0F;
     };
@@ -296,13 +399,13 @@ TEST_CASE("fallout4.policy.event_magnitude_scales_contact_and_invalid_values_are
         -0.01F,
         1.01F};
     for (std::size_t index = 0; index < invalid.size(); ++index) {
-        Policy policy{};
+        const auto policy = std::make_unique<Policy>();
         const auto milliseconds = 11'100 + static_cast<std::int64_t>(index);
         const auto observation = gameplay_at(milliseconds);
         auto hit = event(EventKind::hit_dealt, at(milliseconds), 500 + index);
         hit.magnitude = invalid[index];
         const std::array events{hit};
-        const auto frame = policy.update(observation, events, at(milliseconds));
+        const auto frame = policy->update(observation, events, at(milliseconds));
         INFO("non-finite or out-of-range contact magnitude is rejected");
         CHECK(voice_count(frame) == 0);
     }

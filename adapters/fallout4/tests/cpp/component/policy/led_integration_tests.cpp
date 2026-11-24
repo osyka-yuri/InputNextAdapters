@@ -40,15 +40,15 @@ bool same_led(const std::optional<inputnext::adapters::LedIntent>& left,
 
 TEST_CASE("fallout4.policy.led_baselines_max_hp_and_authoritative_sample_time",
     "[component][fallout4][policy][led]") {
-    Policy policy;
+    const auto policy = std::make_unique<Policy>();
     const auto first = led_sample(1000, LedHealthSample{.current = 50.0F, .maximum = 100.0F});
-    REQUIRE(!policy.update(first, {}, at(1000)).leds);
+    REQUIRE(!policy->update(first, {}, at(1000)).leds);
 
     const auto maximum_only = led_sample(1040, LedHealthSample{.current = 40.0F, .maximum = 80.0F});
-    REQUIRE(!policy.update(maximum_only, {}, at(1040)).leds);
+    REQUIRE(!policy->update(maximum_only, {}, at(1040)).leds);
 
     const auto changed = led_sample(1080, LedHealthSample{.current = 39.0F, .maximum = 80.0F});
-    const auto frame = policy.update(changed, {}, at(1080));
+    const auto frame = policy->update(changed, {}, at(1080));
     const auto led = frame.leds.value_or(inputnext::adapters::LedIntent{});
     REQUIRE(frame.leds);
     CHECK(led.source_at == changed.sampled_at);
@@ -106,12 +106,12 @@ TEST_CASE("fallout4.policy.led_confirmed_positive_damage_is_separate_from_net_he
 
 TEST_CASE("fallout4.policy.led_radiation_wins_over_ordinary_health_recovery",
     "[component][fallout4][policy][led]") {
-    Policy policy;
+    const auto policy = std::make_unique<Policy>();
     const auto baseline = led_sample(4000, LedHealthSample{.current = 80.0F, .maximum = 100.0F});
-    REQUIRE(!policy.update(baseline, {}, at(4000)).leds);
+    REQUIRE(!policy->update(baseline, {}, at(4000)).leds);
     auto exposed = led_sample(4040, LedHealthSample{.current = 81.0F, .maximum = 100.0F});
     exposed.led.radiation_sources = 1U;
-    const auto frame = policy.update(exposed, {}, at(4040));
+    const auto frame = policy->update(exposed, {}, at(4040));
     const auto led = frame.leds.value_or(inputnext::adapters::LedIntent{});
     REQUIRE(frame.leds);
     CHECK((led.payload.lightbar_rgb & 0x00FFFFU) == 0x00FF00U);

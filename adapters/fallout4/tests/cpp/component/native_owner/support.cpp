@@ -369,6 +369,7 @@ void supply_observation(ObservationFixture fixture) {
         .automatic = false,
         .drawn = true,
         .ready = true,
+        .loaded_rounds = std::nullopt,
     };
     supplied_observation.value.weapon.identity = fixture.weapon_identity;
     supplied_observation.value.sprinting = fixture.sprinting;
