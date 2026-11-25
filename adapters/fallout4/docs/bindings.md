@@ -32,14 +32,16 @@ An intact original or exact owned branch after a failed write/check/flush leaves
 
 ### Capture fences
 
-The scalar reader makes one nonblocking attempt at each fence, in order:
+The scalar reader makes one nonblocking acquisition attempt at each fence, in order:
 
-1. `UI::processMessagesLock`: one owner/count CAS.
+1. `UI::processMessagesLock`: single count CAS from zero to one, followed by owner publication and a memory barrier.
 2. Private transition SRW lock: try-exclusive with zero in-flight count.
-3. Menu-stack `BSReadWriteLock` at `0x3dbd368`: CAS from zero to one at count offset four.
-4. Input-context `BSReadWriteLock` at `0x339fb98`: the same read subset.
+3. Menu-stack `BSReadWriteLock` at `0x3DBD368`: single count CAS from zero to one.
+4. Input-context `BSReadWriteLock` at `0x339FB98`: the same read subset.
 
-Release is in reverse order. Contention declines the snapshot without retrying.
+In Fallout 4 1.11.240.0 (`RVA 0x1659400`–`0x16596F9`), `BSReadWriteLock` places the count word at offset four, using bit 31 (`0x80000000`) for write ownership (`lock_write`/`try_lock_write` CAS `0` to `0x80000001`; `unlock_write` resets `0x80000001` to `0`) and bits 0–27 (`0x0FFFFFFF`) for lock counts (`lock_read`/`try_lock_read` mask with `0x0FFFFFFF` and yield only on bit 31; `unlock_read` decrements). Bits 28–30 are unused, not writer-wait flags.
+
+Fences are released in reverse order. Acquisition contention skips the snapshot without retrying. Read-lock release uses a CAS retry loop over valid counts in `[1..0x0FFFFFFF]` to preserve concurrent reader updates; process-lock release verifies `count == 1` and a nonzero matching owner thread ID before clearing ownership and performing one `1`-to-`0` count CAS. Invalid lock counts or mismatched process-lock ownership close capture without modifying the rejected lock state.
 
 Eligibility requires the manager slot to match static storage at `0x32a1320`, UI state zero at `0x32a1388`, shutdown zero at `0x32a138c`, running one at `0x32a138e`, matching nonzero generation, and no transition in flight.
 

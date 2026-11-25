@@ -150,11 +150,28 @@ inline bool throwing_remap_original(RE::ControlMap* /*control_map*/,
 }
 
 struct CaptureLockFixture {
-    alignas(8) std::array<volatile long, 2> process_words{};
-    alignas(4) volatile long menu_read_count{};
-    alignas(4) volatile long context_read_count{};
+    alignas(8) RE::BSSpinLock process_lock{};
+    alignas(4) volatile std::uint32_t menu_read_count{};
+    alignas(4) volatile std::uint32_t context_read_count{};
     std::array<std::byte, 64> static_fields{};
 };
+
+struct LockWordsSnapshot {
+    std::uint32_t owner_thread{};
+    std::uint32_t lock_word{};
+};
+
+[[nodiscard]] inline LockWordsSnapshot inspect_spin_lock(const RE::BSSpinLock& lock) noexcept {
+    LockWordsSnapshot snapshot{};
+    std::memcpy(&snapshot, &lock, sizeof(snapshot));
+    return snapshot;
+}
+
+inline void
+seed_spin_lock(RE::BSSpinLock& lock, std::uint32_t owner_thread, std::uint32_t lock_word) noexcept {
+    const LockWordsSnapshot snapshot{.owner_thread = owner_thread, .lock_word = lock_word};
+    std::memcpy(reinterpret_cast<void*>(std::addressof(lock)), &snapshot, sizeof(snapshot));
+}
 
 constexpr UiStaticOffsets fixture_static_offsets{
     .manager_slot = 8,
@@ -202,8 +219,7 @@ struct ProductionFenceFixture {
         attempts[attempt_count++] = fence;
         switch (fence) {
         case UiCaptureFence::process_messages:
-            return ui_capture_test::try_process_lock(locks.process_words.data(),
-                GetCurrentThreadId());
+            return ui_capture_test::try_process_lock(&locks.process_lock, GetCurrentThreadId());
         case UiCaptureFence::transition_gate:
             return ui_capture_test::try_gate();
         case UiCaptureFence::menu_stack:
@@ -222,7 +238,7 @@ struct ProductionFenceFixture {
         releases[release_count++] = fence;
         switch (fence) {
         case UiCaptureFence::process_messages:
-            ui_capture_test::release_process_lock(locks.process_words.data());
+            ui_capture_test::release_process_lock(&locks.process_lock, GetCurrentThreadId());
             break;
         case UiCaptureFence::transition_gate:
             ui_capture_test::release_gate();

@@ -293,7 +293,6 @@ template <class Operations>
         operations.retain_disabled();
         if (result == NativeDispatchAttemptResult::fatal_control_flow) {
             operations.fatal_control_flow();
-            return NativeDispatchInstall::retained_disabled;
         }
         return NativeDispatchInstall::retained_disabled;
     }

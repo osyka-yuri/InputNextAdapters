@@ -20,10 +20,14 @@ void set_exit_clobber(ExitClobber clobber) noexcept;
 [[nodiscard]] bool closed() noexcept;
 [[nodiscard]] bool try_gate() noexcept;
 void release_gate() noexcept;
-[[nodiscard]] bool try_process_lock(volatile long* words, std::uint32_t thread_id) noexcept;
-void release_process_lock(volatile long* words) noexcept;
-[[nodiscard]] bool try_read_count(volatile long* count) noexcept;
-void release_read_count(volatile long* count) noexcept;
+void close_capture_without_gate() noexcept;
+[[nodiscard]] bool try_process_lock(RE::BSSpinLock* lock, std::uint32_t thread_id) noexcept;
+void release_process_lock(RE::BSSpinLock* lock,
+    std::uint32_t expected_thread_id,
+    void (*on_failure)() noexcept = nullptr) noexcept;
+[[nodiscard]] bool try_read_count(volatile std::uint32_t* count) noexcept;
+void release_read_count(volatile std::uint32_t* count,
+    void (*on_failure)() noexcept = nullptr) noexcept;
 [[nodiscard]] bool project_static_fields(std::uintptr_t image,
     UiStaticOffsets offsets,
     UiStaticFields& fields) noexcept;

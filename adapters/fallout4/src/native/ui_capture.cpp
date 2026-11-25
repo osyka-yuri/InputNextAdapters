@@ -19,10 +19,13 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace fallout4_adapter::native {
@@ -68,52 +71,132 @@ NativeUiCapturePipeline& ui_capture_pipeline() noexcept {
     return g_ui_capture_pipeline;
 }
 
-bool try_process_lock_words(volatile long* words, std::uint32_t thread_id) noexcept {
-    if (!words || thread_id == 0) {
+namespace {
+// Fallout4.exe 1.11.240.0 (RVA 0x1659400..0x16596F9):
+// BSReadWriteLock uses bit 31 for write ownership and bits 0-27
+// for lock counts. Bits 28-30 are unused, not writer-wait flags.
+constexpr std::uint32_t read_write_count_mask = 0x0FFFFFFFU;
+constexpr std::size_t lock_word_offset = sizeof(std::uint32_t);
+
+static_assert(sizeof(int) == sizeof(std::uint32_t));
+static_assert(sizeof(long) == sizeof(std::uint32_t));
+static_assert(sizeof(RE::BSSpinLock) == sizeof(std::uint32_t) * 2U);
+static_assert(alignof(RE::BSSpinLock) == alignof(std::uint32_t));
+static_assert(std::is_standard_layout_v<RE::BSSpinLock>);
+static_assert(sizeof(RE::BSReadWriteLock) == sizeof(std::uint32_t) * 2U);
+static_assert(alignof(RE::BSReadWriteLock) == alignof(std::uint32_t));
+static_assert(std::is_standard_layout_v<RE::BSReadWriteLock>);
+
+[[nodiscard]] bool is_u32_aligned(const volatile void* address) noexcept {
+    return address != nullptr &&
+           (reinterpret_cast<std::uintptr_t>(address) % alignof(std::uint32_t)) == 0U;
+}
+
+[[nodiscard]] volatile std::uint32_t* spin_owner_word(RE::BSSpinLock* lock) noexcept {
+    if (!is_u32_aligned(lock)) {
+        return nullptr;
+    }
+    return reinterpret_cast<volatile std::uint32_t*>(reinterpret_cast<std::byte*>(lock));
+}
+
+[[nodiscard]] volatile std::uint32_t* spin_count_word(RE::BSSpinLock* lock) noexcept {
+    if (!is_u32_aligned(lock)) {
+        return nullptr;
+    }
+    return reinterpret_cast<volatile std::uint32_t*>(
+        reinterpret_cast<std::byte*>(lock) + lock_word_offset);
+}
+
+// MSVC x64: aligned 32-bit load with an acquire compiler barrier.
+[[nodiscard]] std::uint32_t acquire_load_u32(const volatile std::uint32_t* word) noexcept {
+    const auto value = *word;
+    std::atomic_signal_fence(std::memory_order_acquire);
+    return value;
+}
+
+void store_volatile_u32(volatile std::uint32_t* word, std::uint32_t value) noexcept {
+    *word = value;
+}
+
+[[nodiscard]] std::uint32_t interlocked_cas_u32(volatile std::uint32_t* word,
+    std::uint32_t desired,
+    std::uint32_t expected) noexcept {
+    return std::bit_cast<std::uint32_t>(
+        InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(word),
+            std::bit_cast<LONG>(desired),
+            std::bit_cast<LONG>(expected)));
+}
+} // namespace
+
+bool try_process_lock(RE::BSSpinLock* lock, std::uint32_t thread_id) noexcept {
+    auto* const owner = spin_owner_word(lock);
+    auto* const count = spin_count_word(lock);
+    if (!owner || !count || thread_id == 0U) {
         return false;
     }
-    if (InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(words) + 1, 1, 0) != 0) {
+    if (interlocked_cas_u32(count, 1U, 0U) != 0U) {
         return false;
     }
-    words[0] = static_cast<long>(thread_id);
+    store_volatile_u32(owner, thread_id);
     MemoryBarrier();
     return true;
 }
 
-void release_process_lock_words(volatile long* words, void (*on_failure)() noexcept) noexcept {
-    if (!words) {
+void release_process_lock(RE::BSSpinLock* lock,
+    std::uint32_t expected_thread_id,
+    void (*on_failure)() noexcept) noexcept {
+    auto* const owner = spin_owner_word(lock);
+    auto* const count = spin_count_word(lock);
+    if (!owner || !count) {
         if (on_failure) {
             on_failure();
         }
         return;
     }
-    words[0] = 0;
-    MemoryBarrier();
-    if (InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(words) + 1, 0, 1) != 1) {
+    // Preserve recursive or foreign locks on invalid release.
+    const auto current_count = acquire_load_u32(count);
+    const auto current_owner = acquire_load_u32(owner);
+    if (current_count != 1U || current_owner == 0U || expected_thread_id == 0U ||
+        current_owner != expected_thread_id) {
         if (on_failure) {
             on_failure();
         }
+        return;
+    }
+    store_volatile_u32(owner, 0U);
+    MemoryBarrier();
+    if (interlocked_cas_u32(count, 0U, 1U) != 1U && on_failure) {
+        on_failure();
     }
 }
 
-bool try_read_count(volatile long* count) noexcept {
-    if (!count) {
+bool try_read_count(volatile std::uint32_t* count) noexcept {
+    if (!is_u32_aligned(count)) {
         return false;
     }
-    return InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(count), 1, 0) == 0;
+    return interlocked_cas_u32(count, 1U, 0U) == 0U;
 }
 
-void release_read_count(volatile long* count, void (*on_failure)() noexcept) noexcept {
-    if (!count) {
+void release_read_count(volatile std::uint32_t* count, void (*on_failure)() noexcept) noexcept {
+    if (!is_u32_aligned(count)) {
         if (on_failure) {
             on_failure();
         }
         return;
     }
-    if (InterlockedDecrement(reinterpret_cast<volatile LONG*>(count)) < 0) {
-        if (on_failure) {
-            on_failure();
+    auto observed = acquire_load_u32(count);
+    for (;;) {
+        if (observed == 0U || (observed & ~read_write_count_mask) != 0U) {
+            if (on_failure) {
+                on_failure();
+            }
+            return;
         }
+        const auto previous = interlocked_cas_u32(count, observed - 1U, observed);
+        if (previous == observed) {
+            return;
+        }
+        observed = previous;
     }
 }
 
@@ -170,23 +253,19 @@ struct CaptureOperations {
     RE::UI* ui{};
     RE::ControlMap* control_map{};
     RE::VATS* vats{};
-    RE::BSReadWriteLock* menu_stack_lock{};
-    RE::BSReadWriteLock* context_stack_lock{};
+    volatile std::uint32_t* menu_stack_count{};
+    volatile std::uint32_t* context_stack_count{};
 
     [[nodiscard]] bool try_acquire(UiCaptureFence fence) const noexcept {
         switch (fence) {
         case UiCaptureFence::process_messages:
-            return try_process_lock_words(
-                reinterpret_cast<volatile long*>(std::addressof(ui->processMessagesLock)),
-                thread_id);
+            return try_process_lock(std::addressof(ui->processMessagesLock), thread_id);
         case UiCaptureFence::transition_gate:
             return g_ui_capture_pipeline.try_gate();
         case UiCaptureFence::menu_stack:
-            return try_read_count(reinterpret_cast<volatile long*>(
-                reinterpret_cast<std::byte*>(menu_stack_lock) + sizeof(LONG)));
+            return try_read_count(menu_stack_count);
         case UiCaptureFence::input_context:
-            return try_read_count(reinterpret_cast<volatile long*>(
-                reinterpret_cast<std::byte*>(context_stack_lock) + sizeof(LONG)));
+            return try_read_count(context_stack_count);
         }
         return false;
     }
@@ -280,21 +359,19 @@ struct CaptureOperations {
     void release(UiCaptureFence fence) const noexcept {
         switch (fence) {
         case UiCaptureFence::process_messages:
-            release_process_lock_words(
-                reinterpret_cast<volatile long*>(std::addressof(ui->processMessagesLock)),
-                [] noexcept { g_ui_capture_pipeline.close_capture_without_gate(); });
+            release_process_lock(std::addressof(ui->processMessagesLock), thread_id, [] noexcept {
+                g_ui_capture_pipeline.close_capture_without_gate();
+            });
             break;
         case UiCaptureFence::transition_gate:
             g_ui_capture_pipeline.release_gate();
             break;
         case UiCaptureFence::menu_stack:
-            release_read_count(reinterpret_cast<volatile long*>(
-                                   reinterpret_cast<std::byte*>(menu_stack_lock) + sizeof(LONG)),
+            release_read_count(menu_stack_count,
                 [] noexcept { g_ui_capture_pipeline.close_capture_without_gate(); });
             break;
         case UiCaptureFence::input_context:
-            release_read_count(reinterpret_cast<volatile long*>(
-                                   reinterpret_cast<std::byte*>(context_stack_lock) + sizeof(LONG)),
+            release_read_count(context_stack_count,
                 [] noexcept { g_ui_capture_pipeline.close_capture_without_gate(); });
             break;
         }
@@ -376,9 +453,10 @@ UiScalarSnapshot capture_ui_scalars(std::uint64_t expected_generation) noexcept 
         return snapshot;
     }
 
-    auto* menu_stack_lock = reinterpret_cast<RE::BSReadWriteLock*>(image + menu_stack_lock_rva);
-    auto* context_stack_lock =
-        reinterpret_cast<RE::BSReadWriteLock*>(image + context_stack_lock_rva);
+    auto* menu_stack_count =
+        reinterpret_cast<volatile std::uint32_t*>(image + menu_stack_lock_rva + lock_word_offset);
+    auto* context_stack_count = reinterpret_cast<volatile std::uint32_t*>(
+        image + context_stack_lock_rva + lock_word_offset);
 
     CaptureOperations operations{
         .image = image,
@@ -387,8 +465,8 @@ UiScalarSnapshot capture_ui_scalars(std::uint64_t expected_generation) noexcept 
         .ui = user_interface,
         .control_map = control_map,
         .vats = vats,
-        .menu_stack_lock = menu_stack_lock,
-        .context_stack_lock = context_stack_lock,
+        .menu_stack_count = menu_stack_count,
+        .context_stack_count = context_stack_count,
     };
     const bool copied = with_ui_capture_fences(operations, [&] noexcept {
         if (!operations.copy_scalars(*interns, snapshot)) {

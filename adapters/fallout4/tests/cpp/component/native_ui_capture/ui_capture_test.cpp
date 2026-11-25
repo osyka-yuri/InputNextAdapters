@@ -3,6 +3,7 @@
 #include "native/ui_capture_pipeline.hpp"
 
 #include <RE/B/BSFixedString.h>
+#include <RE/B/BSSpinLock.h>
 #include <RE/C/ControlMap.h>
 #include <RE/I/INPUT_DEVICE.h>
 
@@ -172,20 +173,26 @@ void release_gate() noexcept {
     }
 }
 
-bool try_process_lock(volatile long* words, std::uint32_t thread_id) noexcept {
-    return native::try_process_lock_words(words, thread_id);
+void close_capture_without_gate() noexcept {
+    active_pipeline_shared()->close_capture_without_gate();
 }
 
-void release_process_lock(volatile long* words) noexcept {
-    native::release_process_lock_words(words);
+bool try_process_lock(RE::BSSpinLock* lock, std::uint32_t thread_id) noexcept {
+    return native::try_process_lock(lock, thread_id);
 }
 
-bool try_read_count(volatile long* count) noexcept {
+void release_process_lock(RE::BSSpinLock* lock,
+    std::uint32_t expected_thread_id,
+    void (*on_failure)() noexcept) noexcept {
+    native::release_process_lock(lock, expected_thread_id, on_failure);
+}
+
+bool try_read_count(volatile std::uint32_t* count) noexcept {
     return native::try_read_count(count);
 }
 
-void release_read_count(volatile long* count) noexcept {
-    native::release_read_count(count);
+void release_read_count(volatile std::uint32_t* count, void (*on_failure)() noexcept) noexcept {
+    native::release_read_count(count, on_failure);
 }
 
 bool project_static_fields(std::uintptr_t image,
