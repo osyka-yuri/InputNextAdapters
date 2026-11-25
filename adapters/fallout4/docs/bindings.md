@@ -113,9 +113,11 @@ The health HUD also processes active effects and overlays. The adapter's Actor V
 
 ## LED health, stealth, and radiation
 
-`native/led_bindings.*` owns optional LED address resolution and source access. It uses `bindings.*` only for the checked executable base; weapon events and mandatory host checks remain there. `radiation_source.*` owns the event sink and lifecycle cache, while `observation.cpp` copies source values into the shared policy input.
+`native/led_bindings.*` owns optional LED address resolution and source access. It uses `bindings.*` only for validated executable metadata (base, size, and sections); weapon events and mandatory host checks remain there. `radiation_source.*` owns the event sink and lifecycle cache, while `observation.cpp` copies source values into the shared policy input.
 
-Before optional section parsing, `checked_image_base()` validates the loader-provided host's DOS signature, nonnegative `e_lfanew` with the complete NT header in the first 4 KiB, NT signature, x64 architecture, optional-header magic, non-zero image size, required static address bounds, and verified 1.11.240 instruction signatures. Section-table and address bounds are then checked against that validated size. `REL::Offset2ID` is the public API in the pinned `commonlib-shared` revision `29fbdb0e2dc548c9ab22f6964981d75090dc9094`.
+`checked_image_base()` validates the loader-mapped PE32+ image, including the DOS and NT headers, x64 machine type, header bounds, section alignment, and non-overlapping non-empty section ranges within `SizeOfImage` (using `VirtualSize` with `SizeOfRawData` fallback and skipping zero-sized sections). The DOS, NT, and optional headers plus the section table must fit within the initial 4 KiB probe.
+
+Required native bindings must reside in sections with appropriate access characteristics and satisfy the verified Fallout 4 1.11.240.0 instruction signatures where applicable. Code bindings exclude writable sections, data bindings exclude executable sections, and all validated bindings exclude discardable sections. `REL::Offset2ID` is the public API in the pinned `commonlib-shared` revision `29fbdb0e2dc548c9ab22f6964981d75090dc9094`.
 
 The LED health sample copies the absolute current health and gameplay maximum on the admitted main observation path. Health is read once; both haptics and enabled LED health use that same sample. Its maximum uses the existing Actor Value relation `current - GetModifier(kDamage, info)` and does not change haptic normalization. A maximum change is a new color basis, not evidence of damage or healing. Native LED reads follow the immutable startup settings; disabled stealth skips detection queries.
 

@@ -10,69 +10,15 @@
 #include <RE/P/ProcessLists.h>
 #include <REL/Offset2ID.h>
 
-#include <Windows.h>
-
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <new>
 #include <optional>
 #include <span>
 
 namespace fallout4_adapter::native {
 namespace {
-struct ImageSections {
-    std::array<ImageSectionRange, 96> values{};
-    std::size_t size{};
-    std::uint32_t image_size{};
-};
-
-std::optional<ImageSections> image_sections() noexcept {
-    const auto base = checked_image_base();
-    if (base == 0) {
-        return std::nullopt;
-    }
-    // The checked host gate validates DOS/NT signatures, e_lfanew within the first page,
-    // architecture, non-zero SizeOfImage, required address bounds, and instruction signatures before these header reads.
-    const auto* image = reinterpret_cast<const std::byte*>(base);
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image);
-    const auto* headers = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image + dos->e_lfanew);
-    const auto image_size = headers->OptionalHeader.SizeOfImage;
-    const auto section_count = static_cast<std::size_t>(headers->FileHeader.NumberOfSections);
-    const auto first_section_rva = static_cast<std::size_t>(dos->e_lfanew) + sizeof(DWORD) +
-                                   sizeof(IMAGE_FILE_HEADER) +
-                                   headers->FileHeader.SizeOfOptionalHeader;
-    if (section_count == 0 || section_count > ImageSections{}.values.size() ||
-        first_section_rva > image_size ||
-        section_count > (image_size - first_section_rva) / sizeof(IMAGE_SECTION_HEADER)) {
-        return std::nullopt;
-    }
-
-    ImageSections sections{.image_size = image_size};
-    const auto* first = IMAGE_FIRST_SECTION(headers);
-    for (std::size_t index = 0; index < section_count; ++index) {
-        const auto& section = first[index];
-        DWORD virtual_size{};
-        const auto* section_bytes = reinterpret_cast<const std::byte*>(&section);
-        std::memcpy(&virtual_size,
-            section_bytes + offsetof(IMAGE_SECTION_HEADER, Misc),
-            sizeof(virtual_size));
-        const auto range_size = std::max(virtual_size, section.SizeOfRawData);
-        if (range_size == 0 || section.VirtualAddress >= image_size ||
-            range_size > image_size - section.VirtualAddress) {
-            continue;
-        }
-        sections.values[sections.size++] = ImageSectionRange{
-            .rva = section.VirtualAddress,
-            .size = range_size,
-            .characteristics = section.Characteristics,
-        };
-    }
-    return sections;
-}
-
 struct LedBindings {
     std::array<std::uintptr_t, 5> addresses{};
     std::array<bool, 5> available{};
@@ -82,8 +28,9 @@ const LedBindings& led_bindings() noexcept {
     static const LedBindings result = [] noexcept {
         LedBindings output{};
         const auto base = checked_image_base();
-        const auto sections = image_sections();
-        if (base == 0 || !sections) {
+        const auto image_size = checked_image_size();
+        const auto sections = checked_image_sections();
+        if (base == 0 || image_size == 0 || image_size > UINT32_MAX || sections.empty()) {
             return output;
         }
 
@@ -117,8 +64,8 @@ const LedBindings& led_bindings() noexcept {
                 return output;
             }
             const auto resolved = resolve_optional_addresses(inverse,
-                std::span{sections->values.data(), sections->size},
-                sections->image_size,
+                sections,
+                static_cast<std::uint32_t>(image_size),
                 requests);
             for (std::size_t index = 0; index < output.addresses.size(); ++index) {
                 output.available[index] = resolved.available[index];

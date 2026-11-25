@@ -4,6 +4,7 @@
 #include "diagnostic_logging.hpp"
 #include "dispatch.hpp"
 #include "observation.hpp"
+#include "optional_id_map.hpp"
 #include "ui_capture.hpp"
 
 #include <RE/B/BGSObjectInstance.h>
@@ -30,23 +31,77 @@ namespace {
 struct CheckedModule {
     std::uintptr_t base{};
     std::size_t size{};
+    std::array<ImageSectionRange, pe_max_sections> sections{};
+    std::size_t section_count{};
 };
 
 struct AddressRange {
     std::uintptr_t rva{};
     std::size_t size{};
+    OptionalAddressKind kind{OptionalAddressKind::code};
 };
+
+static_assert(pe_detail::dos_signature == IMAGE_DOS_SIGNATURE);
+static_assert(pe_detail::dos_header_size == sizeof(IMAGE_DOS_HEADER));
+static_assert(pe_detail::dos_lfanew_offset == offsetof(IMAGE_DOS_HEADER, e_lfanew));
+static_assert(pe_detail::nt_signature == IMAGE_NT_SIGNATURE);
+static_assert(pe_detail::nt_file_header_offset == offsetof(IMAGE_NT_HEADERS64, FileHeader));
+static_assert(pe_detail::nt_file_header_size == sizeof(IMAGE_FILE_HEADER));
+static_assert(pe_detail::file_machine_amd64 == IMAGE_FILE_MACHINE_AMD64);
+static_assert(pe_detail::file_machine_offset == offsetof(IMAGE_FILE_HEADER, Machine));
+static_assert(pe_detail::file_sections_offset == offsetof(IMAGE_FILE_HEADER, NumberOfSections));
+static_assert(
+    pe_detail::file_optional_size_offset == offsetof(IMAGE_FILE_HEADER, SizeOfOptionalHeader));
+static_assert(pe_detail::nt_optional_header_offset == offsetof(IMAGE_NT_HEADERS64, OptionalHeader));
+static_assert(pe_detail::optional_hdr64_magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
+static_assert(pe_detail::optional_header64_min_size == sizeof(IMAGE_OPTIONAL_HEADER64));
+static_assert(pe_detail::optional_section_alignment_offset ==
+              offsetof(IMAGE_OPTIONAL_HEADER64, SectionAlignment));
+static_assert(
+    pe_detail::optional_size_of_image_offset == offsetof(IMAGE_OPTIONAL_HEADER64, SizeOfImage));
+static_assert(
+    pe_detail::optional_size_of_headers_offset == offsetof(IMAGE_OPTIONAL_HEADER64, SizeOfHeaders));
+static_assert(pe_detail::section_header_size == sizeof(IMAGE_SECTION_HEADER));
+static_assert(pe_detail::section_virtual_size_offset == offsetof(IMAGE_SECTION_HEADER, Misc));
+static_assert(
+    pe_detail::section_virtual_address_offset == offsetof(IMAGE_SECTION_HEADER, VirtualAddress));
+static_assert(pe_detail::section_raw_size_offset == offsetof(IMAGE_SECTION_HEADER, SizeOfRawData));
+static_assert(
+    pe_detail::section_characteristics_offset == offsetof(IMAGE_SECTION_HEADER, Characteristics));
+static_assert(image_section_discardable == IMAGE_SCN_MEM_DISCARDABLE);
+static_assert(image_section_execute == IMAGE_SCN_MEM_EXECUTE);
+static_assert(image_section_read == IMAGE_SCN_MEM_READ);
+static_assert(image_section_write == IMAGE_SCN_MEM_WRITE);
 
 [[nodiscard]] constexpr bool
 range_within_image(std::uintptr_t rva, std::size_t access_size, std::size_t image_size) noexcept {
     return rva <= image_size && access_size <= image_size - rva;
 }
 
+[[nodiscard]] constexpr const char* address_kind_label(OptionalAddressKind kind) noexcept {
+    switch (kind) {
+    case OptionalAddressKind::code:
+        return "executable code";
+    case OptionalAddressKind::data:
+        return "readable data";
+    case OptionalAddressKind::writable_data:
+        return "writable data";
+    }
+    return "unknown";
+}
+
 bool matches(const std::byte* image,
     std::uintptr_t rva,
     std::span<const std::uint8_t> bytes,
+    std::span<const ImageSectionRange> sections,
     std::size_t image_size) noexcept {
-    return range_within_image(rva, bytes.size(), image_size) &&
+    return image_size <= UINT32_MAX && bytes.size() <= UINT32_MAX &&
+           section_contains_rva(sections,
+               static_cast<std::uint32_t>(image_size),
+               rva,
+               static_cast<std::uint32_t>(bytes.size()),
+               OptionalAddressKind::code) &&
+           range_within_image(rva, bytes.size(), image_size) &&
            std::memcmp(image + rva, bytes.data(), bytes.size()) == 0;
 }
 
@@ -55,22 +110,21 @@ CheckedModule find_checked_module() noexcept {
     if (!image) {
         return {};
     }
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image);
-    if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew < 0 ||
-        static_cast<std::uint32_t>(dos->e_lfanew) > 0x1000U - sizeof(IMAGE_NT_HEADERS64)) {
-        return {};
-    }
-    const auto* nt_headers = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image + dos->e_lfanew);
-    if (nt_headers->Signature != IMAGE_NT_SIGNATURE ||
-        nt_headers->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64 ||
-        nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-        return {};
-    }
 
-    const auto image_size = static_cast<std::size_t>(nt_headers->OptionalHeader.SizeOfImage);
-    if (image_size == 0) {
+    CheckedModule module{};
+    PeImageSummary summary{};
+    const auto parse_status =
+        parse_pe64_sections(std::span<const std::byte>{image, pe_header_probe_size},
+            module.sections,
+            summary);
+    if (parse_status != PeParseStatus::ok) {
+        log_warn("Fallout 4 executable PE validation failed ({}); compatibility not confirmed.",
+            pe_parse_status_name(parse_status));
         return {};
     }
+    module.section_count = summary.section_count;
+    const auto image_size = static_cast<std::size_t>(summary.image_size);
+    const std::span<const ImageSectionRange> sections{module.sections.data(), module.section_count};
 
     // Verified instruction signatures and payload guards. See docs/bindings.md for details.
     static constexpr std::array<std::uint8_t, 15> registration{
@@ -482,7 +536,7 @@ CheckedModule find_checked_module() noexcept {
         },
     };
     for (const auto& signature : signature_checks) {
-        if (!matches(image, signature.rva, signature.bytes, image_size)) {
+        if (!matches(image, signature.rva, signature.bytes, sections, image_size)) {
             log_warn("Fallout 4 verified instruction signature mismatch at RVA 0x{:X}; "
                      "compatibility not confirmed.",
                 signature.rva);
@@ -492,25 +546,44 @@ CheckedModule find_checked_module() noexcept {
 
     // Static address ranges accessed by the native adapter layer (locks, manager instance, hook sites).
     constexpr std::array required_static_ranges{
-        AddressRange{.rva = register_rva, .size = registration.size()},
-        AddressRange{.rva = input_context_stack_lock_rva, .size = sizeof(RE::BSReadWriteLock)},
-        AddressRange{.rva = ui_static_slot_rva, .size = sizeof(std::uintptr_t)},
-        AddressRange{.rva = ui_static_storage_rva, .size = ui_static_storage_size},
-        AddressRange{.rva = menu_stack_lock_rva, .size = sizeof(RE::BSReadWriteLock)},
+        AddressRange{.rva = register_rva,
+            .size = registration.size(),
+            .kind = OptionalAddressKind::code},
+        AddressRange{.rva = input_context_stack_lock_rva,
+            .size = sizeof(RE::BSReadWriteLock),
+            .kind = OptionalAddressKind::writable_data},
+        AddressRange{.rva = ui_static_slot_rva,
+            .size = sizeof(std::uintptr_t),
+            .kind = OptionalAddressKind::writable_data},
+        AddressRange{.rva = ui_static_storage_rva,
+            .size = ui_static_storage_size,
+            .kind = OptionalAddressKind::writable_data},
+        AddressRange{.rva = menu_stack_lock_rva,
+            .size = sizeof(RE::BSReadWriteLock),
+            .kind = OptionalAddressKind::writable_data},
         AddressRange{.rva = native_dispatch_helper_rva,
-            .size = native_dispatch_helper_guard.size()},
+            .size = native_dispatch_helper_guard.size(),
+            .kind = OptionalAddressKind::code},
         AddressRange{.rva = native_dispatch_main_call_rva - native_dispatch_main_arguments.size(),
             .size =
-                native_dispatch_main_arguments.size() + native_dispatch_main_original_call.size()},
-        AddressRange{.rva = native_dispatch_main_message_loop_rva, .size = 5},
+                native_dispatch_main_arguments.size() + native_dispatch_main_original_call.size(),
+            .kind = OptionalAddressKind::code},
+        AddressRange{.rva = native_dispatch_main_message_loop_rva,
+            .size = 5,
+            .kind = OptionalAddressKind::code},
         AddressRange{.rva = native_dispatch_remap_button_rva,
-            .size = native_dispatch_remap_guard.size()},
-        AddressRange{.rva = graph_reference_acquire_rva, .size = 4},
-        AddressRange{.rva = graph_reference_release_rva, .size = 25},
-        AddressRange{.rva = animation_source_rva, .size = 9},
+            .size = native_dispatch_remap_guard.size(),
+            .kind = OptionalAddressKind::code},
+        AddressRange{.rva = graph_reference_acquire_rva,
+            .size = 4,
+            .kind = OptionalAddressKind::code},
+        AddressRange{.rva = graph_reference_release_rva,
+            .size = 25,
+            .kind = OptionalAddressKind::code},
+        AddressRange{.rva = animation_source_rva, .size = 9, .kind = OptionalAddressKind::code},
     };
     for (const auto& range : required_static_ranges) {
-        if (!range_within_image(range.rva, range.size, image_size)) {
+        if (range.size > UINT32_MAX || !range_within_image(range.rva, range.size, image_size)) {
             log_warn("Fallout 4 executable image size (0x{:X}) is insufficient for required "
                      "static range at RVA 0x{:X} (size 0x{:X}); compatibility not confirmed.",
                 image_size,
@@ -518,8 +591,22 @@ CheckedModule find_checked_module() noexcept {
                 range.size);
             return {};
         }
+        if (!section_contains_rva(sections,
+                static_cast<std::uint32_t>(image_size),
+                range.rva,
+                static_cast<std::uint32_t>(range.size),
+                range.kind)) {
+            log_warn("Fallout 4 required static range at RVA 0x{:X} (size 0x{:X}) does not "
+                     "reside in a compatible {} section; compatibility not confirmed.",
+                range.rva,
+                range.size,
+                address_kind_label(range.kind));
+            return {};
+        }
     }
-    return CheckedModule{.base = reinterpret_cast<std::uintptr_t>(image), .size = image_size};
+    module.base = reinterpret_cast<std::uintptr_t>(image);
+    module.size = image_size;
+    return module;
 }
 
 const CheckedModule& checked_image() noexcept {
@@ -580,6 +667,11 @@ bool is_equipped_weapon_data(const RE::EquippedItemData& data) noexcept {
     std::uintptr_t vtable{};
     std::memcpy(&vtable, std::addressof(data), sizeof(vtable));
     return vtable == expected_vtable;
+}
+
+std::span<const ImageSectionRange> checked_image_sections() noexcept {
+    const auto& module = checked_image();
+    return {module.sections.data(), module.section_count};
 }
 
 RE::BSReadWriteLock* input_context_stack_lock() noexcept {

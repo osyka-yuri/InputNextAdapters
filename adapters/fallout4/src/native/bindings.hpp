@@ -1,11 +1,14 @@
 #pragma once
 
+#include "native/optional_id_map.hpp"
+
 #include <F4SE/Impl/PCH.h>
 #include <RE/B/BSSpinLock.h>
 #include <RE/B/BSTEvent.h>
 
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace RE {
 class EquippedItemData;
@@ -27,6 +30,7 @@ struct ShotFacts {
 [[nodiscard]] std::uintptr_t checked_image_base() noexcept;
 [[nodiscard]] std::size_t checked_image_size() noexcept;
 [[nodiscard]] bool is_equipped_weapon_data(const RE::EquippedItemData& data) noexcept;
+[[nodiscard]] std::span<const ImageSectionRange> checked_image_sections() noexcept;
 // Borrowed engine lock; valid only while the validated executable remains loaded.
 [[nodiscard]] RE::BSReadWriteLock* input_context_stack_lock() noexcept;
 [[nodiscard]] bool register_weapon_fired(const RE::BSTEventSink<WeaponFiredEvent>* sink) noexcept;
