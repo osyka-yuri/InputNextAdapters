@@ -8,6 +8,7 @@
 #include <cstring>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace fallout4_adapter::native {
 struct OptionalIdMapping {
@@ -28,6 +29,7 @@ inline constexpr std::uint32_t image_section_write = 0x80000000U;
 
 inline constexpr std::uint32_t pe_header_probe_size = 0x1000U;
 inline constexpr std::size_t pe_max_sections = 96U;
+inline constexpr std::uint32_t radiation_factory_expected_size = 0xC7U;
 
 namespace pe_detail {
 inline constexpr std::uint16_t dos_signature = 0x5A4DU;
@@ -315,5 +317,80 @@ template <std::size_t Count, class MappingRange>
                                                       requests[index].kind);
     }
     return result;
+}
+
+struct RadiationFactoryBinding {
+    std::uint32_t factory_rva{};
+    std::uint32_t source_slot_rva{};
+};
+
+[[nodiscard]] inline bool valid_radiation_source_factory(std::span<const std::byte> code,
+    RadiationFactoryBinding binding) noexcept {
+    if (code.size() < radiation_factory_expected_size ||
+        binding.factory_rva > UINT32_MAX - radiation_factory_expected_size) {
+        return false;
+    }
+
+    // Verified Fallout4.exe 1.11.240.0 ID 2248914 (RVA [0x1055230, 0x10552F7), 0xC7 bytes):
+    //   +0x00: 48 83 EC 28                 sub rsp, 28h
+    //   +0x04: 48 83 3D <disp32> 00         cmp qword ptr [slot], 0
+    //   +0x0C: 0F 85 B0 00 00 00           jne +0xB0 (epilogue at +0xC2)
+    //   +0x1E: 48 8B 19                    mov rbx, qword ptr [rcx]
+    //   +0x43: 48 89 3D <disp32>            mov qword ptr [slot], rdi
+    //   +0xB6: 48 89 3D <disp32>            mov qword ptr [slot], rdi
+    //   +0xC2: 48 83 C4 28 C3              add rsp, 28h; ret
+    constexpr std::array<std::byte, 7> prologue{
+        std::byte{0x48},
+        std::byte{0x83},
+        std::byte{0xEC},
+        std::byte{0x28},
+        std::byte{0x48},
+        std::byte{0x83},
+        std::byte{0x3D},
+    };
+    constexpr std::array<std::byte, 7> jne_to_epilogue{
+        std::byte{0x00},
+        std::byte{0x0F},
+        std::byte{0x85},
+        std::byte{0xB0},
+        std::byte{0x00},
+        std::byte{0x00},
+        std::byte{0x00},
+    };
+    constexpr std::array<std::byte, 3> deref_kill_slot{
+        std::byte{0x48},
+        std::byte{0x8B},
+        std::byte{0x19},
+    };
+    constexpr std::array<std::byte, 3> mov_slot_opcode{
+        std::byte{0x48},
+        std::byte{0x89},
+        std::byte{0x3D},
+    };
+    constexpr std::array<std::byte, 5> epilogue{
+        std::byte{0x48},
+        std::byte{0x83},
+        std::byte{0xC4},
+        std::byte{0x28},
+        std::byte{0xC3},
+    };
+
+    const auto equals_at = [&](std::size_t offset, std::span<const std::byte> expected) noexcept {
+        return std::memcmp(code.data() + offset, expected.data(), expected.size()) == 0;
+    };
+    const auto rip_target_matches_slot = [&](std::size_t disp_offset,
+                                             std::uint32_t next_ip_offset) noexcept {
+        std::int32_t disp{};
+        std::memcpy(&disp, code.data() + disp_offset, sizeof(disp));
+        const auto target_rva = static_cast<std::int64_t>(binding.factory_rva) +
+                                static_cast<std::int64_t>(next_ip_offset) + disp;
+        return std::cmp_equal(target_rva, binding.source_slot_rva);
+    };
+
+    return equals_at(0x00U, prologue) && equals_at(0x0BU, jne_to_epilogue) &&
+           equals_at(0x1EU, deref_kill_slot) && equals_at(0x43U, mov_slot_opcode) &&
+           equals_at(0xB6U, mov_slot_opcode) && equals_at(0xC2U, epilogue) &&
+           rip_target_matches_slot(0x07U, 0x0CU) && rip_target_matches_slot(0x46U, 0x4AU) &&
+           rip_target_matches_slot(0xB9U, 0xBDU);
 }
 } // namespace fallout4_adapter::native

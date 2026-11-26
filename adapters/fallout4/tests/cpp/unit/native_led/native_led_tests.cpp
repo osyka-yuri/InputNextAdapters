@@ -85,6 +85,53 @@ std::vector<std::byte> build_synthetic_pe64(std::span<const SyntheticSectionSpec
     }
     return image;
 }
+
+struct RipSlotFixup {
+    std::size_t disp_offset{};
+    std::uint32_t factory_rva{};
+    std::uint32_t next_ip_offset{};
+    std::uint32_t target_rva{};
+};
+
+void write_disp32(std::span<std::byte> code, const RipSlotFixup& fixup) {
+    const auto disp = static_cast<std::int32_t>(
+        static_cast<std::int64_t>(fixup.target_rva) -
+        (static_cast<std::int64_t>(fixup.factory_rva) + fixup.next_ip_offset));
+    write_le<std::int32_t>(code, fixup.disp_offset, disp);
+}
+
+std::vector<std::byte> build_radiation_factory_bytes(
+    fallout4_adapter::native::RadiationFactoryBinding binding) {
+    using fallout4_adapter::native::radiation_factory_expected_size;
+    std::vector<std::byte> code(radiation_factory_expected_size, std::byte{0x90});
+    constexpr std::array<std::uint8_t, 7> prologue{0x48, 0x83, 0xEC, 0x28, 0x48, 0x83, 0x3D};
+    constexpr std::array<std::uint8_t, 7> jne_op{0x00, 0x0F, 0x85, 0xB0, 0x00, 0x00, 0x00};
+    constexpr std::array<std::uint8_t, 3> mov_kill{0x48, 0x8B, 0x19};
+    constexpr std::array<std::uint8_t, 3> mov_slot{0x48, 0x89, 0x3D};
+    constexpr std::array<std::uint8_t, 5> epilogue{0x48, 0x83, 0xC4, 0x28, 0xC3};
+    std::memcpy(code.data(), prologue.data(), prologue.size());
+    std::memcpy(code.data() + 0x0BU, jne_op.data(), jne_op.size());
+    std::memcpy(code.data() + 0x1EU, mov_kill.data(), mov_kill.size());
+    std::memcpy(code.data() + 0x43U, mov_slot.data(), mov_slot.size());
+    std::memcpy(code.data() + 0xB6U, mov_slot.data(), mov_slot.size());
+    std::memcpy(code.data() + 0xC2U, epilogue.data(), epilogue.size());
+    write_disp32(code,
+        {.disp_offset = 0x07U,
+            .factory_rva = binding.factory_rva,
+            .next_ip_offset = 0x0CU,
+            .target_rva = binding.source_slot_rva});
+    write_disp32(code,
+        {.disp_offset = 0x46U,
+            .factory_rva = binding.factory_rva,
+            .next_ip_offset = 0x4AU,
+            .target_rva = binding.source_slot_rva});
+    write_disp32(code,
+        {.disp_offset = 0xB9U,
+            .factory_rva = binding.factory_rva,
+            .next_ip_offset = 0xBDU,
+            .target_rva = binding.source_slot_rva});
+    return code;
+}
 } // namespace
 
 TEST_CASE("fallout4.native_led.radiation_unknown_zero_positive_and_lifecycle_race",
@@ -180,6 +227,85 @@ TEST_CASE("fallout4.native_led.optional_ids_require_presence_and_matching_image_
               8U,
               OptionalAddressKind::writable_data),
         "data pointers that cross a section boundary are rejected");
+}
+
+TEST_CASE("fallout4.native_led.radiation_factory_and_slot_section_constraints",
+    "[unit][fallout4][native_led]") {
+    using namespace fallout4_adapter::native;
+    constexpr std::array mappings{
+        OptionalIdMapping{.id = 1001U, .offset = 0x110U},    // IsSneaking
+        OptionalIdMapping{.id = 1002U, .offset = 0x310U},    // ProcessLists::Singleton
+        OptionalIdMapping{.id = 1003U, .offset = 0x120U},    // RequestHighestDetectionLevel
+        OptionalIdMapping{.id = 4803487U, .offset = 0x410U}, // CurrentRadiationSourceCount slot
+        OptionalIdMapping{.id = 4796078U, .offset = 0x320U}, // BSTGlobalEvent::Singleton
+        OptionalIdMapping{.id = 2248914U, .offset = 0x140U}, // Radiation factory helper
+    };
+    constexpr std::array sections{
+        ImageSectionRange{.rva = 0x100U,
+            .size = 0x180U,
+            .characteristics = image_section_read | image_section_execute},
+        ImageSectionRange{.rva = 0x300U, .size = 0x80U, .characteristics = image_section_read},
+        ImageSectionRange{.rva = 0x400U,
+            .size = 0x80U,
+            .characteristics = image_section_read | image_section_write},
+    };
+    constexpr std::array led_requests{
+        OptionalAddressRequest{.id = 1001U, .width = 1U, .kind = OptionalAddressKind::code},
+        OptionalAddressRequest{.id = 1002U, .width = 8U, .kind = OptionalAddressKind::data},
+        OptionalAddressRequest{.id = 1003U, .width = 1U, .kind = OptionalAddressKind::code},
+        OptionalAddressRequest{.id = 4803487U,
+            .width = 8U,
+            .kind = OptionalAddressKind::writable_data},
+        OptionalAddressRequest{.id = 4796078U, .width = 8U, .kind = OptionalAddressKind::data},
+        OptionalAddressRequest{.id = 2248914U,
+            .width = radiation_factory_expected_size,
+            .kind = OptionalAddressKind::code},
+    };
+
+    const auto full =
+        resolve_optional_addresses(mappings, std::span{sections}, 0x1000U, led_requests);
+    check(full.available[3] && full.rvas[3] == 0x410U && full.available[4] &&
+              full.rvas[4] == 0x320U && full.available[5] && full.rvas[5] == 0x140U,
+        "radiation source slot, global singleton, and full-width engine factory helper resolve "
+        "only "
+        "in their respective writable data, data, and executable code sections");
+
+    constexpr std::uint32_t exact_fit_rva = 0x280U - radiation_factory_expected_size;
+    constexpr std::array exact_fit_mappings{
+        OptionalIdMapping{.id = 4803487U, .offset = 0x410U},
+        OptionalIdMapping{.id = 4796078U, .offset = 0x320U},
+        OptionalIdMapping{.id = 2248914U, .offset = exact_fit_rva},
+    };
+    const auto exact_fit =
+        resolve_optional_addresses(exact_fit_mappings, std::span{sections}, 0x1000U, led_requests);
+    check(exact_fit.available[5] && exact_fit.rvas[5] == exact_fit_rva,
+        "factory helper ending exactly at the executable section boundary is accepted");
+
+    constexpr std::array overflowing_mappings{
+        OptionalIdMapping{.id = 4803487U, .offset = 0x410U},
+        OptionalIdMapping{.id = 4796078U, .offset = 0x320U},
+        OptionalIdMapping{.id = 2248914U,
+            .offset = exact_fit_rva + 1U}, // starts in .text, overflows
+    };
+    const auto overflowed = resolve_optional_addresses(overflowing_mappings,
+        std::span{sections},
+        0x1000U,
+        led_requests);
+    check(overflowed.rvas[5] == exact_fit_rva + 1U && !overflowed.available[5],
+        "factory helper starting inside .text whose 0xC7 span overflows section bounds is "
+        "rejected");
+
+    constexpr std::array misclassified_mappings{
+        OptionalIdMapping{.id = 4803487U, .offset = 0x310U}, // read-only section
+        OptionalIdMapping{.id = 4796078U, .offset = 0x320U},
+        OptionalIdMapping{.id = 2248914U, .offset = 0x420U}, // writable data instead of code
+    };
+    const auto rejected = resolve_optional_addresses(misclassified_mappings,
+        std::span{sections},
+        0x1000U,
+        led_requests);
+    check(!rejected.available[3] && !rejected.available[5] && rejected.available[4],
+        "radiation source slot in read-only memory and factory helper outside .text are rejected");
 }
 
 TEST_CASE("fallout4.native_led.pe64_parser_and_section_security_checks",
@@ -393,4 +519,267 @@ TEST_CASE("fallout4.native_led.pe64_parser_and_section_security_checks",
     check(parse_pe64_sections(build_synthetic_pe64(overlapping_specs), parsed_sections, summary) ==
               PeParseStatus::invalid_section_entry,
         "overlapping virtual section ranges are rejected");
+}
+
+TEST_CASE("fallout4.native_led.radiation_factory_signature_validation",
+    "[unit][fallout4][native_led]") {
+    using namespace fallout4_adapter::native;
+    constexpr RadiationFactoryBinding binding{.factory_rva = 0x1055230U,
+        .source_slot_rva = 0x3279570U};
+
+    // Fallout4.exe 1.11.240.0 ID 2248914 machine code at RVA [0x1055230, 0x10552F7).
+    constexpr std::array<std::uint8_t, radiation_factory_expected_size> raw_1_11_240_0_factory{
+        0x48,
+        0x83,
+        0xEC,
+        0x28,
+        0x48,
+        0x83,
+        0x3D,
+        0x34,
+        0x43,
+        0x22,
+        0x02,
+        0x00,
+        0x0F,
+        0x85,
+        0xB0,
+        0x00,
+        0x00,
+        0x00,
+        0x48,
+        0x8D,
+        0x05,
+        0x67,
+        0x38,
+        0x41,
+        0x01,
+        0x48,
+        0x89,
+        0x5C,
+        0x24,
+        0x30,
+        0x48,
+        0x8B,
+        0x19,
+        0x48,
+        0x8D,
+        0x0D,
+        0x40,
+        0x43,
+        0x22,
+        0x02,
+        0x48,
+        0x89,
+        0x05,
+        0x21,
+        0x43,
+        0x22,
+        0x02,
+        0x33,
+        0xC0,
+        0x89,
+        0x05,
+        0x29,
+        0x43,
+        0x22,
+        0x02,
+        0x48,
+        0x89,
+        0x7C,
+        0x24,
+        0x20,
+        0x48,
+        0x8D,
+        0x3D,
+        0x0D,
+        0x43,
+        0x22,
+        0x02,
+        0x48,
+        0x89,
+        0x3D,
+        0xF6,
+        0x42,
+        0x22,
+        0x02,
+        0x89,
+        0x05,
+        0x14,
+        0x43,
+        0x22,
+        0x02,
+        0xE8,
+        0x4B,
+        0x49,
+        0x60,
+        0x00,
+        0x48,
+        0x8D,
+        0x0D,
+        0x1C,
+        0x43,
+        0x22,
+        0x02,
+        0xE8,
+        0xFF,
+        0x45,
+        0x60,
+        0x00,
+        0x48,
+        0x8D,
+        0x0D,
+        0x18,
+        0x43,
+        0x22,
+        0x02,
+        0xE8,
+        0x33,
+        0x49,
+        0x60,
+        0x00,
+        0x48,
+        0x8D,
+        0x0D,
+        0x1C,
+        0x43,
+        0x22,
+        0x02,
+        0xE8,
+        0xE7,
+        0x45,
+        0x60,
+        0x00,
+        0x48,
+        0x8D,
+        0x0D,
+        0x18,
+        0x43,
+        0x22,
+        0x02,
+        0xE8,
+        0x1B,
+        0x49,
+        0x60,
+        0x00,
+        0x48,
+        0x8D,
+        0x0D,
+        0x1C,
+        0x43,
+        0x22,
+        0x02,
+        0xE8,
+        0xCF,
+        0x45,
+        0x60,
+        0x00,
+        0x48,
+        0x8D,
+        0x05,
+        0xB8,
+        0xDE,
+        0x4D,
+        0x01,
+        0xC6,
+        0x05,
+        0x11,
+        0x43,
+        0x22,
+        0x02,
+        0x00,
+        0x48,
+        0x8B,
+        0xD7,
+        0x48,
+        0x89,
+        0x05,
+        0xA7,
+        0x42,
+        0x22,
+        0x02,
+        0x48,
+        0x8B,
+        0xCB,
+        0xE8,
+        0x5F,
+        0xE6,
+        0x1D,
+        0xFF,
+        0x48,
+        0x8B,
+        0x5C,
+        0x24,
+        0x30,
+        0x48,
+        0x89,
+        0x3D,
+        0x83,
+        0x42,
+        0x22,
+        0x02,
+        0x48,
+        0x8B,
+        0x7C,
+        0x24,
+        0x20,
+        0x48,
+        0x83,
+        0xC4,
+        0x28,
+        0xC3,
+    };
+    const auto real_bytes = std::as_bytes(std::span{raw_1_11_240_0_factory});
+    check(valid_radiation_source_factory(real_bytes, binding),
+        "verbatim Fallout4.exe 1.11.240.0 radiation factory machine code passes validation");
+    check(!valid_radiation_source_factory(real_bytes,
+              RadiationFactoryBinding{.factory_rva = binding.factory_rva,
+                  .source_slot_rva = binding.source_slot_rva + 8U}),
+        "verbatim Fallout4.exe 1.11.240.0 radiation factory rejects a mismatched slot binding");
+
+    const auto valid_code = build_radiation_factory_bytes(binding);
+    check(valid_radiation_source_factory(valid_code, binding),
+        "verified 1.11.240.0 radiation factory prologue, slot displacements, and epilogue pass");
+
+    check(!valid_radiation_source_factory(
+              std::span<const std::byte>{valid_code.data(), radiation_factory_expected_size - 1U},
+              binding),
+        "truncated factory code span is rejected");
+
+    auto bad_prologue = valid_code;
+    bad_prologue[0] = std::byte{0xCC};
+    check(!valid_radiation_source_factory(bad_prologue, binding),
+        "corrupted factory prologue fails validation");
+
+    auto wrong_cmp_slot = valid_code;
+    write_disp32(wrong_cmp_slot,
+        {.disp_offset = 0x07U,
+            .factory_rva = binding.factory_rva,
+            .next_ip_offset = 0x0CU,
+            .target_rva = binding.source_slot_rva + 8U});
+    check(!valid_radiation_source_factory(wrong_cmp_slot, binding),
+        "factory comparing a different slot global fails validation");
+
+    auto wrong_publish_slot = valid_code;
+    write_disp32(wrong_publish_slot,
+        {.disp_offset = 0x46U,
+            .factory_rva = binding.factory_rva,
+            .next_ip_offset = 0x4AU,
+            .target_rva = binding.source_slot_rva + 8U});
+    check(!valid_radiation_source_factory(wrong_publish_slot, binding),
+        "factory publishing to a different slot global fails validation");
+
+    auto wrong_final_store = valid_code;
+    write_disp32(wrong_final_store,
+        {.disp_offset = 0xB9U,
+            .factory_rva = binding.factory_rva,
+            .next_ip_offset = 0xBDU,
+            .target_rva = binding.source_slot_rva + 8U});
+    check(!valid_radiation_source_factory(wrong_final_store, binding),
+        "factory trailing store mismatch fails validation");
+
+    auto bad_epilogue = valid_code;
+    bad_epilogue.back() = std::byte{0xCC};
+    check(!valid_radiation_source_factory(bad_epilogue, binding),
+        "altered factory return instruction fails validation");
 }

@@ -117,13 +117,29 @@ The health HUD also processes active effects and overlays. The adapter's Actor V
 
 `checked_image_base()` validates the loader-mapped PE32+ image, including the DOS and NT headers, x64 machine type, header bounds, section alignment, and non-overlapping non-empty section ranges within `SizeOfImage` (using `VirtualSize` with `SizeOfRawData` fallback and skipping zero-sized sections). The DOS, NT, and optional headers plus the section table must fit within the initial 4 KiB probe.
 
-Required native bindings must reside in sections with appropriate access characteristics and satisfy the verified Fallout 4 1.11.240.0 instruction signatures where applicable. Code bindings exclude writable sections, data bindings exclude executable sections, and all validated bindings exclude discardable sections. `REL::Offset2ID` is the public API in the pinned `commonlib-shared` revision `29fbdb0e2dc548c9ab22f6964981d75090dc9094`.
+Required native bindings must reside in sections with appropriate access characteristics and satisfy the verified Fallout 4 1.11.240.0 instruction signatures where applicable. Code bindings exclude writable sections, data bindings exclude executable sections, and all validated bindings exclude discardable sections.
 
 The LED health sample copies the absolute current health and gameplay maximum on the admitted main observation path. Health is read once; both haptics and enabled LED health use that same sample. Its maximum uses the existing Actor Value relation `current - GetModifier(kDamage, info)` and does not change haptic normalization. A maximum change is a new color basis, not evidence of damage or healing. Native LED reads follow the immutable startup settings; disabled stealth skips detection queries.
 
-Combat comes from the actor's `IsInCombat` virtual helper. Sneaking and detection use optional Address Library bindings for `Actor::IsSneaking`, `ProcessLists::Singleton`, and `ProcessLists::RequestHighestDetectionLevelAgainstActor`. Detection remains the returned signed 16-bit raw score. These new IDs are resolved by one temporary public `REL::Offset2ID` inverse-table pass (`load_v5`, then `load_v2` only if empty); each result must land in a readable code or data section of the already checked 1.11.240 executable. Missing IDs or wrong-section addresses disable only the affected optional source. No fatal `ID::offset` lookup or guessed relocation is used for these additions.
+Combat comes from the actor's `IsInCombat` virtual helper. Sneaking and detection use optional Address Library bindings for `Actor::IsSneaking`, `ProcessLists::Singleton`, and `ProcessLists::RequestHighestDetectionLevelAgainstActor`. Detection remains the returned signed 16-bit raw score. These IDs and the radiation IDs below are resolved by one temporary inverse-table pass through `REL::Offset2ID` (the public API in the pinned `commonlib-shared` revision `29fbdb0e2dc548c9ab22f6964981d75090dc9094`; `load_v5`, then `load_v2` if empty), and each result must reside in a compatible section of the checked Fallout 4 1.11.240.0 executable. Missing IDs or addresses in incompatible sections disable only the affected optional source; no fatal `ID::offset` lookup or guessed relocation is used.
 
-Radiation subscribes to CommonLibF4's `CurrentRadiationSourceCount` change source through the same admitted main-thread sink-install path. Its global event source and source slot are optional data bindings and receive the same image-section validation. The callback runs under the engine source lock, captures a lifecycle generation, copies only the uint32 count, and makes one lock-free publication CAS. It performs no engine reads, logging, waiting, or output work. The sink and scalar cache live for the module/process lifetime because the engine global source can delete itself during shutdown.
+Radiation uses the engine-owned `CurrentRadiationSourceCount` event source. Sink registration runs on the admitted main-thread path.
+
+The native bindings are verified against Fallout 4 1.11.240.0:
+
+| Binding | Address Library ID | RVA |
+|---|---:|---:|
+| Radiation source slot | 4803487 | `0x3279570` |
+| `BSTGlobalEvent::Singleton` | 4796078 | `0x30E6EC0` |
+| Radiation source factory | 2248914 | `0x1055230` |
+
+If the source slot is null, registration requires a non-null global event singleton and a validated factory. The factory occupies `0xC7` bytes and accepts `BSTGlobalEvent::KillSDMEventSource* const*`. Validation checks its instruction signatures and RIP-relative references to the source slot.
+
+The factory checks and writes the pointer to engine-owned static storage at `0x3279580` into the source slot without synchronization before finishing array initialization and registering `KillSDMEvent` teardown. Creation must therefore remain on the main thread. The engine manages teardown through `KillSDMEvent`, invoking the non-deleting virtual destructor (`edx = 0`) and clearing the source slot.
+
+The callback runs under the engine source lock. It captures the lifecycle generation, copies only the optional `uint32_t` count, and publishes the count with a single lock-free CAS (withdrawing cached knowledge when absent and dropping racing or stale events without retrying). It performs no engine reads, logging, waiting, or output operations.
+
+The adapter's sink and scalar cache remain valid for the module lifetime; the engine owns the event source until subsystem shutdown.
 
 The library exposes this change-event source but no supported request source for the current value; registration does not replay existing state. Therefore radiation remains unknown after startup/load until a real count event is received. Load/new-game/inert transitions invalidate the generation; the first admitted gameplay observation enables the new generation. Focus, UI, audio, or controller rebinding does not erase the cached game-lifecycle count. Generation exhaustion disables this optional source without wrapping.
 

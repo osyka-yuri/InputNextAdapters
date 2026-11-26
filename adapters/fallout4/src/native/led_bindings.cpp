@@ -10,18 +10,52 @@
 #include <RE/P/ProcessLists.h>
 #include <REL/Offset2ID.h>
 
+// Include after CommonLibF4 headers because diagnostic_logging.hpp pulls <Windows.h>.
+#include "diagnostic_logging.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <new>
+#include <memory>
 #include <optional>
 #include <span>
 
 namespace fallout4_adapter::native {
 namespace {
+// Fallout4.exe 1.11.240.0, RVA 0x1055230.
+// Initializes the engine-owned radiation singleton without synchronization.
+// Main-thread only.
+inline constexpr std::uint64_t radiation_event_source_factory_id = 2248914U;
+
+static_assert(offsetof(RE::BSTGlobalEvent, eventSourceSDMKiller) == 0x10U);
+
+enum class LedBinding : std::uint8_t {
+    actor_is_sneaking,
+    process_lists_singleton,
+    highest_detection_level,
+    radiation_source_slot,
+    global_event_singleton,
+    radiation_source_factory,
+    count,
+};
+
+constexpr std::size_t binding_index(LedBinding binding) noexcept {
+    return static_cast<std::size_t>(binding);
+}
+
+inline constexpr std::size_t led_binding_count = binding_index(LedBinding::count);
+
 struct LedBindings {
-    std::array<std::uintptr_t, 5> addresses{};
-    std::array<bool, 5> available{};
+    std::array<std::uintptr_t, led_binding_count> addresses{};
+    std::array<bool, led_binding_count> available{};
+
+    [[nodiscard]] bool has(LedBinding binding) const noexcept {
+        return available[binding_index(binding)];
+    }
+
+    [[nodiscard]] std::uintptr_t address(LedBinding binding) const noexcept {
+        return addresses[binding_index(binding)];
+    }
 };
 
 const LedBindings& led_bindings() noexcept {
@@ -34,7 +68,7 @@ const LedBindings& led_bindings() noexcept {
             return output;
         }
 
-        static constexpr std::array requests{
+        static constexpr std::array<OptionalAddressRequest, led_binding_count> requests{
             OptionalAddressRequest{.id = RE::ID::Actor::IsSneaking.id(),
                 .width = 1U,
                 .kind = OptionalAddressKind::code},
@@ -51,6 +85,9 @@ const LedBindings& led_bindings() noexcept {
             OptionalAddressRequest{.id = RE::ID::BSTEvent::BSTGlobalEvent::Singleton.id(),
                 .width = sizeof(void*),
                 .kind = OptionalAddressKind::data},
+            OptionalAddressRequest{.id = radiation_event_source_factory_id,
+                .width = radiation_factory_expected_size,
+                .kind = OptionalAddressKind::code},
         };
 
         try {
@@ -67,10 +104,31 @@ const LedBindings& led_bindings() noexcept {
                 sections,
                 static_cast<std::uint32_t>(image_size),
                 requests);
-            for (std::size_t index = 0; index < output.addresses.size(); ++index) {
+            for (std::size_t index = 0; index < led_binding_count; ++index) {
                 output.available[index] = resolved.available[index];
                 if (resolved.available[index]) {
                     output.addresses[index] = base + resolved.rvas[index];
+                }
+            }
+
+            constexpr auto factory_index = binding_index(LedBinding::radiation_source_factory);
+            constexpr auto slot_index = binding_index(LedBinding::radiation_source_slot);
+            if (output.available[factory_index]) {
+                const auto* factory_bytes =
+                    reinterpret_cast<const std::byte*>(output.addresses[factory_index]);
+                const bool validated =
+                    output.available[slot_index] &&
+                    valid_radiation_source_factory(
+                        std::span<const std::byte>{factory_bytes, radiation_factory_expected_size},
+                        {.factory_rva = resolved.rvas[factory_index],
+                            .source_slot_rva = resolved.rvas[slot_index]});
+                if (!validated) {
+                    output.available[factory_index] = false;
+                    output.addresses[factory_index] = 0;
+                    log_warn("Fallout 4 radiation source factory (ID {}) failed signature "
+                             "validation at RVA 0x{:X}; lazy creation disabled.",
+                        radiation_event_source_factory_id,
+                        resolved.rvas[factory_index]);
                 }
             }
         } catch (...) {
@@ -88,18 +146,23 @@ std::optional<StealthFacts> read_stealth_facts(RE::Actor* actor) noexcept {
         return std::nullopt;
     }
     const auto& resolved = led_bindings();
-    if (!resolved.available[0] || !resolved.available[1] || !resolved.available[2]) {
+    if (!resolved.has(LedBinding::actor_is_sneaking) ||
+        !resolved.has(LedBinding::process_lists_singleton) ||
+        !resolved.has(LedBinding::highest_detection_level)) {
         return std::nullopt;
     }
 
-    auto* process_lists = *reinterpret_cast<RE::ProcessLists**>(resolved.addresses[1]);
+    auto* process_lists = *reinterpret_cast<RE::ProcessLists**>(
+        resolved.address(LedBinding::process_lists_singleton));
     if (!process_lists) {
         return std::nullopt;
     }
     using IsSneaking = bool (*)(RE::Actor*);
     using HighestDetection = std::int16_t (*)(RE::ProcessLists*, RE::Actor*, std::uint32_t&);
-    const auto is_sneaking = reinterpret_cast<IsSneaking>(resolved.addresses[0]);
-    const auto highest_detection = reinterpret_cast<HighestDetection>(resolved.addresses[2]);
+    const auto is_sneaking =
+        reinterpret_cast<IsSneaking>(resolved.address(LedBinding::actor_is_sneaking));
+    const auto highest_detection =
+        reinterpret_cast<HighestDetection>(resolved.address(LedBinding::highest_detection_level));
     if (!is_sneaking(actor)) {
         return std::nullopt;
     }
@@ -114,24 +177,35 @@ bool register_radiation_count_sink(
         return false;
     }
     const auto& resolved = led_bindings();
-    if (!resolved.available[3] || !resolved.available[4]) {
+    if (!resolved.has(LedBinding::radiation_source_slot)) {
         return false;
     }
 
     using RadiationEventSource = RE::BSTGlobalEvent::EventSource<RE::CurrentRadiationSourceCount>;
+    using RadiationSourceFactory = void (*)(RE::BSTGlobalEvent::KillSDMEventSource* const*);
     try {
-        auto** source_slot = reinterpret_cast<RadiationEventSource**>(resolved.addresses[3]);
+        auto* const* source_slot = reinterpret_cast<RadiationEventSource* const*>(
+            resolved.address(LedBinding::radiation_source_slot));
         auto* source = *source_slot;
         if (!source) {
-            auto* global = *reinterpret_cast<RE::BSTGlobalEvent**>(resolved.addresses[4]);
+            if (!resolved.has(LedBinding::global_event_singleton) ||
+                !resolved.has(LedBinding::radiation_source_factory)) {
+                return false;
+            }
+            auto* global = *reinterpret_cast<RE::BSTGlobalEvent* const*>(
+                resolved.address(LedBinding::global_event_singleton));
             if (!global) {
                 return false;
             }
-            source = new (std::nothrow) RadiationEventSource{&global->eventSourceSDMKiller};
+            // NOLINTNEXTLINE(misc-const-correctness): Native factory mutates the pointee event source.
+            auto* const kill_source = std::addressof(global->eventSourceSDMKiller);
+            const auto ensure_source = reinterpret_cast<RadiationSourceFactory>(
+                resolved.address(LedBinding::radiation_source_factory));
+            ensure_source(&kill_source);
+            source = *source_slot;
             if (!source) {
                 return false;
             }
-            *source_slot = source;
         }
         source->RegisterSink(sink);
         return true;

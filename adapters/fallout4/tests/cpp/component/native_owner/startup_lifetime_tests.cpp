@@ -1,11 +1,17 @@
 #include "cpp/component/native_dispatch/support.hpp"
 #include "cpp/component/native_ui_capture/ui_capture_test.hpp"
+#include "native/bindings.hpp"
+#include "native/led_bindings.hpp"
 #include "native/owner.hpp"
 #include "support.hpp"
+
+#include <RE/B/BSTEvent.h>
+#include <RE/C/CurrentRadiationSourceCount.h>
 
 #include <array>
 #include <atomic>
 #include <filesystem>
+#include <new>
 
 #include <catch2/catch_test_macros.hpp>
 #undef FAIL
@@ -229,6 +235,26 @@ TEST_CASE("fallout4.native_owner.owner_startup_start_output_exception_safety",
                   !native_dispatch_test::callback_active(),
             "injected exception via output port start hook returns failed_before_callbacks");
     }
+}
+
+TEST_CASE("fallout4.native_owner.led_bindings_reject_unvalidated_host",
+    "[component][fallout4][native_owner]") {
+    class DummyRadiationSink final : public RE::BSTEventSink<RE::CurrentRadiationSourceCount> {
+    public:
+        RE::BSEventNotifyControl ProcessEvent(const RE::CurrentRadiationSourceCount& /*event*/,
+            RE::BSTEventSource<RE::CurrentRadiationSourceCount>* /*source*/) override {
+            return RE::BSEventNotifyControl::kContinue;
+        }
+    };
+
+    DummyRadiationSink sink{};
+    check(!bindings_available() && checked_image_base() == 0 && checked_image_size() == 0 &&
+              checked_image_sections().empty(),
+        "test host executable does not spoof a validated Fallout 4 runtime");
+    check(!read_stealth_facts(nullptr).has_value(),
+        "null actor is rejected cleanly when reading optional stealth facts");
+    check(!register_radiation_count_sink(nullptr) && !register_radiation_count_sink(&sink),
+        "null sinks and unvalidated hosts decline radiation sink registration safely");
 }
 
 } // namespace fallout4_adapter::native_owner_test
