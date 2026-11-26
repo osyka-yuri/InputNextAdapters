@@ -77,8 +77,9 @@ Notify is synchronous with live borrowed payloads; callback threading is not est
 `Actor::UseAmmo` calls `Actor::OnMagazineEmpty` (RVA `0xcd2700`) on the engine's zero-round
 path. The adapter observes `EquippedWeaponData::ammoCount`, the field read by
 `Actor::GetCurrentAmmoCount`, during the existing locked equipment observation. It requires a
-firearm with an ammo form, a nonzero capacity, and the checked `EquippedWeaponData` vtable at
-`0x256aee0`. A missing or replaced vtable leaves the magazine state unknown.
+firearm with an ammo form, a nonzero capacity, and `equipped.data->GetObjectType() == 0x6241C761`
+(`BSCRC32("EquippedWeaponData")`). Missing or mismatched item data leaves the magazine state
+unknown.
 
 A confirmed shot and a fresh loaded-to-empty transition for the same weapon can arrive on
 different worker ticks. The ordinary fire path notifies at `0x47a22d` before calling

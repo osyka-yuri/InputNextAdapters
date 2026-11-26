@@ -1,5 +1,4 @@
 #include "observation.hpp"
-#include "bindings.hpp"
 #include "led_bindings.hpp"
 #include "radiation_source.hpp"
 #include "ui_capture.hpp"
@@ -169,12 +168,13 @@ namespace {
 
     const auto form_id = weapon->GetFormID();
     const auto instance_address = reinterpret_cast<std::uintptr_t>(raw_instance);
+    // BSCRC32("EquippedWeaponData"), verified for Fallout 4 1.11.240.
+    constexpr std::uint32_t equipped_weapon_data_type = 0x6241C761U;
     std::optional<std::uint32_t> loaded_rounds;
     if (kind == WeaponKind::firearm && data->ammo && data->ammoCapacity != 0 && equipped.data &&
-        is_equipped_weapon_data(*equipped.data)) {
+        equipped.data->GetObjectType() == equipped_weapon_data_type) {
         // The engine's ammo getter returns zero for both missing weapon data and an empty clip.
-        const auto& equipped_weapon = static_cast<const RE::EquippedWeaponData&>(*equipped.data);
-        loaded_rounds = equipped_weapon.ammoCount;
+        loaded_rounds = static_cast<const RE::EquippedWeaponData&>(*equipped.data).ammoCount;
     }
     return WeaponSnapshot{
         .identity = weapon_identity(form_id, instance_address),
