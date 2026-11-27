@@ -112,6 +112,15 @@
       "cacheVariables": {
         "INPUTNEXT_FALLOUT4_ENABLE_MSVC_ANALYZE": "ON"
       }
+    },
+    {
+      "name": "msvc-x64-native-asan",
+      "inherits": "msvc-x64-native-tests",
+      "displayName": "Fallout 4 MSVC x64 native AddressSanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "INPUTNEXT_FALLOUT4_ENABLE_ASAN": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -146,6 +155,10 @@
     {
       "name": "msvc-x64-native-analysis",
       "configurePreset": "msvc-x64-native-analysis"
+    },
+    {
+      "name": "msvc-x64-native-asan",
+      "configurePreset": "msvc-x64-native-asan"
     }
   ],
   "testPresets": [
@@ -218,6 +231,17 @@
     {
       "name": "msvc-x64-native-quality",
       "configurePreset": "msvc-x64-native-quality",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 180,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64-native-asan",
+      "configurePreset": "msvc-x64-native-asan",
       "output": {
         "outputOnFailure": true
       },

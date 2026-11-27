@@ -13,11 +13,17 @@ function(inputnext_enable_asan target)
 
     get_target_property(target_type ${target} TYPE)
     if(target_type STREQUAL "STATIC_LIBRARY" OR target_type STREQUAL "OBJECT_LIBRARY")
-        target_compile_options(${target} PUBLIC /fsanitize=address)
+        target_compile_options(${target} PUBLIC
+            /fsanitize=address
+            $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CXX>,$<NOT:$<CONFIG:Debug,RelWithDebInfo>>>:/Z7>
+        )
         set(runtime_visibility PUBLIC)
         set(link_options_visibility INTERFACE)
     else()
-        target_compile_options(${target} PRIVATE /fsanitize=address)
+        target_compile_options(${target} PRIVATE
+            /fsanitize=address
+            $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CXX>,$<NOT:$<CONFIG:Debug,RelWithDebInfo>>>:/Z7>
+        )
         set(runtime_visibility PRIVATE)
         set(link_options_visibility PRIVATE)
     endif()

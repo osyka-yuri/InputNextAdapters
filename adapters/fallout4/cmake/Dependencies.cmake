@@ -72,6 +72,7 @@ set_target_properties(fallout4_commonlibf4 PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     SYSTEM TRUE
 )
+inputnext_enable_asan(fallout4_commonlibf4)
 
 foreach(_fallout4_vendor_target IN ITEMS commonlib-shared spdlog::spdlog)
     if(TARGET "${_fallout4_vendor_target}")
@@ -83,5 +84,6 @@ foreach(_fallout4_vendor_target IN ITEMS commonlib-shared spdlog::spdlog)
             set(_fallout4_real_target "${_fallout4_vendor_target}")
         endif()
         inputnext_scope_vendor_warning_suppressions("${_fallout4_real_target}")
+        inputnext_enable_asan("${_fallout4_real_target}")
     endif()
 endforeach()
